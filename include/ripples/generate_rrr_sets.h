@@ -101,8 +101,8 @@ using RRRset =
 #endif
 template <typename GraphTy>
 using RRRsets = std::vector<RRRset<GraphTy>>;
-template <typename vertex_type>
-using TransposeRRRSets = std::unordered_map<vertex_type, std::unordered_set<vertex_type>>;
+template <typename GraphTy>
+using TransposeRRRSets = std::unordered_map<typename GraphTy::vertex_type, std::unordered_set<typename GraphTy::vertex_type>>;
 
 //! \brief Execute a randomize BFS to generate a Random RR Set.
 //!
@@ -264,21 +264,19 @@ void GenerateRRRSets(GraphTy &G, PRNGeneratorTy &generator,
 template <typename GraphTy, typename PRNGeneratorTy,
           typename ItrTy, typename ExecRecordTy,
           typename diff_model_tag>
-TransposeRRRSets<GraphTy> GenerateTransposeRRRSets(GraphTy &G, PRNGeneratorTy &generator,
+void GenerateTransposeRRRSets(TransposeRRRSets<GraphTy> &transposeRRRSets, 
+                     GraphTy &G, PRNGeneratorTy &generator,
                      ItrTy begin, ItrTy end,
                      ExecRecordTy &,
                      diff_model_tag &&model_tag,
                      sequential_tag &&ex_tag) {
   trng::uniform_int_dist start(0, G.num_nodes());
 
-  TransposeRRRSets<GraphTy> transposeRRRSets;
-
   for (auto itr = begin; itr < end; ++itr) {
     typename GraphTy::vertex_type r = start(generator[0]);
     AddTransposeRRRSet(transposeRRRSets, G, r, generator[0], *itr,
               std::forward<diff_model_tag>(model_tag));
   }
-  return transposeRRRSets;
 }
 
 //! \brief Generate Random Reverse Reachability Sets - CUDA.

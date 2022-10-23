@@ -67,7 +67,8 @@ std::vector<EdgeT> karate{
     {29, 34, 0.5}, {30, 33, 0.5}, {30, 34, 0.5}, {31, 33, 0.5}, {31, 34, 0.5},
     {32, 33, 0.5}, {32, 34, 0.5}, {33, 34, 0.5}};
 
-SCENARIO("Generate transpose RRR sets", "[rrrsets]") {
+
+SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
   GIVEN("The Karate Graph") {
     using destination_type = ripples::WeightedDestination<uint32_t, float>;
     using GraphFwd = ripples::Graph<uint32_t, destination_type,
@@ -75,7 +76,6 @@ SCENARIO("Generate transpose RRR sets", "[rrrsets]") {
     using GraphBwd = ripples::Graph<uint32_t, destination_type,
                                     ripples::BackwardDirection<uint32_t>>;
     using vertex_type = typename GraphFwd::vertex_type;
-    using TransposeRRRSets = std::unordered_map<GraphTy::vertex_type, std::unordered_set<GraphTy::vertex_type>>;
 
     GraphFwd Gfwd(karate.begin(), karate.end(), false);
     GraphBwd G = Gfwd.get_transpose();
@@ -87,15 +87,17 @@ SCENARIO("Generate transpose RRR sets", "[rrrsets]") {
 
       std::vector<trng::lcg64> generator(1);
       for (size_t i = 0; i < 2; ++i) {
-        TransposeRRRSets tRRRSets = ripples::GenerateTransposeRRRSets(G, generator, RR.end() - theta, RR.end(),
+        ripples::TransposeRRRSets<GraphBwd> tRRRSets; 
+        ripples::GenerateTransposeRRRSets(tRRRSets, G, generator, RR.end() - theta, RR.end(),
                                  exRecord, ripples::independent_cascade_tag{},
                                  ripples::sequential_tag{});
 
         THEN("They all contain a non empty list of vertices.") {
           for (auto& tRRR : tRRRSets) {
-            REQUIRE(!tRRR.empty());
-            for (auto vertex : tRRR) {
+            REQUIRE(!tRRR.second.empty());
+            for (auto vertex : tRRR.second) {
               REQUIRE(vertex >= 0);
+              REQUIRE(1 == 0);
               REQUIRE(vertex < G.num_nodes());
             }
           }

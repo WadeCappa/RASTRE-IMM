@@ -336,8 +336,8 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
   return RR;
 }
 
-template <typename vertex_type>
-using TransposeRRRSets = std::unordered_map<vertex_type, std::unordered_set<vertex_type>>;
+template <typename GraphTy>
+using TransposeRRRSets = std::unordered_map<typename GraphTy::vertex_type, std::unordered_set<typename GraphTy::vertex_type>>;
 /// @brief 
 /// @tparam GraphTy 
 /// @tparam ConfTy 
@@ -390,7 +390,7 @@ TransposeRRRSets<GraphTy> HeuristicSampling(const GraphTy &G, const ConfTy &CFG,
 
       auto begin = RR.end() - delta;
 
-      result = GenerateTransposeRRRSets(G, generator, begin, RR.end(), record,
+      GenerateTransposeRRRSets(result, G, generator, begin, RR.end(), record,
                       std::forward<diff_model_tag>(model_tag),
                       std::forward<sequential_tag>(ex_tag));
     });
@@ -427,7 +427,7 @@ TransposeRRRSets<GraphTy> HeuristicSampling(const GraphTy &G, const ConfTy &CFG,
 
       auto begin = RR.end() - final_delta;
 
-      result = GenerateTransposeRRRSets(G, generator, begin, RR.end(), record,
+      GenerateTransposeRRRSets(result, G, generator, begin, RR.end(), record,
                       std::forward<diff_model_tag>(model_tag),
                       std::forward<sequential_tag>(ex_tag));
     }

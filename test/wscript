@@ -51,6 +51,11 @@ def build(bld):
         target='rrr_set_generation_tests',
         use=['project-headers', 'libtrng', 'OpenMP', 'nlohmann_json', 'cli11', 'spdlog', 'fmt', 'catch2', 'test_main'])
 
+    bld(features='cxx cxxprogram test',
+        source='transpose_rrr_set_generation.cc',
+        target='transpose_rrr_set_generation_tests',
+        use=['project-headers', 'libtrng', 'OpenMP', 'nlohmann_json', 'cli11', 'spdlog', 'fmt', 'catch2', 'test_main'])
+
     if bld.env.ENABLE_CUDA:
         bld(features='cxx cxxprogram test',
             source='cuda_find_most_influential.cc',
