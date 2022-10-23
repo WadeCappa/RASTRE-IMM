@@ -46,6 +46,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -335,6 +336,106 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
   return RR;
 }
 
+using TransposeRRRSets = std::unordered_map<GraphTy::vertex_type, std::unordered_set<GraphTy::vertex_type>>;
+/// @brief 
+/// @tparam GraphTy 
+/// @tparam ConfTy 
+/// @tparam RRRGeneratorTy 
+/// @tparam diff_model_tag 
+/// @param G 
+/// @param CFG 
+/// @param l 
+/// @param generator 
+/// @param record 
+/// @param model_tag 
+/// @param ex_tag 
+/// @return 
+template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
+          typename diff_model_tag>
+TransposeRRRSets HeuristicSampling(const GraphTy &G, const ConfTy &CFG, double l,
+              RRRGeneratorTy &generator, IMMExecutionRecord &record,
+              diff_model_tag &&model_tag, sequential_tag &&ex_tag) {
+  using vertex_type = typename GraphTy::vertex_type;
+  size_t k = CFG.k;
+  double epsilon = CFG.epsilon;
+
+  // sqrt(2) * epsilon
+  double epsilonPrime = 1.4142135623730951 * epsilon;
+
+  TransposeRRRSets result;
+
+  double LB = 0;
+  #if defined ENABLE_MEMKIND
+  RRRsetAllocator<vertex_type> allocator(libmemkind::kinds::DAX_KMEM_PREFERRED);
+  #elif defined ENABLE_METALL
+  RRRsetAllocator<vertex_type> allocator =  metall_manager_instance().get_allocator();
+#else
+  RRRsetAllocator<vertex_type> allocator;
+  #endif
+  std::vector<RRRset<GraphTy>> RR;
+
+  auto start = std::chrono::high_resolution_clock::now();
+  size_t thetaPrime = 0;
+  for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
+    // Equation 9
+    ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
+                                    std::forward<sequential_tag>(ex_tag));
+
+    size_t delta = thetaPrime - RR.size();
+    record.ThetaPrimeDeltas.push_back(delta);
+
+    auto timeRRRSets = measure<>::exec_time([&]() {
+      RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
+
+      auto begin = RR.end() - delta;
+
+      result = GenerateTransposeRRRSets(G, generator, begin, RR.end(), record,
+                      std::forward<diff_model_tag>(model_tag),
+                      std::forward<sequential_tag>(ex_tag));
+    });
+    record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
+
+    double f;
+
+    auto timeMostInfluential = measure<>::exec_time([&]() {
+      const auto &S = FindMostInfluentialSet(
+          G, CFG, RR, record, false, std::forward<sequential_tag>(ex_tag));
+
+      f = S.first;
+    });
+
+    record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
+
+    if (f >= std::pow(2, -x)) {
+      LB = (G.num_nodes() * f) / (1 + epsilonPrime);
+      break;
+    }
+  }
+
+  size_t theta = Theta(epsilon, l, k, LB, G.num_nodes());
+  auto end = std::chrono::high_resolution_clock::now();
+
+  record.ThetaEstimationTotal = end - start;
+
+  record.Theta = theta;
+
+  record.GenerateRRRSets = measure<>::exec_time([&]() {
+    if (theta > RR.size()) {
+      size_t final_delta = theta - RR.size();
+      RR.insert(RR.end(), final_delta, RRRset<GraphTy>(allocator));
+
+      auto begin = RR.end() - final_delta;
+
+      result = GenerateTransposeRRRSets(G, generator, begin, RR.end(), record,
+                      std::forward<diff_model_tag>(model_tag),
+                      std::forward<sequential_tag>(ex_tag));
+    }
+  });
+
+  return result;
+}
+
+
 //! The IMM algroithm for Influence Maximization
 //!
 //! \tparam GraphTy The type of the input graph.
@@ -374,6 +475,54 @@ auto IMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
 
   auto start = std::chrono::high_resolution_clock::now();
   const auto &S = FindMostInfluentialSet(G, CFG, R, record, false,
+                                         std::forward<sequential_tag>(ex_tag));
+  auto end = std::chrono::high_resolution_clock::now();
+
+  record.FindMostInfluentialSet = end - start;
+
+  return S.second;
+}
+
+
+/// @brief 
+/// @tparam GraphTy 
+/// @tparam ConfTy 
+/// @tparam PRNG 
+/// @tparam diff_model_tag 
+/// @param G 
+/// @param CFG 
+/// @param l 
+/// @param gen 
+/// @param record 
+/// @param model_tag 
+/// @param ex_tag 
+/// @return 
+template <typename GraphTy, typename ConfTy, typename PRNG,
+          typename diff_model_tag>
+auto HeuristicIMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
+         IMMExecutionRecord &record, diff_model_tag &&model_tag,
+         sequential_tag &&ex_tag) {
+  using vertex_type = typename GraphTy::vertex_type;
+  size_t k = CFG.k;
+  double epsilon = CFG.epsilon;
+
+  std::vector<trng::lcg64> generator(1, gen);
+
+  l = l * (1 + 1 / std::log2(G.num_nodes()));
+
+  TransposeRRRSets tRRR = HeuristicSampling(G, CFG, l, generator, record,
+                    std::forward<diff_model_tag>(model_tag),
+                    std::forward<sequential_tag>(ex_tag));
+
+#if CUDA_PROFILE
+  auto logst = spdlog::stdout_color_st("IMM-profile");
+  std::vector<size_t> rrr_sizes;
+  for (auto &rrr_set : R) rrr_sizes.push_back(rrr_set.size());
+  print_profile_counter(logst, rrr_sizes, "RRR sizes");
+#endif
+
+  auto start = std::chrono::high_resolution_clock::now();
+  const auto &S = FindMostInfluentialSet(G, CFG, tRRR, record, false,
                                          std::forward<sequential_tag>(ex_tag));
   auto end = std::chrono::high_resolution_clock::now();
 

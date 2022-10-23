@@ -47,6 +47,8 @@
 #include <queue>
 #include <utility>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "omp.h"
 
@@ -99,6 +101,7 @@ using RRRset =
 #endif
 template <typename GraphTy>
 using RRRsets = std::vector<RRRset<GraphTy>>;
+using TransposeRRRSets = std::unordered_map<GraphTy::vertex_type, std::unordered_set<GraphTy::vertex_type>>;
 
 //! \brief Execute a randomize BFS to generate a Random RR Set.
 //!
@@ -161,6 +164,63 @@ void AddRRRSet(const GraphTy &G, typename GraphTy::vertex_type r,
   std::stable_sort(result.begin(), result.end());
 }
 
+/// @brief 
+/// @tparam GraphTy 
+/// @tparam PRNGeneratorTy 
+/// @tparam diff_model_tag 
+/// @param G 
+/// @param r 
+/// @param generator 
+/// @param result 
+/// @param tag 
+template <typename GraphTy, typename PRNGeneratorTy, typename diff_model_tag>
+void AddTransposeRRRSet(TransposeRRRSets &tRRRSets, const GraphTy &G, typename GraphTy::vertex_type r,
+               PRNGeneratorTy &generator, RRRset<GraphTy> &result,
+               diff_model_tag &&tag) {
+  using vertex_type = typename GraphTy::vertex_type;
+
+  trng::uniform01_dist<float> value;
+
+  std::queue<vertex_type> queue;
+  std::vector<bool> visited(G.num_nodes(), false);
+
+  queue.push(r);
+  visited[r] = true;
+  tRRRSets[r].insert(r);
+
+  while (!queue.empty()) {
+    vertex_type v = queue.front();
+    queue.pop();
+
+    if (std::is_same<diff_model_tag, ripples::independent_cascade_tag>::value) {
+      for (auto u : G.neighbors(v)) {
+        if (!visited[u.vertex] && value(generator) <= u.weight) {
+          queue.push(u.vertex);
+          visited[u.vertex] = true;
+          tRRRSets[u.vertex].insert(r);
+        }
+      }
+    } else if (std::is_same<diff_model_tag,
+                            ripples::linear_threshold_tag>::value) {
+      float threshold = value(generator);
+      for (auto u : G.neighbors(v)) {
+        threshold -= u.weight;
+
+        if (threshold > 0) continue;
+
+        if (!visited[u.vertex]) {
+          queue.push(u.vertex);
+          visited[u.vertex] = true;
+          tRRRSets[u.vertex].insert(r);
+        }
+        break;
+      }
+    } else {
+      throw;
+    }
+  }
+}
+
 //! \brief Generate Random Reverse Reachability Sets - sequential.
 //!
 //! \tparam GraphTy The type of the garph.
@@ -190,6 +250,34 @@ void GenerateRRRSets(GraphTy &G, PRNGeneratorTy &generator,
     AddRRRSet(G, r, generator[0], *itr,
               std::forward<diff_model_tag>(model_tag));
   }
+}
+
+/// @brief 
+/// @param G 
+/// @param generator 
+/// @param begin 
+/// @param end 
+/// @param  
+/// @param model_tag 
+/// @param ex_tag 
+template <typename GraphTy, typename PRNGeneratorTy,
+          typename ItrTy, typename ExecRecordTy,
+          typename diff_model_tag>
+TransposeRRRSets GenerateTransposeRRRSets(GraphTy &G, PRNGeneratorTy &generator,
+                     ItrTy begin, ItrTy end,
+                     ExecRecordTy &,
+                     diff_model_tag &&model_tag,
+                     sequential_tag &&ex_tag) {
+  trng::uniform_int_dist start(0, G.num_nodes());
+
+  TransposeRRRSets transposeRRRSets;
+
+  for (auto itr = begin; itr < end; ++itr) {
+    typename GraphTy::vertex_type r = start(generator[0]);
+    AddTransposeRRRSet(transposeRRRSets, G, r, generator[0], *itr,
+              std::forward<diff_model_tag>(model_tag));
+  }
+  return transposeRRRSets;
 }
 
 //! \brief Generate Random Reverse Reachability Sets - CUDA.
