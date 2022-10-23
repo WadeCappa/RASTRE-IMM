@@ -101,7 +101,8 @@ using RRRset =
 #endif
 template <typename GraphTy>
 using RRRsets = std::vector<RRRset<GraphTy>>;
-using TransposeRRRSets = std::unordered_map<GraphTy::vertex_type, std::unordered_set<GraphTy::vertex_type>>;
+template <typename vertex_type>
+using TransposeRRRSets = std::unordered_map<vertex_type, std::unordered_set<vertex_type>>;
 
 //! \brief Execute a randomize BFS to generate a Random RR Set.
 //!
@@ -174,7 +175,7 @@ void AddRRRSet(const GraphTy &G, typename GraphTy::vertex_type r,
 /// @param result 
 /// @param tag 
 template <typename GraphTy, typename PRNGeneratorTy, typename diff_model_tag>
-void AddTransposeRRRSet(TransposeRRRSets &tRRRSets, const GraphTy &G, typename GraphTy::vertex_type r,
+void AddTransposeRRRSet(TransposeRRRSets<GraphTy> &tRRRSets, const GraphTy &G, typename GraphTy::vertex_type r,
                PRNGeneratorTy &generator, RRRset<GraphTy> &result,
                diff_model_tag &&tag) {
   using vertex_type = typename GraphTy::vertex_type;
@@ -263,14 +264,14 @@ void GenerateRRRSets(GraphTy &G, PRNGeneratorTy &generator,
 template <typename GraphTy, typename PRNGeneratorTy,
           typename ItrTy, typename ExecRecordTy,
           typename diff_model_tag>
-TransposeRRRSets GenerateTransposeRRRSets(GraphTy &G, PRNGeneratorTy &generator,
+TransposeRRRSets<GraphTy> GenerateTransposeRRRSets(GraphTy &G, PRNGeneratorTy &generator,
                      ItrTy begin, ItrTy end,
                      ExecRecordTy &,
                      diff_model_tag &&model_tag,
                      sequential_tag &&ex_tag) {
   trng::uniform_int_dist start(0, G.num_nodes());
 
-  TransposeRRRSets transposeRRRSets;
+  TransposeRRRSets<GraphTy> transposeRRRSets;
 
   for (auto itr = begin; itr < end; ++itr) {
     typename GraphTy::vertex_type r = start(generator[0]);

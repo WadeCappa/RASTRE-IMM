@@ -336,7 +336,8 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
   return RR;
 }
 
-using TransposeRRRSets = std::unordered_map<GraphTy::vertex_type, std::unordered_set<GraphTy::vertex_type>>;
+template <typename vertex_type>
+using TransposeRRRSets = std::unordered_map<vertex_type, std::unordered_set<vertex_type>>;
 /// @brief 
 /// @tparam GraphTy 
 /// @tparam ConfTy 
@@ -352,7 +353,7 @@ using TransposeRRRSets = std::unordered_map<GraphTy::vertex_type, std::unordered
 /// @return 
 template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
           typename diff_model_tag>
-TransposeRRRSets HeuristicSampling(const GraphTy &G, const ConfTy &CFG, double l,
+TransposeRRRSets<GraphTy> HeuristicSampling(const GraphTy &G, const ConfTy &CFG, double l,
               RRRGeneratorTy &generator, IMMExecutionRecord &record,
               diff_model_tag &&model_tag, sequential_tag &&ex_tag) {
   using vertex_type = typename GraphTy::vertex_type;
@@ -362,7 +363,7 @@ TransposeRRRSets HeuristicSampling(const GraphTy &G, const ConfTy &CFG, double l
   // sqrt(2) * epsilon
   double epsilonPrime = 1.4142135623730951 * epsilon;
 
-  TransposeRRRSets result;
+  TransposeRRRSets<GraphTy> result;
 
   double LB = 0;
   #if defined ENABLE_MEMKIND
@@ -510,7 +511,7 @@ auto HeuristicIMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
 
   l = l * (1 + 1 / std::log2(G.num_nodes()));
 
-  TransposeRRRSets tRRR = HeuristicSampling(G, CFG, l, generator, record,
+  TransposeRRRSets<GraphTy> tRRR = HeuristicSampling(G, CFG, l, generator, record,
                     std::forward<diff_model_tag>(model_tag),
                     std::forward<sequential_tag>(ex_tag));
 
