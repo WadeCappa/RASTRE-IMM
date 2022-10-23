@@ -91,12 +91,17 @@ SCENARIO("Generate RRR sets", "[rrrsets]") {
                                  ripples::sequential_tag{});
 
         THEN("They all contain a non empty list of vertices.") {
+          int i = 0;
           for (auto& e : RR) {
+            std::cout << "RR set for: " << i << " ->";
             REQUIRE(!e.empty());
             for (auto v : e) {
+              std::cout << " " << v << " ";
               REQUIRE(v >= 0);
               REQUIRE(v < G.num_nodes());
             }
+            std::cout << std::endl;
+            i++;
           }
         }
 

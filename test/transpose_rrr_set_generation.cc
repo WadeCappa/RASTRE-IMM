@@ -46,6 +46,9 @@
 #include "ripples/graph.h"
 #include "ripples/imm.h"
 
+#include <unordered_set>
+#include <iostream>
+
 #include "trng/lcg64.hpp"
 
 using EdgeT = ripples::Edge<uint32_t, float>;
@@ -95,11 +98,13 @@ SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
         THEN("They all contain a non empty list of vertices.") {
           for (auto& tRRR : tRRRSets) {
             REQUIRE(!tRRR.second.empty());
+            std::cout << "transpose set for: " << tRRR.first << " ->";
             for (auto vertex : tRRR.second) {
+              std::cout << " " << vertex << " ";
               REQUIRE(vertex >= 0);
-              REQUIRE(1 == 0);
               REQUIRE(vertex < G.num_nodes());
             }
+            std::cout << std::endl;
           }
         }
 
