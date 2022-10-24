@@ -436,6 +436,109 @@ TransposeRRRSets<GraphTy> TransposeSampling(const GraphTy &G, const ConfTy &CFG,
   return result;
 }
 
+//! Collect a set of Random Reverse Reachable set.
+//!
+//! \tparam GraphTy The type of the input graph.
+//! \tparam RRRGeneratorTy The type of the RRR generator.
+//! \tparam diff_model_tag Type-Tag to selecte the diffusion model.
+//! \tparam execution_tag Type-Tag to select the execution policy.
+//!
+//! \param G The input graph.  The graph is transoposed.
+//! \param k The size of the seed set.
+//! \param epsilon The parameter controlling the approximation guarantee.
+//! \param l Parameter usually set to 1.
+//! \param generator The rrr sets generator.
+//! \param record Data structure storing timing and event counts.
+//! \param model_tag The diffusion model tag.
+//! \param ex_tag The execution policy tag.
+template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
+          typename diff_model_tag, typename execution_tag>
+TransposeRRRSets<GraphTy> TransposeSampling(const GraphTy &G, const ConfTy &CFG, double l,
+              RRRGeneratorTy &generator, IMMExecutionRecord &record,
+              diff_model_tag &&model_tag, execution_tag &&ex_tag) {
+  using vertex_type = typename GraphTy::vertex_type;
+  size_t k = CFG.k;
+  double epsilon = CFG.epsilon;
+
+  // sqrt(2) * epsilon
+  double epsilonPrime = 1.4142135623730951 * epsilon;
+
+  TransposeRRRSets<GraphTy> result;
+
+  double LB = 0;
+  #if defined ENABLE_MEMKIND
+  RRRsetAllocator<vertex_type> allocator(libmemkind::kinds::DAX_KMEM_PREFERRED);
+  #elif defined ENABLE_METALL
+  RRRsetAllocator<vertex_type> allocator =  metall_manager_instance().get_allocator();
+  #else
+  RRRsetAllocator<vertex_type> allocator;
+  #endif
+  std::vector<RRRset<GraphTy>> RR;
+
+  auto start = std::chrono::high_resolution_clock::now();
+  size_t thetaPrime = 0;
+  for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
+    // Equation 9
+    ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
+                                    std::forward<execution_tag>(ex_tag));
+
+    size_t delta = thetaPrime - RR.size();
+    record.ThetaPrimeDeltas.push_back(delta);
+
+    auto timeRRRSets = measure<>::exec_time([&]() {
+      RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
+
+      auto begin = RR.end() - delta;
+
+      GenerateRRRSets(G, generator, begin, RR.end(), record,
+                      std::forward<diff_model_tag>(model_tag),
+                      std::forward<execution_tag>(ex_tag));
+    });
+    record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
+
+    double f;
+
+    auto timeMostInfluential = measure<>::exec_time([&]() {
+      const auto &S =
+          FindMostInfluentialSet(G, CFG, RR, record, generator.isGpuEnabled(),
+                                 std::forward<execution_tag>(ex_tag));
+
+      f = S.first;
+    });
+
+    record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
+
+    if (f >= std::pow(2, -x)) {
+      // std::cout << "Fraction " << f << std::endl;
+      LB = (G.num_nodes() * f) / (1 + epsilonPrime);
+      break;
+    }
+  }
+
+  size_t theta = Theta(epsilon, l, k, LB, G.num_nodes());
+  auto end = std::chrono::high_resolution_clock::now();
+
+  record.ThetaEstimationTotal = end - start;
+
+  record.Theta = theta;
+  spdlog::get("console")->info("Theta {}", theta);
+
+  record.GenerateRRRSets = measure<>::exec_time([&]() {
+    if (theta > RR.size()) {
+      size_t final_delta = theta - RR.size();
+      RR.insert(RR.end(), final_delta, RRRset<GraphTy>(allocator));
+
+      auto begin = RR.end() - final_delta;
+
+      GenerateRRRSets(G, generator, begin, RR.end(), record,
+                      std::forward<diff_model_tag>(model_tag),
+                      std::forward<execution_tag>(ex_tag));
+    }
+  });
+
+  return result;
+}
+
 
 //! The IMM algroithm for Influence Maximization
 //!
@@ -500,7 +603,7 @@ auto IMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
 /// @return 
 template <typename GraphTy, typename ConfTy, typename PRNG,
           typename diff_model_tag>
-auto HeuristicIMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
+auto TransposeFirstIMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
          IMMExecutionRecord &record, diff_model_tag &&model_tag,
          sequential_tag &&ex_tag) {
   using vertex_type = typename GraphTy::vertex_type;
@@ -511,7 +614,7 @@ auto HeuristicIMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
 
   l = l * (1 + 1 / std::log2(G.num_nodes()));
 
-  TransposeRRRSets<GraphTy> tRRR = HeuristicSampling(G, CFG, l, generator, record,
+  TransposeRRRSets<GraphTy> tRRR = TransposeSampling(G, CFG, l, generator, record,
                     std::forward<diff_model_tag>(model_tag),
                     std::forward<sequential_tag>(ex_tag));
 
@@ -531,6 +634,70 @@ auto HeuristicIMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
 
   return S.second;
 }
+
+
+// //! The IMM algroithm for Influence Maximization
+// //!
+// //! \tparam GraphTy The type of the input graph.
+// //! \tparam ConfTy The configuration type
+// //! \tparam PRNG The type of the parallel random number generator.
+// //! \tparam diff_model_tag Type-Tag to selecte the diffusion model.
+// //! \tparam execution_tag Type-Tag to select the execution policy.
+// //!
+// //! \param G The input graph.  The graph is transoposed.
+// //! \param CFG The configuration.
+// //! \param l Parameter usually set to 1.
+// //! \param gen The parallel random number generator.
+// //! \param model_tag The diffusion model tag.
+// //! \param ex_tag The execution policy tag.
+// template <typename GraphTy, typename ConfTy, typename GeneratorTy,
+//           typename diff_model_tag>
+// auto TransposeFirstIMM(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
+//          diff_model_tag &&model_tag, omp_parallel_tag &&ex_tag) {
+//   using vertex_type = typename GraphTy::vertex_type;
+//   size_t k = CFG.k;
+//   double epsilon = CFG.epsilon;
+//   auto &record(gen.execution_record());
+
+//   l = l * (1 + 1 / std::log2(G.num_nodes()));
+
+//   TransposeRRRSets<GraphTy> tRRR = TransposeSampling(G, CFG, l, gen, record,
+//                     std::forward<diff_model_tag>(model_tag),
+//                     std::forward<omp_parallel_tag>(ex_tag));
+
+// #if CUDA_PROFILE
+//   auto logst = spdlog::stdout_color_st("IMM-profile");
+//   std::vector<size_t> rrr_sizes;
+//   size_t sizeBytes = 0;
+//   for (auto &rrr_set : R) {
+//     rrr_sizes.push_back(rrr_set.size());
+//     sizeBytes += rrr_set.size() * sizeof(rrr_set[0]);
+//   }
+//   record.RRRSetSize = sizeBytes;
+//   print_profile_counter(logst, rrr_sizes, "RRR sizes");
+// #endif
+
+//   auto start = std::chrono::high_resolution_clock::now();
+//   const auto &S =
+//       FindMostInfluentialSet(G, CFG, R, record, gen.isGpuEnabled(),
+//                              std::forward<omp_parallel_tag>(ex_tag));
+//   auto end = std::chrono::high_resolution_clock::now();
+
+//   record.FindMostInfluentialSet = end - start;
+
+//   start = std::chrono::high_resolution_clock::now();
+//   size_t total_size = 0;
+// #pragma omp parallel for reduction(+:total_size)
+//   for (size_t i = 0; i < R.size(); ++i) {
+//     total_size += R[i].size() * sizeof(vertex_type);
+//   }
+//   record.RRRSetSize = total_size;
+//   end = std::chrono::high_resolution_clock::now();
+//   record.Total = end - start;
+
+//   // return S.second;
+// }
+
 
 //! The IMM algroithm for Influence Maximization
 //!
