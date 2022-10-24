@@ -353,7 +353,7 @@ using TransposeRRRSets = std::unordered_map<typename GraphTy::vertex_type, std::
 /// @return 
 template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
           typename diff_model_tag>
-TransposeRRRSets<GraphTy> HeuristicSampling(const GraphTy &G, const ConfTy &CFG, double l,
+TransposeRRRSets<GraphTy> TransposeSampling(const GraphTy &G, const ConfTy &CFG, double l,
               RRRGeneratorTy &generator, IMMExecutionRecord &record,
               diff_model_tag &&model_tag, sequential_tag &&ex_tag) {
   using vertex_type = typename GraphTy::vertex_type;
