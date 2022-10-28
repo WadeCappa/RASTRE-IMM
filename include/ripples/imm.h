@@ -336,8 +336,6 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
   return RR;
 }
 
-template <typename GraphTy>
-using TransposeRRRSets = std::unordered_map<typename GraphTy::vertex_type, std::unordered_set<typename GraphTy::vertex_type>>;
 /// @brief 
 /// @tparam GraphTy 
 /// @tparam ConfTy 
@@ -363,7 +361,7 @@ TransposeRRRSets<GraphTy> TransposeSampling(const GraphTy &G, const ConfTy &CFG,
   // sqrt(2) * epsilon
   double epsilonPrime = 1.4142135623730951 * epsilon;
 
-  TransposeRRRSets<GraphTy> result;
+  TransposeRRRSets<GraphTy> result = TransposeRRRSets<GraphTy>(G.num_nodes());
 
   double LB = 0;
   #if defined ENABLE_MEMKIND
@@ -463,8 +461,6 @@ TransposeRRRSets<GraphTy> TransposeSampling(const GraphTy &G, const ConfTy &CFG,
   // sqrt(2) * epsilon
   double epsilonPrime = 1.4142135623730951 * epsilon;
 
-  TransposeRRRSets<GraphTy> result;
-
   double LB = 0;
   #if defined ENABLE_MEMKIND
   RRRsetAllocator<vertex_type> allocator(libmemkind::kinds::DAX_KMEM_PREFERRED);
@@ -474,6 +470,8 @@ TransposeRRRSets<GraphTy> TransposeSampling(const GraphTy &G, const ConfTy &CFG,
   RRRsetAllocator<vertex_type> allocator;
   #endif
   std::vector<RRRset<GraphTy>> RR;
+
+  TransposeRRRSets<GraphTy> result = new TransposeRRRSets<GraphTy>(G.num_nodes());
 
   auto start = std::chrono::high_resolution_clock::now();
   size_t thetaPrime = 0;
@@ -490,7 +488,7 @@ TransposeRRRSets<GraphTy> TransposeSampling(const GraphTy &G, const ConfTy &CFG,
 
       auto begin = RR.end() - delta;
 
-      GenerateRRRSets(G, generator, begin, RR.end(), record,
+      GenerateTransposeRRRSets(result, G, generator, begin, RR.end(), record,
                       std::forward<diff_model_tag>(model_tag),
                       std::forward<execution_tag>(ex_tag));
     });
@@ -529,8 +527,7 @@ TransposeRRRSets<GraphTy> TransposeSampling(const GraphTy &G, const ConfTy &CFG,
       RR.insert(RR.end(), final_delta, RRRset<GraphTy>(allocator));
 
       auto begin = RR.end() - final_delta;
-
-      GenerateRRRSets(G, generator, begin, RR.end(), record,
+      GenerateTransposeRRRSets(result, G, generator, begin, RR.end(), record,
                       std::forward<diff_model_tag>(model_tag),
                       std::forward<execution_tag>(ex_tag));
     }
@@ -603,7 +600,7 @@ auto IMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
 /// @return 
 template <typename GraphTy, typename ConfTy, typename PRNG,
           typename diff_model_tag>
-auto TransposeFirstIMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
+auto TransposeIMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
          IMMExecutionRecord &record, diff_model_tag &&model_tag,
          sequential_tag &&ex_tag) {
   using vertex_type = typename GraphTy::vertex_type;

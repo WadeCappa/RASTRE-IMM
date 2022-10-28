@@ -131,6 +131,9 @@ class WalkWorker {
   virtual void svc_loop(std::atomic<size_t> &mpmc_head, ItrTy begin,
                         ItrTy end) = 0;
 
+  virtual void svc_transpose_loop(std::atomic<size_t> &mpmc_head, TransposeRRRSets<GraphTy> &transposeRRRSets,
+                        ItrTy begin, ItrTy end) = 0;
+
  protected:
   const GraphTy &G_;
 
@@ -164,10 +167,47 @@ class CPUWalkWorker : public WalkWorker<GraphTy, ItrTy> {
     }
   }
 
+  void svc_transpose_loop(std::atomic<size_t> &mpmc_head, TransposeRRRSets<GraphTy> &tRRRSets, ItrTy begin, ItrTy end) {
+    size_t offset = 0;
+    while ((offset = mpmc_head.fetch_add(batch_size_)) <
+           std::distance(begin, end)) {
+      auto first = begin;
+      std::advance(first, offset);
+      auto last = first;
+      std::advance(last, batch_size_);
+      if (last > end) last = end;
+      batchTranspose(tRRRSets, first, last, std::distance(begin, first));
+    }
+  }
+
  private:
   static constexpr size_t batch_size_ = 32;
   PRNGeneratorTy rng_;
   trng::uniform_int_dist u_;
+
+  void batchTranspose(TransposeRRRSets<GraphTy> &tRRRSets, ItrTy first, ItrTy last, int RRRStart) {
+#if CUDA_PROFILE
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
+    auto size = std::distance(first, last);
+    auto local_rng = rng_;
+    auto local_u = u_;
+    for (int RRRIndex = RRRStart; first != last; ++first, RRRIndex++) {
+      vertex_t root = local_u(local_rng);
+
+      AddTransposeRRRSet(tRRRSets, this->G_, root, local_rng, *first, diff_model_tag{}, RRRIndex);
+    }
+
+    rng_ = local_rng;
+    u_ = local_u;
+#if CUDA_PROFILE
+    auto &p(prof_bd.back());
+    p.d_ += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::high_resolution_clock::now() - start);
+    p.n_ += size;
+#endif
+  }
+
 
   void batch(ItrTy first, ItrTy last) {
 #if CUDA_PROFILE
@@ -793,6 +833,33 @@ class StreamingRRRGenerator {
     {
       size_t rank = omp_get_thread_num();
       workers[rank]->svc_loop(mpmc_head, begin, end);
+    }
+
+#if CUDA_PROFILE
+    auto d = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::high_resolution_clock::now() - start);
+    prof_bd.prof_bd.emplace_back(std::distance(begin, end), d);
+    prof_bd.n += std::distance(begin, end);
+    prof_bd.d += std::chrono::duration_cast<std::chrono::microseconds>(d);
+    auto &ri(record_.WalkIterations.back());
+    ri.NumSets = std::distance(begin, end);
+    ri.Total = std::chrono::duration_cast<decltype(ri.Total)>(d);
+#endif
+  }
+
+    void transposeGenerate(TransposeRRRSets<GraphTy> &transposeRRRSets, ItrTy begin, ItrTy end) {
+#if CUDA_PROFILE
+    auto start = std::chrono::high_resolution_clock::now();
+    for (auto &w : workers) w->begin_prof_iter();
+    record_.WalkIterations.emplace_back();
+#endif
+
+    mpmc_head.store(0);
+
+#pragma omp parallel num_threads(num_cpu_workers_ + num_gpu_workers_)
+    {
+      size_t rank = omp_get_thread_num();
+      workers[rank]->svc_transpose_loop(mpmc_head, transposeRRRSets, begin, end);
     }
 
 #if CUDA_PROFILE

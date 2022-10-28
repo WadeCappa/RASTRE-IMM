@@ -49,8 +49,10 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <mutex>
 
 #include "omp.h"
+#include "transposeRRRSets.h"
 
 #include "ripples/diffusion_simulation.h"
 #include "ripples/graph.h"
@@ -101,8 +103,6 @@ using RRRset =
 #endif
 template <typename GraphTy>
 using RRRsets = std::vector<RRRset<GraphTy>>;
-template <typename GraphTy>
-using TransposeRRRSets = std::unordered_map<typename GraphTy::vertex_type, std::unordered_set<typename GraphTy::vertex_type>>;
 
 //! \brief Execute a randomize BFS to generate a Random RR Set.
 //!
@@ -177,7 +177,7 @@ void AddRRRSet(const GraphTy &G, typename GraphTy::vertex_type r,
 template <typename GraphTy, typename PRNGeneratorTy, typename diff_model_tag>
 void AddTransposeRRRSet(TransposeRRRSets<GraphTy> &tRRRSets, const GraphTy &G, typename GraphTy::vertex_type r,
                PRNGeneratorTy &generator, RRRset<GraphTy> &result,
-               diff_model_tag &&tag) {
+               diff_model_tag &&tag, int RRRIndex) {
   using vertex_type = typename GraphTy::vertex_type;
 
   trng::uniform01_dist<float> value;
@@ -187,7 +187,7 @@ void AddTransposeRRRSet(TransposeRRRSets<GraphTy> &tRRRSets, const GraphTy &G, t
 
   queue.push(r);
   visited[r] = true;
-  tRRRSets[r].insert(r);
+  tRRRSets.addToSet(int(r), RRRIndex);
 
   while (!queue.empty()) {
     vertex_type v = queue.front();
@@ -198,7 +198,7 @@ void AddTransposeRRRSet(TransposeRRRSets<GraphTy> &tRRRSets, const GraphTy &G, t
         if (!visited[u.vertex] && value(generator) <= u.weight) {
           queue.push(u.vertex);
           visited[u.vertex] = true;
-          tRRRSets[u.vertex].insert(r);
+          tRRRSets.addToSet(int(u.vertex), RRRIndex);
         }
       }
     } else if (std::is_same<diff_model_tag,
@@ -212,7 +212,7 @@ void AddTransposeRRRSet(TransposeRRRSets<GraphTy> &tRRRSets, const GraphTy &G, t
         if (!visited[u.vertex]) {
           queue.push(u.vertex);
           visited[u.vertex] = true;
-          tRRRSets[u.vertex].insert(r);
+          tRRRSets.addToSet(int(u.vertex), RRRIndex);
         }
         break;
       }
@@ -272,11 +272,39 @@ void GenerateTransposeRRRSets(TransposeRRRSets<GraphTy> &transposeRRRSets,
                      sequential_tag &&ex_tag) {
   trng::uniform_int_dist start(0, G.num_nodes());
 
-  for (auto itr = begin; itr < end; ++itr) {
+  int index = 0;
+  for (auto itr = begin; itr < end; ++itr, index++) {
     typename GraphTy::vertex_type r = start(generator[0]);
     AddTransposeRRRSet(transposeRRRSets, G, r, generator[0], *itr,
-              std::forward<diff_model_tag>(model_tag));
+              std::forward<diff_model_tag>(model_tag), index);
   }
+}
+
+//! \brief Generate Random Reverse Reachability Sets - CUDA.
+//!
+//! \tparam GraphTy The type of the garph.
+//! \tparam PRNGeneratorty The type of the random number generator.
+//! \tparam ItrTy A random access iterator type.
+//! \tparam ExecRecordTy The type of the execution record
+//! \tparam diff_model_tag The policy for the diffusion model.
+//!
+//! \param G The original graph.
+//! \param generator The random numeber generator.
+//! \param begin The start of the sequence where to store RRR sets.
+//! \param end The end of the sequence where to store RRR sets.
+//! \param model_tag The diffusion model tag.
+//! \param ex_tag The execution policy tag.
+template <typename GraphTy, typename PRNGeneratorTy,
+          typename ItrTy, typename ExecRecordTy,
+          typename diff_model_tag>
+void GenerateTransposeRRRSets(TransposeRRRSets<GraphTy> &transposeRRRSets, 
+                     const GraphTy &G,
+                     StreamingRRRGenerator<GraphTy, PRNGeneratorTy, ItrTy, diff_model_tag> &se,
+                     ItrTy begin, ItrTy end,
+                     ExecRecordTy &,
+                     diff_model_tag &&,
+                     omp_parallel_tag &&) {
+  se.transposeGenerate(transposeRRRSets, begin, end);
 }
 
 //! \brief Generate Random Reverse Reachability Sets - CUDA.

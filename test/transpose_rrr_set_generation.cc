@@ -90,25 +90,63 @@ SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
 
       std::vector<trng::lcg64> generator(1);
       for (size_t i = 0; i < 2; ++i) {
-        ripples::TransposeRRRSets<GraphBwd> tRRRSets; 
+        TransposeRRRSets<GraphBwd> tRRRSets(G.num_nodes());
         ripples::GenerateTransposeRRRSets(tRRRSets, G, generator, RR.end() - theta, RR.end(),
                                  exRecord, ripples::independent_cascade_tag{},
                                  ripples::sequential_tag{});
 
         THEN("They all contain a non empty list of vertices.") {
-          for (auto& tRRR : tRRRSets) {
-            REQUIRE(!tRRR.second.empty());
-            std::cout << "transpose set for: " << tRRR.first << " ->";
-            for (auto vertex : tRRR.second) {
+          int i = 0;
+          for (auto tRRR = tRRRSets.getBegin(); tRRR != tRRRSets.getEnd(); tRRR++, i++) {
+            std::cout << i << ") ";
+            // REQUIRE(!tRRR->second->empty());
+            for (const auto& vertex : *(tRRR->second)) {
               std::cout << " " << vertex << " ";
               REQUIRE(vertex >= 0);
-              REQUIRE(vertex < G.num_nodes());
             }
             std::cout << std::endl;
           }
         }
+      }
+    }
+        WHEN("I build the theta RRR sets in parallel") {
+      size_t theta = 100;
+      std::vector<ripples::RRRset<GraphBwd>> RR(theta);
+      ripples::IMMExecutionRecord exRecord;
 
-        // RR.insert(RR.end(), theta, ripples::RRRset<GraphBwd>{});
+      size_t max_num_threads(1);
+#pragma omp single
+      max_num_threads = omp_get_max_threads();
+
+      trng::lcg64 gen;
+      ripples::IMMExecutionRecord R;
+      decltype(ripples::IMMConfiguration::worker_to_gpu) map;
+
+      ripples::StreamingRRRGenerator<
+          decltype(G), decltype(gen),
+          typename ripples::RRRsets<decltype(G)>::iterator,
+          ripples::independent_cascade_tag>
+          generator(G, gen, R, max_num_threads, 0, map);
+
+      TransposeRRRSets<GraphBwd> tRRRSets(G.num_nodes());
+
+      for (size_t i = 0; i < 2; ++i) {
+        ripples::GenerateTransposeRRRSets(tRRRSets, G, generator, RR.end() - theta, RR.end(),
+                                 exRecord, ripples::independent_cascade_tag{},
+                                 ripples::omp_parallel_tag{});
+
+        THEN("They all contain a non empty list of vertices.") {
+          int i = 0;
+          for (auto tRRR = tRRRSets.getBegin(); tRRR != tRRRSets.getEnd(); tRRR++, i++) {
+            std::cout << i << ") ";
+            // REQUIRE(!tRRR->second->empty());
+            for (const auto& vertex : *(tRRR->second)) {
+              std::cout << " " << vertex << " ";
+              REQUIRE(vertex >= 0);
+            }
+            std::cout << std::endl;
+          }
+        }
       }
     }
   }
