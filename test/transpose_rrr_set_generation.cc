@@ -83,6 +83,18 @@ SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
     GraphFwd Gfwd(karate.begin(), karate.end(), false);
     GraphBwd G = Gfwd.get_transpose();
 
+    int p = 2;
+
+    std::vector<int> vertexToProcesses(G.num_nodes());
+    for (int v = 0; v < G.num_nodes(); v++) {
+      if (v > 16) {
+        vertexToProcesses[v] = 1;
+      }
+      else {
+        vertexToProcesses[v] = 0;
+      }
+    }
+
     WHEN("I build the theta transpose RRR sets sequentially") {
       size_t theta = 100;
       std::vector<ripples::RRRset<GraphBwd>> RR(theta);
@@ -106,6 +118,15 @@ SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
             }
             std::cout << std::endl;
           }
+          LinearizedSetsSize setSize = tRRRSets.count(vertexToProcesses, p);
+          int* linearizedData = tRRRSets.linearize(vertexToProcesses, tRRRSets.buildPartialSum(setSize.countPerProcess), setSize.count, p);
+          for (int i = 0; i < setSize.count; i++) {
+            std::cout << linearizedData[i] << " ";
+            if (linearizedData[i] == -1) {
+              std::cout << std::endl;
+            }
+          }
+          std::cout << std::endl;
         }
       }
     }
@@ -146,6 +167,15 @@ SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
             }
             std::cout << std::endl;
           }
+          LinearizedSetsSize setSize = tRRRSets.count(vertexToProcesses, p);
+          int* linearizedData = tRRRSets.linearize(vertexToProcesses, tRRRSets.buildPartialSum(setSize.countPerProcess), setSize.count, p);
+          for (int i = 0; i < setSize.count; i++) {
+            std::cout << linearizedData[i] << " ";
+            if (linearizedData[i] == -1) {
+              std::cout << std::endl;
+            }
+          }
+          std::cout << std::endl;
         }
       }
     }
