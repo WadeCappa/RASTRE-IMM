@@ -45,6 +45,7 @@
 #include "ripples/generate_rrr_sets.h"
 #include "ripples/graph.h"
 #include "ripples/imm.h"
+#include "ripples/communication_engine.h"
 
 #include <unordered_set>
 #include <iostream>
@@ -118,15 +119,8 @@ SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
             }
             std::cout << std::endl;
           }
-          LinearizedSetsSize setSize = tRRRSets.count(vertexToProcesses, p);
-          int* linearizedData = tRRRSets.linearize(vertexToProcesses, tRRRSets.buildPartialSum(setSize.countPerProcess), setSize.count, p);
-          for (int i = 0; i < setSize.count; i++) {
-            std::cout << linearizedData[i] << " ";
-            if (linearizedData[i] == -1) {
-              std::cout << std::endl;
-            }
-          }
-          std::cout << std::endl;
+          CommunicationEngine<GraphBwd> cEngine = *(new CommunicationEngine<GraphBwd>());
+          cEngine.DEBUG_printLinearizedSets(tRRRSets, vertexToProcesses, p);
         }
       }
     }
@@ -167,15 +161,8 @@ SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
             }
             std::cout << std::endl;
           }
-          LinearizedSetsSize setSize = tRRRSets.count(vertexToProcesses, p);
-          int* linearizedData = tRRRSets.linearize(vertexToProcesses, tRRRSets.buildPartialSum(setSize.countPerProcess), setSize.count, p);
-          for (int i = 0; i < setSize.count; i++) {
-            std::cout << linearizedData[i] << " ";
-            if (linearizedData[i] == -1) {
-              std::cout << std::endl;
-            }
-          }
-          std::cout << std::endl;
+          CommunicationEngine<GraphBwd> cEngine = *(new CommunicationEngine<GraphBwd>());
+          cEngine.DEBUG_printLinearizedSets(tRRRSets, vertexToProcesses, p);
         }
       }
     }
