@@ -1,5 +1,6 @@
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 #include <mutex>
 #include <iostream>
 
@@ -29,14 +30,14 @@ class CommunicationEngine
         return *setSize;
     }
 
-    std::vector<int> buildPartialSum(std::vector<int> processorSizes) {
-        std::vector<int>* partialSum = new std::vector<int>(processorSizes.size(), 0);
+    std::vector<int> buildPrefixSum(std::vector<int> v) {
+        std::vector<int>* prefixSum = new std::vector<int>(v.size(), 0);
 
-        for (int i = 1; i < processorSizes.size(); i++) {
-            (*partialSum)[i] = (*partialSum)[i - 1] + processorSizes[i - 1];
+        for (int i = 1; i < v.size(); i++) {
+            (*prefixSum)[i] = (*prefixSum)[i - 1] + v[i - 1];
         }
         
-        return *partialSum;
+        return *prefixSum;
     }
 
     int* linearize(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, std::vector<int> dataStartPartialSum, int totalData, int p) 
@@ -65,11 +66,10 @@ class CommunicationEngine
         }
     }
 
-
     void DEBUG_printLinearizedSets(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcesses, int p)
     {
         LinearizedSetsSize setSize = count(tRRRSets, vertexToProcesses, p);
-        int* linearizedData = linearize(tRRRSets, vertexToProcesses, buildPartialSum(setSize.countPerProcess), setSize.count, p);
+        int* linearizedData = linearize(tRRRSets, vertexToProcesses, buildPrefixSum(setSize.countPerProcess), setSize.count, p);
         for (int i = 0; i < setSize.count; i++) {
             std::cout << linearizedData[i] << " ";
             if (linearizedData[i] == -1) {
@@ -79,10 +79,82 @@ class CommunicationEngine
           std::cout << std::endl;
     }
 
-
     int* linearizeTRRRSets(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcesses, int p) 
     {
         LinearizedSetsSize setSize = count(tRRRSets, vertexToProcesses, p);
-        return linearize(tRRRSets, vertexToProcesses, buildPartialSum(setSize.countPerProcess), setSize.count, p);
+        return linearize(tRRRSets, vertexToProcesses, buildPrefixSum(setSize.countPerProcess), setSize.count, p);
     }
+
+    /// @brief every process calls this function after they are sent the bulk data from MPI_alltoallV. Each
+    ///     process only gets a certain set of values. 
+    /// @param tRRRSets is the local process's tRRRSets. This should be a new object (i.e, empty).
+    /// @param data is the data collected from MPI_alltoallV
+    /// @param receivedDataSizes is the data collected from MPI_alltoall
+    /// @param p number of processes
+    /// @param RRRIDsPerProcess the upper bound of the maximum number of RRRIDs that each process is responsible for generating
+    void aggregateTRRRSets(std::unordered_map<int, std::unordered_set<int>> &aggregateSets, int* data, int* receivedDataSizes, int p, int RRRIDsPerProcess)
+    {
+        int totalData = 0;
+        for (int i = 0; i < p; i++) {
+            totalData += *(receivedDataSizes + i);
+        }            
+
+        int receivedDataRank = 0;
+
+        // cycle over data
+        int vertexID = *(data + 1);   
+        aggregateSets.insert({ vertexID, *(new std::unordered_set<int>()) });
+        for (int rankDataProcessed = 1, i = 1; i < totalData - 1; i++, rankDataProcessed++) {
+            if (*(data + i) == -1) {
+                vertexID = *(data + ++i);
+                aggregateSets.insert({ vertexID, *(new std::unordered_set<int>()) });
+            }
+
+            // track the current receiving process rank
+            if (rankDataProcessed > *(receivedDataSizes + receivedDataRank)){
+                receivedDataRank += 1;
+                receivedDataSizes = 1;
+            }
+
+            // add each RRRSetID to the map indexed by the target vertex id. 
+            // The RRRSetIDs need to be modified such that they are unique from the sent process. 
+            // This is possible because the order is known and the expected sizes of data that should be sent. 
+            aggregateSets[vertexID].insert(*(data + i) + (RRRIDsPerProcess * receivedDataRank));
+        }
+    }
+
+    int* allToAll(int* linearizedData, std::vector<int> countPerProcess, int p)
+    {
+        int* receiveSizes = new int[p];
+        MPI_Alltoall(&countPerProcess[0], 1, MPI_INT, receiveSizes, 1, MPI_INT, MPI_COMM_WORLD);
+
+        int totalReceiveSize = 0;
+        for (int i = 0; i < p; i++) {
+            totalReceiveSize += *(receiveSizes + i);
+        }
+        int* receiveBuffer = new int[totalReceiveSize];
+
+        // call alltoall_v
+        MPI_Alltoallv(
+            linearizedData, 
+            &countPerProcess[0], 
+            buildPrefixSum(countPerProcess), 
+            MPI_INT, 
+            receiveBuffer, 
+            receiveSizes, 
+            buildPrefixSum(totalReceiveSize),
+            MPI_INT,
+            MPI_COMM_WORLD
+        );
+
+        return receiveBuffer;
+    }
+
+    // TransposeRRRSets<GraphTy> delinearizeToTRRRSets(int* data)
+    // {
+    //     // build a new tRRRSets object
+    //     // cycle over data
+    //         // add each RRRSetID to the map indexed by the target vertex id. 
+    //         // The RRRSetIDs need to be modified such that they are unique per process. 
+    // }
 };
