@@ -66,11 +66,9 @@ class CommunicationEngine
         }
     }
 
-    void DEBUG_printLinearizedSets(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcesses, int p)
+    void DEBUG_printLinearizedSets(int* linearizedData, int totalData)
     {
-        LinearizedSetsSize setSize = count(tRRRSets, vertexToProcesses, p);
-        int* linearizedData = linearize(tRRRSets, vertexToProcesses, buildPrefixSum(setSize.countPerProcess), setSize.count, p);
-        for (int i = 0; i < setSize.count; i++) {
+        for (int i = 0; i < totalData; i++) {
             std::cout << linearizedData[i] << " ";
             if (linearizedData[i] == -1) {
               std::cout << std::endl;
@@ -102,53 +100,68 @@ class CommunicationEngine
         int receivedDataRank = 0;
 
         // cycle over data
-        int vertexID = *(data + 1);   
+        int vertexID = *data;   
         aggregateSets.insert({ vertexID, *(new std::unordered_set<int>()) });
         for (int rankDataProcessed = 1, i = 1; i < totalData - 1; i++, rankDataProcessed++) {
             if (*(data + i) == -1) {
                 vertexID = *(data + ++i);
+                rankDataProcessed++;
                 aggregateSets.insert({ vertexID, *(new std::unordered_set<int>()) });
             }
 
-            // track the current receiving process rank
-            if (rankDataProcessed > *(receivedDataSizes + receivedDataRank)){
-                receivedDataRank += 1;
-                receivedDataSizes = 1;
+            else {
+                // add each RRRSetID to the map indexed by the target vertex id. 
+                // The RRRSetIDs need to be modified such that they are unique from the sent process. 
+                // This is possible because the order is known and the expected sizes of data that should be sent. 
+                aggregateSets[vertexID].insert(*(data + i) + (RRRIDsPerProcess * receivedDataRank));
             }
 
-            // add each RRRSetID to the map indexed by the target vertex id. 
-            // The RRRSetIDs need to be modified such that they are unique from the sent process. 
-            // This is possible because the order is known and the expected sizes of data that should be sent. 
-            aggregateSets[vertexID].insert(*(data + i) + (RRRIDsPerProcess * receivedDataRank));
+            // track the current receiving process rank
+            if (rankDataProcessed > *(receivedDataSizes + receivedDataRank)) {
+                receivedDataRank += 1;
+                rankDataProcessed = 1;
+            }
         }
     }
 
-    int* allToAll(int* linearizedData, std::vector<int> countPerProcess, int p)
-    {
-        int* receiveSizes = new int[p];
-        MPI_Alltoall(&countPerProcess[0], 1, MPI_INT, receiveSizes, 1, MPI_INT, MPI_COMM_WORLD);
+    // All To All
+    // 1. World size send buffer containing the value to be sent to every other process
+    // 2. World size receive buffer 
 
-        int totalReceiveSize = 0;
-        for (int i = 0; i < p; i++) {
-            totalReceiveSize += *(receiveSizes + i);
-        }
-        int* receiveBuffer = new int[totalReceiveSize];
+    // Send
+    // 1. What am I sending
+    // 2. How many am I sending
+    // 3. Where to count from
+    // Receive
+    // 4. Where am I receiving
+    // 5. How many am I receiving
+    // 6. Where to start counting from
+    // int* allToAll(int* linearizedData, std::vector<int> countPerProcess, int p)
+    // {
+    //     int* receiveSizes = new int[p];
+    //     MPI_Alltoall(&countPerProcess[0], 1, MPI_INT, receiveSizes, 1, MPI_INT, MPI_COMM_WORLD);
 
-        // call alltoall_v
-        MPI_Alltoallv(
-            linearizedData, 
-            &countPerProcess[0], 
-            buildPrefixSum(countPerProcess), 
-            MPI_INT, 
-            receiveBuffer, 
-            receiveSizes, 
-            buildPrefixSum(totalReceiveSize),
-            MPI_INT,
-            MPI_COMM_WORLD
-        );
+    //     int totalReceiveSize = 0;
+    //     for (int i = 0; i < p; i++) {
+    //         totalReceiveSize += *(receiveSizes + i);
+    //     }
+    //     int* receiveBuffer = new int[totalReceiveSize];
 
-        return receiveBuffer;
-    }
+    //     // call alltoall_v
+    //     MPI_Alltoallv(
+    //         linearizedData, 
+    //         &countPerProcess[0], 
+    //         buildPrefixSum(countPerProcess), 
+    //         MPI_INT, 
+    //         receiveBuffer, 
+    //         receiveSizes, 
+    //         buildPrefixSum(totalReceiveSize),
+    //         MPI_INT,
+    //         MPI_COMM_WORLD
+    //     );
+
+    //     return receiveBuffer;
+    // }
 
     // TransposeRRRSets<GraphTy> delinearizeToTRRRSets(int* data)
     // {

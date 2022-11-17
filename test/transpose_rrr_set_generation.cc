@@ -120,7 +120,9 @@ SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
             std::cout << std::endl;
           }
           CommunicationEngine<GraphBwd> cEngine = *(new CommunicationEngine<GraphBwd>());
-          cEngine.DEBUG_printLinearizedSets(tRRRSets, vertexToProcesses, p);
+          LinearizedSetsSize setSize = cEngine.count(tRRRSets, vertexToProcesses, p);
+          int* data = cEngine.linearize(tRRRSets, vertexToProcesses, cEngine.buildPrefixSum(setSize.countPerProcess), setSize.count, p);
+          cEngine.DEBUG_printLinearizedSets(data, setSize.count);
         }
       }
     }
@@ -162,7 +164,9 @@ SCENARIO("Generate transpose RRR sets", "[transpose_rrrsets]") {
             std::cout << std::endl;
           }
           CommunicationEngine<GraphBwd> cEngine = *(new CommunicationEngine<GraphBwd>());
-          cEngine.DEBUG_printLinearizedSets(tRRRSets, vertexToProcesses, p);
+          LinearizedSetsSize setSize = cEngine.count(tRRRSets, vertexToProcesses, p);
+          int* data = cEngine.linearize(tRRRSets, vertexToProcesses, cEngine.buildPrefixSum(setSize.countPerProcess), setSize.count, p);
+          cEngine.DEBUG_printLinearizedSets(data, setSize.count);
         }
       }
     }
