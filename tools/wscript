@@ -93,13 +93,10 @@ def build(bld):
     tools_deps += ['MPI']
     cuda_acc_tools_deps += ['MPI']
     bld(features='cxx cxxprogram', source='mpi-hill-climbing.cc', target='mpi-hill-climbing',
-        use=cuda_acc_tools_deps + ['cuda_hc_bfs'], cxxflags=cuda_acc_cxx_flags, cuda=bld.env.ENABLE_CUDA)
+        use=cuda_acc_tools_deps + ['cuda_hc_bfs'], cuda=bld.env.ENABLE_CUDA, cxxflags=cuda_acc_cxx_flags)
 
     bld(features='cxx cxxprogram', source='mpi-imm.cc', target='mpi-imm',
-        use=cuda_acc_tools_deps + ['cuda_imm_bfs'], cuda=bld.env.ENABLE_CUDA,
-        cxxflags=cuda_acc_cxx_flags)
+        use=cuda_acc_tools_deps + ['cuda_imm_bfs'], cuda=bld.env.ENABLE_CUDA, cxxflags=cuda_acc_cxx_flags)
 
-
-    bld(features='cxx cxxprogram', source='mpi-impart.cc', target='mpi-impart',
-        use=cuda_acc_tools_deps + ['cuda_imm_bfs'], cuda=bld.env.ENABLE_CUDA,
-        cxxflags=cuda_acc_cxx_flags)
+    bld(features='cxx cxxprogram', source='mpi-greedi-im.cc', target='mpi-greedi-im',
+        use=cuda_acc_tools_deps + ['cuda_hc_bfs'], cuda=bld.env.ENABLE_CUDA, cxxflags=cuda_acc_cxx_flags)

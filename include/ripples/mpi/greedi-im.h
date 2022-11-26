@@ -48,6 +48,8 @@
 #include <cstddef>
 #include <utility>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "trng/lcg64.hpp"
 
@@ -56,6 +58,10 @@
 #include "ripples/imm_execution_record.h"
 #include "ripples/mpi/find_most_influential.h"
 #include "ripples/utility.h"
+
+#include "ripples/generate_rrr_sets.h"
+#include "ripples/mpi/communication_engine.h"
+#include "ripples/max_k_cover.h"
 
 namespace ripples {
 namespace mpi {
@@ -125,35 +131,48 @@ std::vector<PRNG> rank_split_generator(const PRNG &gen) {
 //! Collect a set of Random Reverse Reachable set.
 //!
 //! \tparam GraphTy The type of the input graph.
-//! \tparam PRNGeneratorTy The type of the parallel random number generator.
+//! \tparam RRRGeneratorTy The type of the RRR generator.
 //! \tparam diff_model_tag Type-Tag to selecte the diffusion model.
+//! \tparam execution_tag Type-Tag to select the execution policy.
 //!
 //! \param G The input graph.  The graph is transoposed.
 //! \param k The size of the seed set.
 //! \param epsilon The parameter controlling the approximation guarantee.
 //! \param l Parameter usually set to 1.
-//! \param generator The parallel random number generator.
+//! \param generator The rrr sets generator.
 //! \param record Data structure storing timing and event counts.
 //! \param model_tag The diffusion model tag.
 //! \param ex_tag The execution policy tag.
-template <typename GraphTy, typename ConfTy, typename PRNGeneratorTy,
-          typename diff_model_tag, typename ExTagTrait>
-auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
-              PRNGeneratorTy &generator, IMMExecutionRecord &record,
-              diff_model_tag &&model_tag, ExTagTrait &&) {
+template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
+          typename diff_model_tag, typename execution_tag>
+int TransposeSampling(
+  TransposeRRRSets<GraphTy>& tRRRSets,
+  const GraphTy &G, const ConfTy &CFG, double l,
+  RRRGeneratorTy &generator, IMMExecutionRecord &record,
+  diff_model_tag &&model_tag, execution_tag &&ex_tag, 
+  std::vector<int> vertexToProcess,
+  int total_processes
+) {
   using vertex_type = typename GraphTy::vertex_type;
   size_t k = CFG.k;
   double epsilon = CFG.epsilon;
-
+  
   // sqrt(2) * epsilon
   double epsilonPrime = 1.4142135623730951 * epsilon;
 
+  // each iteration of the martigale loop does
+    // sampling
+    // communication 
+    // max-k-cover 
+
+  // if martigale success return best local seeds
+
   double LB = 0;
   #if defined ENABLE_MEMKIND
-  RRRsetAllocator<vertex_type> allocator("/pmem1", 0);
+  RRRsetAllocator<vertex_type> allocator(libmemkind::kinds::DAX_KMEM_PREFERRED);
   #elif defined ENABLE_METALL
   RRRsetAllocator<vertex_type> allocator =  metall_manager_instance().get_allocator();
-#else
+  #else
   RRRsetAllocator<vertex_type> allocator;
   #endif
   std::vector<RRRset<GraphTy>> RR;
@@ -161,72 +180,96 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
   auto start = std::chrono::high_resolution_clock::now();
   size_t thetaPrime = 0;
 
-  // start martigale loop
-  for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
-    // Equation 9
-    // Generate thetaPrime number of samples (in our case this will be in the transpose fashion)
-    ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
-                                    mpi_omp_parallel_tag{});
+  CommunicationEngine<GraphTy> cEngine;
+  std::unordered_map<int, std::unordered_set<int>>* aggregateSets = new std::unordered_map<int, std::unordered_set<int>>();
+  MaxKCoverEngine maxKCoverEngine;
 
-    size_t delta = thetaPrime - RR.size();
-    record.ThetaPrimeDeltas.push_back(thetaPrime - RR.size());
+  // martingale loop
+  for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
+    free(aggregateSets);
+    // Equation 9
+    // thetaPrime == number of RRRsets globally
+    ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
+                                    std::forward<execution_tag>(ex_tag));
+
+    // figure out how to exacly generate this number (remove rounding error)
+    ssize_t localThetaPrime = (thetaPrime / total_processes) + 1;
+
+    size_t delta = localThetaPrime - RR.size();
+    record.ThetaPrimeDeltas.push_back(delta);
 
     auto timeRRRSets = measure<>::exec_time([&]() {
       RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
 
       auto begin = RR.end() - delta;
 
-      GenerateRRRSets(G, generator, begin, RR.end(), record,
+      // within this function, there is a logical bug with counting RRRset IDs
+      GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
                       std::forward<diff_model_tag>(model_tag),
-                      typename ExTagTrait::generate_ex_tag{});
+                      std::forward<execution_tag>(ex_tag));
     });
     record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
 
     double f;
+
+    // communication (aggregation)
+
+    // linearize local tRRRSets
+    LinearizedSetsSize* setSize = cEngine.count(tRRRSets, vertexToProcess, total_processes);
+    int* data = cEngine.linearize(
+      tRRRSets, 
+      vertexToProcess, 
+      *(cEngine.buildPrefixSum(setSize->countPerProcess.data(), total_processes)), 
+      setSize->count, 
+      total_processes
+    );
+
+    aggregateSets = new std::unordered_map<int, std::unordered_set<int>>();
+    cEngine.getProcessSpecificVertexRRRSets(*aggregateSets, data, setSize->countPerProcess.data(), total_processes, localThetaPrime);
+
     auto timeMostInfluential = measure<>::exec_time([&]() {
-      const auto &S =
-          FindMostInfluentialSet(G, CFG, RR, generator.isGpuEnabled(),
-                                 typename ExTagTrait::seed_selection_ex_tag{});
-      f = S.first;
+      std::pair<std::vector<unsigned int>, int> seeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, (int)thetaPrime);
+
+      // f is the fraction of RRRsets covered by the seeds / the total number of local RRRSets (in the current iteration of the martigale loop)
+      // this has to be a global value, if one process succeeds and another fails it will get stuck in communication (the algorithm will fail). 
+      f = seeds.second / localThetaPrime;
     });
+
     record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
 
-    // f is the fraction of RRRsets covered by the seeds / the total number of local RRRSets (in the current iteration of the martigale loop)
     if (f >= std::pow(2, -x)) {
       // std::cout << "Fraction " << f << std::endl;
       LB = (G.num_nodes() * f) / (1 + epsilonPrime);
       break;
     }
+    free(setSize);
   }
 
-  int world_size;
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
   size_t theta = Theta(epsilon, l, k, LB, G.num_nodes());
-  size_t thetaLocal = (theta / world_size) + 1;
+  size_t localTheta = (theta / total_processes) + 1;
   auto end = std::chrono::high_resolution_clock::now();
 
   record.ThetaEstimationTotal = end - start;
 
   record.Theta = theta;
+  spdlog::get("console")->info("Theta {}", theta);
 
-  start = std::chrono::high_resolution_clock::now();
-  if (thetaLocal > RR.size()) {
-    size_t final_delta = thetaLocal - RR.size();
-    RR.insert(RR.end(), final_delta, RRRset<GraphTy>(allocator));
+  record.GenerateRRRSets = measure<>::exec_time([&]() {
+    if (localTheta > RR.size()) {
+      size_t final_delta = localTheta - RR.size();
+      RR.insert(RR.end(), final_delta, RRRset<GraphTy>(allocator));
 
-    auto begin = RR.end() - final_delta;
+      auto begin = RR.end() - final_delta;
+      GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
+                      std::forward<diff_model_tag>(model_tag),
+                      std::forward<execution_tag>(ex_tag));
+    }
+  });
 
-    GenerateRRRSets(G, generator, begin, RR.end(), record,
-                    std::forward<diff_model_tag>(model_tag),
-                    typename ExTagTrait::generate_ex_tag{});
-  }
-  end = std::chrono::high_resolution_clock::now();
-
-  record.GenerateRRRSets = end - start;
-
-  return RR;
+  free(aggregateSets);
+  return (int)theta;
 }
+
 
 //! The IMM algroithm for Influence Maximization (MPI specialization).
 //!
@@ -243,26 +286,59 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
 //! \param ex_tag The execution policy tag.
 template <typename GraphTy, typename ConfTy, typename diff_model_tag,
           typename GeneratorTy, typename ExTagTrait>
-auto IMM(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
-         IMMExecutionRecord &record, diff_model_tag &&model_tag,
-         ExTagTrait &&ex_tag) {
+auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
+         IMMExecutionRecord &record, 
+         diff_model_tag &&model_tag, ExTagTrait &&) {
   using vertex_type = typename GraphTy::vertex_type;
 
   l = l * (1 + 1 / std::log2(G.num_nodes()));
 
-  auto R = mpi::Sampling(G, CFG, l, gen, record,
-                         std::forward<diff_model_tag>(model_tag),
-                         std::forward<ExTagTrait>(ex_tag));
+  // get mapping of which local process handles each vertex
+  int world_size, world_rank;
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-  auto start = std::chrono::high_resolution_clock::now();
-  const auto &S =
-      FindMostInfluentialSet(G, CFG, R, gen.isGpuEnabled(),
-                             typename ExTagTrait::seed_selection_ex_tag{});
-  auto end = std::chrono::high_resolution_clock::now();
+  MaxKCoverEngine maxKCoverEngine;
 
-  record.FindMostInfluentialSet = end - start;
+  std::vector<int> vertexToProcess(G.num_nodes());
+  int verticesPerProcess = G.num_nodes() / world_size + 1;
+  for (int i = 0, curProcess = 0; i < G.num_nodes(); i++) {
+    if ((i+1) % curProcess == 0) {
+      curProcess++;
+    }
+    vertexToProcess[i] = curProcess;
+  }
 
-  return S.second;
+  TransposeRRRSets<GraphTy>* tRRRSets = new TransposeRRRSets<GraphTy>(G.num_nodes());
+
+  // get local tRRRSets
+  int totalRRRIDs = mpi::TransposeSampling(
+    *tRRRSets,
+    G, CFG, l, gen, record,
+    std::forward<diff_model_tag>(model_tag),
+    typename ExTagTrait::generate_ex_tag{},
+    vertexToProcess,
+    world_size
+  );
+
+  int RRRIDsPerProcess = (totalRRRIDs / world_size) + 1;
+
+  CommunicationEngine<GraphTy> cEngine;
+
+  LinearizedSetsSize* setSize = cEngine.count(*tRRRSets, vertexToProcess, world_size);
+  int* data = cEngine.linearize(
+    *tRRRSets, 
+    vertexToProcess, 
+    *(cEngine.buildPrefixSum(setSize->countPerProcess.data(), world_size)), 
+    setSize->count, 
+    world_size
+  );
+
+  std::unordered_map<int, std::unordered_set<int>>* aggregateSets = new std::unordered_map<int, std::unordered_set<int>>();
+  cEngine.getProcessSpecificVertexRRRSets(*aggregateSets, data, setSize->countPerProcess.data(), world_size, RRRIDsPerProcess);
+
+  std::pair<std::vector<unsigned int>, int> seeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, (int)totalRRRIDs);
+  return seeds.first;
 }
 
 }  // namespace mpi

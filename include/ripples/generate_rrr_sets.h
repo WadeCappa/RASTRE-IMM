@@ -261,24 +261,24 @@ void GenerateRRRSets(GraphTy &G, PRNGeneratorTy &generator,
 /// @param  
 /// @param model_tag 
 /// @param ex_tag 
-template <typename GraphTy, typename PRNGeneratorTy,
-          typename ItrTy, typename ExecRecordTy,
-          typename diff_model_tag>
-void GenerateTransposeRRRSets(TransposeRRRSets<GraphTy> &transposeRRRSets, 
-                     GraphTy &G, PRNGeneratorTy &generator,
-                     ItrTy begin, ItrTy end,
-                     ExecRecordTy &,
-                     diff_model_tag &&model_tag,
-                     sequential_tag &&ex_tag) {
-  trng::uniform_int_dist start(0, G.num_nodes());
+// template <typename GraphTy, typename PRNGeneratorTy,
+//           typename ItrTy, typename ExecRecordTy,
+//           typename diff_model_tag>
+// void GenerateTransposeRRRSets(TransposeRRRSets<GraphTy> &transposeRRRSets, 
+//                      const GraphTy &G, PRNGeneratorTy &generator,
+//                      ItrTy begin, ItrTy end,
+//                      ExecRecordTy &,
+//                      diff_model_tag &&model_tag,
+//                      sequential_tag &&ex_tag) {
+//   trng::uniform_int_dist start(0, G.num_nodes());
 
-  int index = 0;
-  for (auto itr = begin; itr < end; ++itr, index++) {
-    typename GraphTy::vertex_type r = start(generator[0]);
-    AddTransposeRRRSet(transposeRRRSets, G, r, generator[0], *itr,
-              std::forward<diff_model_tag>(model_tag), index);
-  }
-}
+//   int index = 0;
+//   for (auto itr = begin; itr < end; ++itr, index++) {
+//     typename GraphTy::vertex_type r = start(generator[0]);
+//     AddTransposeRRRSet(transposeRRRSets, G, r, generator[0], *itr,
+//               std::forward<diff_model_tag>(model_tag), index);
+//   }
+// }
 
 //! \brief Generate Random Reverse Reachability Sets - CUDA.
 //!

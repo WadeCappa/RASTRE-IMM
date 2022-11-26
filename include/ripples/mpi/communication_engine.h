@@ -2,7 +2,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <mutex>
-#include <iostream>
+#include <iostream> 
 
 typedef struct linearizedSetsSize {
     int count;
@@ -16,7 +16,7 @@ class CommunicationEngine
     CommunicationEngine() {}
     ~CommunicationEngine() {}
 
-    LinearizedSetsSize count(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, int p) {
+    LinearizedSetsSize* count(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, int p) {
         std::vector<int> countPerProcess = *(new std::vector<int>(p)); 
         LinearizedSetsSize* setSize = new LinearizedSetsSize();
         int count = 0;
@@ -27,17 +27,17 @@ class CommunicationEngine
         setSize->count = count;
         setSize->countPerProcess = countPerProcess;
 
-        return *setSize;
+        return setSize;
     }
 
-    std::vector<int> buildPrefixSum(std::vector<int> v) {
-        std::vector<int>* prefixSum = new std::vector<int>(v.size(), 0);
+    std::vector<int>* buildPrefixSum(int* v, int p) {
+        std::vector<int>* prefixSum = new std::vector<int>(p, 0);
 
-        for (int i = 1; i < v.size(); i++) {
+        for (int i = 1; i < p; i++) {
             (*prefixSum)[i] = (*prefixSum)[i - 1] + v[i - 1];
         }
         
-        return *prefixSum;
+        return prefixSum;
     }
 
     int* linearize(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, std::vector<int> dataStartPartialSum, int totalData, int p) 
@@ -79,8 +79,8 @@ class CommunicationEngine
 
     int* linearizeTRRRSets(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcesses, int p) 
     {
-        LinearizedSetsSize setSize = count(tRRRSets, vertexToProcesses, p);
-        return linearize(tRRRSets, vertexToProcesses, buildPrefixSum(setSize.countPerProcess), setSize.count, p);
+        LinearizedSetsSize* setSize = count(tRRRSets, vertexToProcesses, p);
+        return linearize(tRRRSets, vertexToProcesses, buildPrefixSum(setSize->countPerProcess), setSize->count, p);
     }
 
     /// @brief every process calls this function after they are sent the bulk data from MPI_alltoallV. Each
@@ -124,6 +124,7 @@ class CommunicationEngine
         }
     }
 
+
     // All To All
     // 1. World size send buffer containing the value to be sent to every other process
     // 2. World size receive buffer 
@@ -136,32 +137,70 @@ class CommunicationEngine
     // 4. Where am I receiving
     // 5. How many am I receiving
     // 6. Where to start counting from
-    // int* allToAll(int* linearizedData, std::vector<int> countPerProcess, int p)
-    // {
-    //     int* receiveSizes = new int[p];
-    //     MPI_Alltoall(&countPerProcess[0], 1, MPI_INT, receiveSizes, 1, MPI_INT, MPI_COMM_WORLD);
+    int* allToAll(int* linearizedData, std::vector<int> countPerProcess, int p)
+    {
+        int* receiveSizes = new int[p];
+        MPI_Alltoall(&countPerProcess[0], 1, MPI_INT, receiveSizes, 1, MPI_INT, MPI_COMM_WORLD);
 
-    //     int totalReceiveSize = 0;
-    //     for (int i = 0; i < p; i++) {
-    //         totalReceiveSize += *(receiveSizes + i);
-    //     }
-    //     int* receiveBuffer = new int[totalReceiveSize];
+        int totalReceiveSize = 0;
+        for (int i = 0; i < p; i++) {
+            totalReceiveSize += *(receiveSizes + i);
+        }
+        int* receiveBuffer = new int[totalReceiveSize];
 
-    //     // call alltoall_v
-    //     MPI_Alltoallv(
-    //         linearizedData, 
-    //         &countPerProcess[0], 
-    //         buildPrefixSum(countPerProcess), 
-    //         MPI_INT, 
-    //         receiveBuffer, 
-    //         receiveSizes, 
-    //         buildPrefixSum(totalReceiveSize),
-    //         MPI_INT,
-    //         MPI_COMM_WORLD
-    //     );
+        // call alltoall_v
+        MPI_Alltoallv(
+            linearizedData, 
+            &countPerProcess[0], 
+            buildPrefixSum(countPerProcess), 
+            MPI_INT, 
+            receiveBuffer, 
+            receiveSizes, 
+            buildPrefixSum(totalReceiveSize),
+            MPI_INT,
+            MPI_COMM_WORLD
+        );
 
-    //     return receiveBuffer;
-    // }
+        return receiveBuffer;
+    }
+
+    void getProcessSpecificVertexRRRSets(
+        std::unordered_map<int, std::unordered_set<int>> &aggregateSets, 
+        int* linearizedData,
+        int* countPerProcess,
+        int p,
+        int RRRIDsPerProcess
+    ) {
+        int* receiveSizes = new int[p];
+        MPI_Alltoall(countPerProcess, 1, MPI_INT, receiveSizes, 1, MPI_INT, MPI_COMM_WORLD);
+
+        int totalReceiveSize = 0;
+        for (int i = 0; i < p; i++) {
+            totalReceiveSize += *(receiveSizes + i);
+        }
+        int* linearizedLocalData = new int[totalReceiveSize];
+
+        std::vector<int>* sendPrefixSum = buildPrefixSum(countPerProcess, p);
+        std::vector<int>* receivePrefixSum = buildPrefixSum(receiveSizes, p);
+
+        // call alltoall_v
+        MPI_Alltoallv(
+            linearizedData, 
+            &countPerProcess[0], 
+            sendPrefixSum->data(), 
+            MPI_INT, 
+            linearizedLocalData, 
+            receiveSizes, 
+            receivePrefixSum->data(),
+            MPI_INT,
+            MPI_COMM_WORLD
+        );
+
+        free(sendPrefixSum);
+        free(receivePrefixSum);
+
+        aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, p, RRRIDsPerProcess);
+    }
 
     // TransposeRRRSets<GraphTy> delinearizeToTRRRSets(int* data)
     // {

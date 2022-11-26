@@ -45,7 +45,7 @@
 #include "ripples/generate_rrr_sets.h"
 #include "ripples/graph.h"
 #include "ripples/imm.h"
-#include "ripples/communication_engine.h"
+#include "ripples/mpi/communication_engine.h"
 
 #include <unordered_set>
 #include <iostream>

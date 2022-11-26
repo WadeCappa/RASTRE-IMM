@@ -49,7 +49,7 @@
 #include "ripples/diffusion_simulation.h"
 #include "ripples/graph.h"
 #include "ripples/loaders.h"
-#include "ripples/mpi/imm.h"
+#include "ripples/mpi/greedi-im.h"
 #include "ripples/utility.h"
 
 #include "CLI/CLI.hpp"
@@ -96,7 +96,7 @@ auto GetExperimentRecord(const ToolConfiguration<IMMConfiguration> &CFG,
 }
 
 ToolConfiguration<ripples::IMMConfiguration> CFG;
-
+ 
 void parse_command_line(int argc, char **argv) {
   CFG.ParseCmdOptions(argc, argv);
 #pragma omp single
@@ -117,8 +117,96 @@ int main(int argc, char *argv[]) {
   spdlog::set_level(spdlog::level::info);
   auto console = spdlog::stdout_color_st("console");
 
-  std::cout << "hello world" << std::endl;
+  // process command line
+  ripples::parse_command_line(argc, argv);
+  auto CFG = ripples::configuration();
+  if (CFG.parallel) {
+    if (ripples::streaming_command_line(
+            CFG.worker_to_gpu, CFG.streaming_workers, CFG.streaming_gpu_workers,
+            CFG.gpu_mapping_string) != 0) {
+      console->error("invalid command line");
+      return -1;
+    }
+  }
 
+  trng::lcg64 weightGen;
+  weightGen.seed(0UL);
+  weightGen.split(2, 0);
+
+  using edge_type = ripples::WeightedDestination<uint32_t, float>;
+  using GraphFwd =
+      ripples::Graph<uint32_t, edge_type, ripples::ForwardDirection<uint32_t>>;
+  using GraphBwd =
+      ripples::Graph<uint32_t, edge_type, ripples::BackwardDirection<uint32_t>>;
+  console->info("Loading...");
+  GraphFwd Gf = ripples::loadGraph<GraphFwd>(CFG, weightGen);
+  GraphBwd G = Gf.get_transpose();
+  console->info("Loading Done!");
+  console->info("Number of Nodes : {}", G.num_nodes());
+  console->info("Number of Edges : {}", G.num_edges());
+
+  nlohmann::json executionLog;
+
+  std::vector<typename GraphBwd::vertex_type> seeds;
+  ripples::IMMExecutionRecord R;
+
+  trng::lcg64 generator;
+  generator.seed(0UL);
+  generator.split(2, 1);
+  ripples::mpi::split_generator(generator);
+
+  auto workers = CFG.streaming_workers;
+  auto gpu_workers = CFG.streaming_gpu_workers;
+  if (CFG.diffusionModel == "IC") {
+    ripples::StreamingRRRGenerator<
+        decltype(G), decltype(generator),
+        typename ripples::RRRsets<decltype(G)>::iterator,
+        ripples::independent_cascade_tag>
+        se(G, generator, R, workers - gpu_workers, gpu_workers,
+           CFG.worker_to_gpu);
+    auto start = std::chrono::high_resolution_clock::now();
+    seeds = ripples::mpi::GREEDI(
+        G, CFG, 1.0, se, R, ripples::independent_cascade_tag{},
+        ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
+    auto end = std::chrono::high_resolution_clock::now();
+    R.Total = end - start;
+  } else if (CFG.diffusionModel == "LT") {
+    ripples::StreamingRRRGenerator<
+        decltype(G), decltype(generator),
+        typename ripples::RRRsets<decltype(G)>::iterator,
+        ripples::linear_threshold_tag>
+        se(G, generator, R, workers - gpu_workers, gpu_workers,
+           CFG.worker_to_gpu);
+    auto start = std::chrono::high_resolution_clock::now();
+    seeds = ripples::mpi::GREEDI(
+        G, CFG, 1.0, se, R, ripples::linear_threshold_tag{},
+        ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
+    auto end = std::chrono::high_resolution_clock::now();
+    R.Total = end - start;
+  }
+  console->info("IMM MPI+OpenMP+CUDA : {}ms", R.Total.count());
+
+  size_t num_threads;
+#pragma omp single
+  num_threads = omp_get_max_threads();
+  R.NumThreads = num_threads;
+
+  G.convertID(seeds.begin(), seeds.end(), seeds.begin());
+  auto experiment = GetExperimentRecord(CFG, R, seeds);
+  executionLog.push_back(experiment);
+  int world_size;
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+  console->info("IMM World Size : {}", world_size);
+
+  // Find out rank, size
+  int world_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  console->info("IMM Rank : {}", world_rank);
+
+  if (world_rank == 0) {
+    std::ofstream perf(CFG.OutputFile);
+    perf << executionLog.dump(2);
+  }
 
   MPI_Finalize();
 

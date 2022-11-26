@@ -5,6 +5,7 @@
 #include <mutex>
 #include <iostream>
 #include "bitmask.h"
+#include <utility>
 #include <queue>
 
 class MaxKCoverEngine 
@@ -20,9 +21,10 @@ class MaxKCoverEngine
         }
     };
 
-    std::vector<int> max_cover_lazy_greedy(std::unordered_map<int, std::unordered_set<int>> data, int k, int theta) 
+    std::pair<std::vector<unsigned int>, int> max_cover_lazy_greedy(std::unordered_map<int, std::unordered_set<int>>& data, int k, int theta) 
     {
         CompareMaxHeap<int> cmp;
+        int totalRRRSetsUsed;
 
         std::vector<std::pair<int, std::unordered_set<int>>> data_vec	= std::vector<std::pair<int, std::unordered_set<int>>>(data.begin(), data.end());
         std::priority_queue<std::pair<int, std::unordered_set<int>>,
@@ -31,7 +33,7 @@ class MaxKCoverEngine
 
         ripples::Bitmask<int> covered(theta);
         
-        std::vector<int> result(k, -1);
+        std::vector<unsigned int> result(k, -1);
         int count = 0;
 
 
@@ -67,6 +69,9 @@ class MaxKCoverEngine
                 count += 1;
                 
                 for (auto e : l.second) {
+                    if (!covered.get(e)) {
+                        totalRRRSetsUsed++;
+                    }
                     covered.set(e);
                 }
             }
@@ -77,6 +82,6 @@ class MaxKCoverEngine
             }
         }
 
-        return result;
+        return std::make_pair(result, totalRRRSetsUsed);
     }
 };
