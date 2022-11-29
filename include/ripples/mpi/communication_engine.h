@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <iostream> 
+#include <utility>
 
 typedef struct linearizedSetsSize {
     int count;
@@ -38,6 +39,31 @@ class CommunicationEngine
         }
         
         return prefixSum;
+    }
+
+    std::pair<int, int*> linearize(std::unordered_map<int, std::unordered_set<int>> &aggregateSets) 
+    {
+        std::vector<std::pair<int, int>> setsPrefixSum;
+        int runningSum = 0;
+
+        for (const auto & keyVal : aggregateSets) {
+            setsPrefixSum.push_back(std::make_pair(keyVal.first, runningSum));
+            runningSum += keyVal.second.size() + 2;
+        }
+
+        int totalData = runningSum;
+        int* linearAggregateSets = new int[totalData];
+
+        #pragma omp for
+        for (int setIndex = 0; setIndex < setsPrefixSum.size(); setIndex++) {
+            *(linearAggregateSets + setsPrefixSum[setIndex].second) = setsPrefixSum[setIndex].first;
+            int offset = setsPrefixSum[setIndex].second + 1;
+            for (const auto & RRRSetID : aggregateSets[setsPrefixSum[setIndex].first]) {
+                *(linearAggregateSets + offset++) = RRRSetID;
+            }
+            *(linearAggregateSets + setsPrefixSum[setIndex].second + aggregateSets[setsPrefixSum[setIndex].first].size() + 1) = -1;
+        }
+        return std::make_pair(totalData, linearAggregateSets);
     }
 
     int* linearize(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, std::vector<int> dataStartPartialSum, int totalData, int p) 
@@ -125,6 +151,24 @@ class CommunicationEngine
     }
 
 
+    void aggregateLocalKSeeds(std::unordered_map<int, std::unordered_set<int>> &bestMKSeeds, int* data, int totalData)
+    {
+        // cycle over data
+        int vertexID = *data;   
+        bestMKSeeds.insert({ vertexID, *(new std::unordered_set<int>()) });
+        for (int rankDataProcessed = 1, i = 1; i < totalData - 1; i++) {
+            if (*(data + i) == -1) {
+                vertexID = *(data + ++i);
+                bestMKSeeds.insert({ vertexID, *(new std::unordered_set<int>()) });
+            }
+
+            else {
+                bestMKSeeds[vertexID].insert(*(data + i));
+            }
+        }
+    }
+
+
     // All To All
     // 1. World size send buffer containing the value to be sent to every other process
     // 2. World size receive buffer 
@@ -172,6 +216,7 @@ class CommunicationEngine
         int RRRIDsPerProcess
     ) {
         int* receiveSizes = new int[p];
+
         MPI_Alltoall(countPerProcess, 1, MPI_INT, receiveSizes, 1, MPI_INT, MPI_COMM_WORLD);
 
         int totalReceiveSize = 0;
@@ -196,8 +241,8 @@ class CommunicationEngine
             MPI_COMM_WORLD
         );
 
-        free(sendPrefixSum);
-        free(receivePrefixSum);
+        // free(sendPrefixSum);
+        // free(receivePrefixSum);
 
         aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, p, RRRIDsPerProcess);
     }

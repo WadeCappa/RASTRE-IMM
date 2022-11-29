@@ -191,6 +191,13 @@ int main(int argc, char *argv[]) {
   num_threads = omp_get_max_threads();
   R.NumThreads = num_threads;
 
+  int world_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+  if (world_rank == 0) {
+    std::cout << "rank 0 " << std::endl;
+  }
+
   G.convertID(seeds.begin(), seeds.end(), seeds.begin());
   auto experiment = GetExperimentRecord(CFG, R, seeds);
   executionLog.push_back(experiment);
@@ -199,8 +206,7 @@ int main(int argc, char *argv[]) {
   console->info("IMM World Size : {}", world_size);
 
   // Find out rank, size
-  int world_rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
   console->info("IMM Rank : {}", world_rank);
 
   if (world_rank == 0) {

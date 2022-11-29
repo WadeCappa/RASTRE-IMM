@@ -128,6 +128,123 @@ std::vector<PRNG> rank_split_generator(const PRNG &gen) {
   return generator;
 }
 
+template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
+          typename diff_model_tag, typename execution_tag>
+std::pair<std::vector<unsigned int>, int> MartigaleRound(
+  ssize_t thetaPrime,  
+  TransposeRRRSets<GraphTy>& tRRRSets,
+  std::vector<RRRset<GraphTy>> RR,
+  RRRsetAllocator<typename GraphTy::vertex_type> allocator,
+  const GraphTy &G, 
+  const ConfTy &CFG, 
+  RRRGeneratorTy &generator, 
+  IMMExecutionRecord &record,
+  diff_model_tag &&model_tag, 
+  execution_tag &&ex_tag, 
+  std::vector<int> vertexToProcess,
+  int world_size, 
+  int world_rank,
+  CommunicationEngine<GraphTy> cEngine,
+  std::unordered_map<int, std::unordered_set<int>>* aggregateSets,
+  MaxKCoverEngine maxKCoverEngine
+) 
+{
+  double f;
+  // figure out how to exacly generate this number (remove rounding error)
+  ssize_t localThetaPrime = (thetaPrime / world_size) + 1;
+
+  std::pair<std::vector<unsigned int>, int> globalSeeds;
+
+  size_t delta = localThetaPrime - RR.size();
+  record.ThetaPrimeDeltas.push_back(delta);
+
+  auto timeRRRSets = measure<>::exec_time([&]() {
+    RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
+    auto begin = RR.end() - delta;
+
+    std::cout << "generating transpose RRR sets within the martigale loop" << std::endl;
+    // within this function, there is a logical bug with counting RRRset IDs
+    GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
+                    std::forward<diff_model_tag>(model_tag),
+                    std::forward<execution_tag>(ex_tag));
+
+    LinearizedSetsSize* setSize = cEngine.count(tRRRSets, vertexToProcess, world_size);
+    int* data = cEngine.linearize(
+      tRRRSets, 
+      vertexToProcess, 
+      *(cEngine.buildPrefixSum(setSize->countPerProcess.data(), world_size)), 
+      setSize->count, 
+      world_size
+    );
+
+    std::unordered_map<int, std::unordered_set<int>>* aggregateSets = new std::unordered_map<int, std::unordered_set<int>>();
+    cEngine.getProcessSpecificVertexRRRSets(*aggregateSets, data, setSize->countPerProcess.data(), world_size, localThetaPrime);
+
+    std::cout << "getting best local seeds" << std::endl;
+    std::pair<std::vector<unsigned int>, int> localSeeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, thetaPrime);
+
+    std::cout << "linearizing local seeds" << std::endl;
+    // linearize the winning k seeds from each local process (vertexID: {RRR set IDs}) and send them to process 1 (reduce operation). 
+    std::pair<int, int*> linearLocalSeeds = cEngine.linearize(*aggregateSets);
+
+    // mpi_gather for rank 1. Gathers the size of all linearLocalSeeds to send
+    int* gatherSizes = new int[world_size];
+    MPI_Allgather(
+      &(linearLocalSeeds.first), 1, MPI_INT,
+      gatherSizes, 1, MPI_INT, MPI_COMM_WORLD
+    );
+
+    // mpi_gatherv for all buffers of linearized aggregateSets. 
+    int totalData = 0;
+    for (int i = 0; i < world_size; i++) {
+      totalData += gatherSizes[i];
+    }  
+
+    std::vector<int>* displacements = cEngine.buildPrefixSum(gatherSizes, world_size);
+
+    std::cout << "aggregating local seeds to process of rank 0" << std::endl;
+    int* aggregatedSeeds = new int[totalData];
+    MPI_Gatherv(
+      linearLocalSeeds.second,
+      linearLocalSeeds.first,
+      MPI_INT,
+      aggregatedSeeds,
+      gatherSizes,
+      &(*displacements)[0],
+      MPI_INT,
+      0,
+      MPI_COMM_WORLD
+    );
+
+    free(displacements);
+
+    if (world_rank == 0) {
+      // delinearize the m * k vertex: unordered_set data. 
+      std::unordered_map<int, std::unordered_set<int>> bestKMSeeds;
+      cEngine.aggregateLocalKSeeds(bestKMSeeds, aggregatedSeeds, totalData);
+
+      std::cout << "finding best global seeds as process 0" << std::endl;
+      // run max-k-cover on the aggregated data for k seeds
+      globalSeeds = maxKCoverEngine.max_cover_lazy_greedy(bestKMSeeds, (int)CFG.k, (int)thetaPrime);
+    }    
+  });
+  
+  record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
+
+  auto timeMostInfluential = measure<>::exec_time([&]() { });
+
+  record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
+
+  // free statements to prevent memory leak.
+  //  TODO: find all memory generation processes and free allocated memory
+  // free(setSize);
+  // free(aggregateSets);
+
+  std::cout << "returning global seeds" << std::endl;
+  return globalSeeds;
+}
+
+
 //! Collect a set of Random Reverse Reachable set.
 //!
 //! \tparam GraphTy The type of the input graph.
@@ -145,13 +262,13 @@ std::vector<PRNG> rank_split_generator(const PRNG &gen) {
 //! \param ex_tag The execution policy tag.
 template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
           typename diff_model_tag, typename execution_tag>
-int TransposeSampling(
+std::pair<std::vector<unsigned int>, int> TransposeSampling(
   TransposeRRRSets<GraphTy>& tRRRSets,
   const GraphTy &G, const ConfTy &CFG, double l,
   RRRGeneratorTy &generator, IMMExecutionRecord &record,
   diff_model_tag &&model_tag, execution_tag &&ex_tag, 
   std::vector<int> vertexToProcess,
-  int total_processes
+  int world_size, int world_rank
 ) {
   using vertex_type = typename GraphTy::vertex_type;
   size_t k = CFG.k;
@@ -181,73 +298,48 @@ int TransposeSampling(
   size_t thetaPrime = 0;
 
   CommunicationEngine<GraphTy> cEngine;
-  std::unordered_map<int, std::unordered_set<int>>* aggregateSets = new std::unordered_map<int, std::unordered_set<int>>();
+  std::unordered_map<int, std::unordered_set<int>>* aggregateSets;
   MaxKCoverEngine maxKCoverEngine;
 
   // martingale loop
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
-    free(aggregateSets);
     // Equation 9
     // thetaPrime == number of RRRsets globally
     ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
                                     std::forward<execution_tag>(ex_tag));
 
-    // figure out how to exacly generate this number (remove rounding error)
-    ssize_t localThetaPrime = (thetaPrime / total_processes) + 1;
-
-    size_t delta = localThetaPrime - RR.size();
-    record.ThetaPrimeDeltas.push_back(delta);
-
-    auto timeRRRSets = measure<>::exec_time([&]() {
-      RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
-
-      auto begin = RR.end() - delta;
-
-      // within this function, there is a logical bug with counting RRRset IDs
-      GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
-                      std::forward<diff_model_tag>(model_tag),
-                      std::forward<execution_tag>(ex_tag));
-    });
-    record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
-
-    double f;
-
-    // communication (aggregation)
-
-    // linearize local tRRRSets
-    LinearizedSetsSize* setSize = cEngine.count(tRRRSets, vertexToProcess, total_processes);
-    int* data = cEngine.linearize(
-      tRRRSets, 
-      vertexToProcess, 
-      *(cEngine.buildPrefixSum(setSize->countPerProcess.data(), total_processes)), 
-      setSize->count, 
-      total_processes
+    // if f(s) meets threashold return k seeds, all processes return null except for rank 
+    std::cout << "martigale round with theta = " << (int)thetaPrime << std::endl;
+    std::pair<std::vector<unsigned int>, int> seeds = MartigaleRound(
+      thetaPrime, tRRRSets, RR, allocator, G, 
+      CFG, generator, record,
+      std::forward<diff_model_tag>(model_tag),
+      std::forward<execution_tag>(ex_tag),
+      vertexToProcess, world_size, world_rank,
+      cEngine, aggregateSets, maxKCoverEngine
     );
 
-    aggregateSets = new std::unordered_map<int, std::unordered_set<int>>();
-    cEngine.getProcessSpecificVertexRRRSets(*aggregateSets, data, setSize->countPerProcess.data(), total_processes, localThetaPrime);
+    // f is the fraction of RRRsets covered by the seeds / the total number of RRRSets (in the current iteration of the martigale loop)
+    // this has to be a global value, if one process succeeds and another fails it will get stuck in communication (the algorithm will fail). 
+    double f;
 
-    auto timeMostInfluential = measure<>::exec_time([&]() {
-      std::pair<std::vector<unsigned int>, int> seeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, (int)thetaPrime);
-
-      // f is the fraction of RRRsets covered by the seeds / the total number of local RRRSets (in the current iteration of the martigale loop)
-      // this has to be a global value, if one process succeeds and another fails it will get stuck in communication (the algorithm will fail). 
-      f = seeds.second / localThetaPrime;
-    });
-
-    record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
+    if (world_rank == 0) {
+      f = seeds.second / thetaPrime;
+    }
+    // mpi_broadcast f(s)
+    MPI_Bcast(&f, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     if (f >= std::pow(2, -x)) {
       // std::cout << "Fraction " << f << std::endl;
       LB = (G.num_nodes() * f) / (1 + epsilonPrime);
       break;
     }
-    free(setSize);
   }
 
-  size_t theta = Theta(epsilon, l, k, LB, G.num_nodes());
-  size_t localTheta = (theta / total_processes) + 1;
   auto end = std::chrono::high_resolution_clock::now();
+
+  size_t theta = Theta(epsilon, l, k, LB, G.num_nodes());
+  size_t localTheta = (theta / world_size) + 1;
 
   record.ThetaEstimationTotal = end - start;
 
@@ -266,8 +358,15 @@ int TransposeSampling(
     }
   });
 
-  free(aggregateSets);
-  return (int)theta;
+  std::cout << "getting best seeds globally with theta = " << (int)theta << std::endl;
+  return MartigaleRound(
+    theta, tRRRSets, RR, allocator, G, 
+    CFG, generator, record,
+    std::forward<diff_model_tag>(model_tag),
+    std::forward<execution_tag>(ex_tag),
+    vertexToProcess, world_size, world_rank,
+    cEngine, aggregateSets, maxKCoverEngine
+  );
 }
 
 
@@ -300,44 +399,28 @@ auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
 
   MaxKCoverEngine maxKCoverEngine;
 
-  std::vector<int> vertexToProcess(G.num_nodes());
+  // TOOD: randomize the bucketing of vertices to processes, use a coinflip algorithm
+  //  that chooses a process for each vertex as a loop linearly scans through the 
+  //  verticesPerProcess vector.
+  std::vector<int> vertexToProcess(G.num_nodes(), -1);
   int verticesPerProcess = G.num_nodes() / world_size + 1;
-  for (int i = 0, curProcess = 0; i < G.num_nodes(); i++) {
-    if ((i+1) % curProcess == 0) {
-      curProcess++;
-    }
-    vertexToProcess[i] = curProcess;
+  for (int i = 0; i < G.num_nodes(); i++) {
+    vertexToProcess[i] = i % world_size;
   }
 
   TransposeRRRSets<GraphTy>* tRRRSets = new TransposeRRRSets<GraphTy>(G.num_nodes());
-
+  
   // get local tRRRSets
-  int totalRRRIDs = mpi::TransposeSampling(
+  std::cout << "entering transposeSampling" << std::endl;
+  std::pair<std::vector<unsigned int>, int> seeds = mpi::TransposeSampling(
     *tRRRSets,
     G, CFG, l, gen, record,
     std::forward<diff_model_tag>(model_tag),
     typename ExTagTrait::generate_ex_tag{},
     vertexToProcess,
-    world_size
+    world_size, world_rank
   );
 
-  int RRRIDsPerProcess = (totalRRRIDs / world_size) + 1;
-
-  CommunicationEngine<GraphTy> cEngine;
-
-  LinearizedSetsSize* setSize = cEngine.count(*tRRRSets, vertexToProcess, world_size);
-  int* data = cEngine.linearize(
-    *tRRRSets, 
-    vertexToProcess, 
-    *(cEngine.buildPrefixSum(setSize->countPerProcess.data(), world_size)), 
-    setSize->count, 
-    world_size
-  );
-
-  std::unordered_map<int, std::unordered_set<int>>* aggregateSets = new std::unordered_map<int, std::unordered_set<int>>();
-  cEngine.getProcessSpecificVertexRRRSets(*aggregateSets, data, setSize->countPerProcess.data(), world_size, RRRIDsPerProcess);
-
-  std::pair<std::vector<unsigned int>, int> seeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, (int)totalRRRIDs);
   return seeds.first;
 }
 
