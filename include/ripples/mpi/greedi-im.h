@@ -324,10 +324,12 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     double f;
 
     if (world_rank == 0) {
-      f = seeds.second / thetaPrime;
+      f = double(seeds.second) / thetaPrime;
     }
     // mpi_broadcast f(s)
     MPI_Bcast(&f, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    std::cout << "seeds.second: (covered RRRSet IDs) = " << seeds.second << " , thetaPrme: " << thetaPrime << " , f = " << f << std::endl;
 
     if (f >= std::pow(2, -x)) {
       // std::cout << "Fraction " << f << std::endl;
@@ -339,6 +341,11 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   auto end = std::chrono::high_resolution_clock::now();
 
   size_t theta = Theta(epsilon, l, k, LB, G.num_nodes());
+  
+  if (theta == 0) {
+    theta = thetaPrime;
+  }
+
   size_t localTheta = (theta / world_size) + 1;
 
   record.ThetaEstimationTotal = end - start;
