@@ -4,6 +4,7 @@
 #include <mutex>
 #include <iostream> 
 #include <utility>
+#include <chrono>
 
 typedef struct linearizedSetsSize {
     int count;
@@ -13,6 +14,8 @@ typedef struct linearizedSetsSize {
 template <typename GraphTy>
 class CommunicationEngine
 {
+    private: 
+
     public:
     CommunicationEngine() {}
     ~CommunicationEngine() {}
@@ -247,11 +250,43 @@ class CommunicationEngine
         aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, p, RRRIDsPerProcess);
     }
 
-    // TransposeRRRSets<GraphTy> delinearizeToTRRRSets(int* data)
-    // {
-    //     // build a new tRRRSets object
-    //     // cycle over data
-    //         // add each RRRSetID to the map indexed by the target vertex id. 
-    //         // The RRRSetIDs need to be modified such that they are unique per process. 
-    // }
+    std::pair<int, int*> aggregateAggregateSets(int totalGatherData, int world_size, int* localLinearAggregateSets)
+    {
+        int* gatherSizes = new int[world_size];
+        MPI_Allgather(
+            &totalGatherData, 1, MPI_INT,
+            gatherSizes, 1, MPI_INT, MPI_COMM_WORLD
+        );
+        
+        // mpi_gatherv for all buffers of linearized aggregateSets. 
+        int totalData = 0;
+        for (int i = 0; i < world_size; i++) {
+            totalData += gatherSizes[i];
+        }  
+
+        std::vector<int>* displacements = buildPrefixSum(gatherSizes, world_size);
+
+        int* aggregatedSeeds = new int[totalData];
+        MPI_Gatherv(
+            localLinearAggregateSets,
+            totalGatherData,
+            MPI_INT,
+            aggregatedSeeds,
+            gatherSizes,
+            &(*displacements)[0],
+            MPI_INT,
+            0,
+            MPI_COMM_WORLD
+        );
+
+        free(displacements);
+        return std::make_pair(totalData, aggregatedSeeds);
+    }
+
+    void distributeF(double* f)
+    {
+        MPI_Bcast(f, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    }
 };
+
+

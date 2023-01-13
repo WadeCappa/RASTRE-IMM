@@ -62,6 +62,7 @@
 #include "ripples/generate_rrr_sets.h"
 #include "ripples/mpi/communication_engine.h"
 #include "ripples/max_k_cover.h"
+#include "ripples/TimerAggregator.h"
 
 namespace ripples {
 namespace mpi {
@@ -131,6 +132,7 @@ std::vector<PRNG> rank_split_generator(const PRNG &gen) {
 template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
           typename diff_model_tag, typename execution_tag>
 std::pair<std::vector<unsigned int>, int> MartigaleRound(
+  TimerAggregator &timeAggregator,
   ssize_t thetaPrime,  
   TransposeRRRSets<GraphTy>& tRRRSets,
   std::vector<RRRset<GraphTy>> RR,
@@ -162,12 +164,15 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
     auto begin = RR.end() - delta;
 
-    std::cout << "generating transpose RRR sets within the martigale loop" << std::endl;
+    // std::cout << "generating transpose RRR sets within the martigale loop" << std::endl;
     // within this function, there is a logical bug with counting RRRset IDs
+    timeAggregator.samplingTimer.startTimer();
     GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
                     std::forward<diff_model_tag>(model_tag),
                     std::forward<execution_tag>(ex_tag));
+    timeAggregator.samplingTimer.endTimer();
 
+    // std::cout << "start linearization rank = " << world_rank << std::endl;
     LinearizedSetsSize* setSize = cEngine.count(tRRRSets, vertexToProcess, world_size);
     int* data = cEngine.linearize(
       tRRRSets, 
@@ -177,55 +182,51 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       world_size
     );
 
+    // std::cout << "linearizing data, rank = " << world_rank << std::endl;
     std::unordered_map<int, std::unordered_set<int>>* aggregateSets = new std::unordered_map<int, std::unordered_set<int>>();
+
+    timeAggregator.allToAllTimer.startTimer();
+    // auto start = std::chrono::high_resolution_clock::now();
     cEngine.getProcessSpecificVertexRRRSets(*aggregateSets, data, setSize->countPerProcess.data(), world_size, localThetaPrime);
+    // auto end = std::chrono::high_resolution_clock::now();
+    // std::cout << " ------- time for single all to all = " << (end - start).count() << " ------- " << std::endl;
+    timeAggregator.allToAllTimer.endTimer();
 
-    std::cout << "getting best local seeds" << std::endl;
-    std::pair<std::vector<unsigned int>, int> localSeeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, thetaPrime);
+    // std::cout << "first max_cover_greedy, rank = " << world_rank << std::endl;
+    timeAggregator.max_k_localTimer.startTimer();
+    std::pair<std::vector<unsigned int>, int> localSeeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, thetaPrime*2);
+    // end = std::chrono::high_resolution_clock::now();
+    timeAggregator.max_k_localTimer.endTimer();
 
-    std::cout << "linearizing local seeds" << std::endl;
     // linearize the winning k seeds from each local process (vertexID: {RRR set IDs}) and send them to process 1 (reduce operation). 
+    // std::cout << "linearize, rank = " << world_rank << std::endl;
     std::pair<int, int*> linearLocalSeeds = cEngine.linearize(*aggregateSets);
 
+    // std::cout << "global aggregation, rank = " << world_rank << std::endl;
     // mpi_gather for rank 1. Gathers the size of all linearLocalSeeds to send
-    int* gatherSizes = new int[world_size];
-    MPI_Allgather(
-      &(linearLocalSeeds.first), 1, MPI_INT,
-      gatherSizes, 1, MPI_INT, MPI_COMM_WORLD
-    );
+    timeAggregator.allGatherTimer.startTimer();
+    std::pair<int, int*> globalAggregation = cEngine.aggregateAggregateSets(linearLocalSeeds.first, world_size, linearLocalSeeds.second);
+    timeAggregator.allGatherTimer.endTimer();
 
-    // mpi_gatherv for all buffers of linearized aggregateSets. 
-    int totalData = 0;
-    for (int i = 0; i < world_size; i++) {
-      totalData += gatherSizes[i];
-    }  
+    int* aggregatedSeeds = globalAggregation.second;
+    int totalData = globalAggregation.first;
 
-    std::vector<int>* displacements = cEngine.buildPrefixSum(gatherSizes, world_size);
-
-    std::cout << "aggregating local seeds to process of rank 0" << std::endl;
-    int* aggregatedSeeds = new int[totalData];
-    MPI_Gatherv(
-      linearLocalSeeds.second,
-      linearLocalSeeds.first,
-      MPI_INT,
-      aggregatedSeeds,
-      gatherSizes,
-      &(*displacements)[0],
-      MPI_INT,
-      0,
-      MPI_COMM_WORLD
-    );
-
-    free(displacements);
-
+    // TODO: This will become more expensive with each martigale iteration (the rest of a martigale iteration 
+    // does not become more expensive with each iteration due to the progressive data generation). This means that
+    // when k is very large this can become very expensive. Look into ways to optimize the aggregate key seleciton.
     if (world_rank == 0) {
       // delinearize the m * k vertex: unordered_set data. 
       std::unordered_map<int, std::unordered_set<int>> bestKMSeeds;
+
+      // std::cout << "getting all local seeds seeds, rank = " << world_rank << std::endl;
       cEngine.aggregateLocalKSeeds(bestKMSeeds, aggregatedSeeds, totalData);
 
-      std::cout << "finding best global seeds as process 0" << std::endl;
       // run max-k-cover on the aggregated data for k seeds
-      globalSeeds = maxKCoverEngine.max_cover_lazy_greedy(bestKMSeeds, (int)CFG.k, (int)thetaPrime);
+      // std::cout << "calculating global seeds, rank = " << world_rank << std::endl;
+      timeAggregator.max_k_globalTimer.startTimer();
+      globalSeeds = maxKCoverEngine.max_cover_lazy_greedy(bestKMSeeds, (int)CFG.k, thetaPrime * 2);
+      // end = std::chrono::high_resolution_clock::now();
+      timeAggregator.max_k_globalTimer.endTimer();
     }    
   });
   
@@ -240,7 +241,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   // free(setSize);
   // free(aggregateSets);
 
-  std::cout << "returning global seeds" << std::endl;
+  // std::cout << "returning global seeds" << std::endl;
   return globalSeeds;
 }
 
@@ -297,6 +298,8 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   auto start = std::chrono::high_resolution_clock::now();
   size_t thetaPrime = 0;
 
+  TimerAggregator timeAggregator;
+
   CommunicationEngine<GraphTy> cEngine;
   std::unordered_map<int, std::unordered_set<int>>* aggregateSets;
   MaxKCoverEngine maxKCoverEngine;
@@ -309,8 +312,9 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
                                     std::forward<execution_tag>(ex_tag));
 
     // if f(s) meets threashold return k seeds, all processes return null except for rank 
-    std::cout << "martigale round with theta = " << (int)thetaPrime << std::endl;
+    // std::cout << "martigale round with theta = " << (int)thetaPrime << std::endl;
     std::pair<std::vector<unsigned int>, int> seeds = MartigaleRound(
+      timeAggregator,
       thetaPrime, tRRRSets, RR, allocator, G, 
       CFG, generator, record,
       std::forward<diff_model_tag>(model_tag),
@@ -327,10 +331,12 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
       f = double(seeds.second) / thetaPrime;
     }
     // mpi_broadcast f(s)
-    MPI_Bcast(&f, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    std::cout << "seeds.second: (covered RRRSet IDs) = " << seeds.second << " , thetaPrme: " << thetaPrime << " , f = " << f << std::endl;
+    timeAggregator.broadcastTimer.startTimer();
+    cEngine.distributeF(&f);
+    timeAggregator.broadcastTimer.endTimer();
 
+    // std::cout << "seeds.second: (covered RRRSet IDs) = " << seeds.second << " , thetaPrme: " << thetaPrime << " , f = " << f << std::endl;
     if (f >= std::pow(2, -x)) {
       // std::cout << "Fraction " << f << std::endl;
       LB = (G.num_nodes() * f) / (1 + epsilonPrime);
@@ -359,14 +365,17 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
       RR.insert(RR.end(), final_delta, RRRset<GraphTy>(allocator));
 
       auto begin = RR.end() - final_delta;
+      timeAggregator.samplingTimer.startTimer();
       GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
                       std::forward<diff_model_tag>(model_tag),
                       std::forward<execution_tag>(ex_tag));
+      timeAggregator.samplingTimer.endTimer();
     }
   });
 
-  std::cout << "getting best seeds globally with theta = " << (int)theta << std::endl;
-  return MartigaleRound(
+  // std::cout << "getting best seeds globally with theta = " << (int)theta << std::endl;
+  std::pair<std::vector<unsigned int>, int> bestSeeds = MartigaleRound(
+    timeAggregator,
     theta, tRRRSets, RR, allocator, G, 
     CFG, generator, record,
     std::forward<diff_model_tag>(model_tag),
@@ -374,6 +383,19 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     vertexToProcess, world_size, world_rank,
     cEngine, aggregateSets, maxKCoverEngine
   );
+
+  // std::cout << "total communication time: " << cEngine.getCommunicationTime() << std::endl;
+  // std::cout << "total sample time: " << totalSampleTime << std::endl;
+  // std::cout << "total max_k_cover time: " << totalCoverTime << std::endl;
+
+  std::cout << "Samping time: " << timeAggregator.samplingTimer.resolveTimer() << std::endl;
+  std::cout << "Max-k-cover local process time: " << timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
+  std::cout << "Max-k-cover global process time: " << timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
+  std::cout << "AllGather time: " << timeAggregator.allGatherTimer.resolveTimer() << std::endl;
+  std::cout << "AlltoAll time: " << timeAggregator.allToAllTimer.resolveTimer() << std::endl;
+  std::cout << "Broadcast time: " << timeAggregator.broadcastTimer.resolveTimer() << std::endl;
+
+  return bestSeeds;
 }
 
 
@@ -418,7 +440,7 @@ auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
   TransposeRRRSets<GraphTy>* tRRRSets = new TransposeRRRSets<GraphTy>(G.num_nodes());
   
   // get local tRRRSets
-  std::cout << "entering transposeSampling" << std::endl;
+  // std::cout << "entering transposeSampling" << std::endl;
   std::pair<std::vector<unsigned int>, int> seeds = mpi::TransposeSampling(
     *tRRRSets,
     G, CFG, l, gen, record,

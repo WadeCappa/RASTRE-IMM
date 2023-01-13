@@ -165,6 +165,7 @@ int main(int argc, char *argv[]) {
         se(G, generator, R, workers - gpu_workers, gpu_workers,
            CFG.worker_to_gpu);
     auto start = std::chrono::high_resolution_clock::now();
+    console->info("finished initializing graph");
     seeds = ripples::mpi::GREEDI(
         G, CFG, 1.0, se, R, ripples::independent_cascade_tag{},
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
@@ -193,10 +194,6 @@ int main(int argc, char *argv[]) {
 
   int world_rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-  if (world_rank == 0) {
-    std::cout << "rank 0 " << std::endl;
-  }
 
   G.convertID(seeds.begin(), seeds.end(), seeds.begin());
   auto experiment = GetExperimentRecord(CFG, R, seeds);
