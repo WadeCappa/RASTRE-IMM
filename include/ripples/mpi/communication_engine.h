@@ -44,6 +44,33 @@ class CommunicationEngine
         return prefixSum;
     }
 
+    std::pair<int, int*>linearizeLocalSeeds(std::unordered_map<int, std::unordered_set<int>> &aggregateSets, std::pair<std::unordered_set<unsigned int>, int>& localSeeds) 
+    {
+        std::vector<std::pair<int, int>> setsPrefixSum;
+        int runningSum = 0;
+
+        for (const auto & keyVal : aggregateSets) {
+            if (localSeeds.first.find(keyVal.first) != localSeeds.first.end()) {
+                setsPrefixSum.push_back(std::make_pair(keyVal.first, runningSum));
+                runningSum += keyVal.second.size() + 2;
+            }
+        }
+
+        int totalData = runningSum;
+        int* linearAggregateSets = new int[totalData];
+
+        #pragma omp for
+        for (int setIndex = 0; setIndex < setsPrefixSum.size(); setIndex++) {
+            *(linearAggregateSets + setsPrefixSum[setIndex].second) = setsPrefixSum[setIndex].first;
+            int offset = setsPrefixSum[setIndex].second + 1;
+            for (const auto & RRRSetID : aggregateSets[setsPrefixSum[setIndex].first]) {
+                *(linearAggregateSets + offset++) = RRRSetID;
+            }
+            *(linearAggregateSets + setsPrefixSum[setIndex].second + aggregateSets[setsPrefixSum[setIndex].first].size() + 1) = -1;
+        }
+        return std::make_pair(totalData, linearAggregateSets);
+    }
+
     std::pair<int, int*> linearize(std::unordered_map<int, std::unordered_set<int>> &aggregateSets) 
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
@@ -279,6 +306,7 @@ class CommunicationEngine
             MPI_COMM_WORLD
         );
 
+        free(gatherSizes);
         free(displacements);
         return std::make_pair(totalData, aggregatedSeeds);
     }

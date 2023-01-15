@@ -147,7 +147,6 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   int world_size, 
   int world_rank,
   CommunicationEngine<GraphTy> cEngine,
-  std::unordered_map<int, std::unordered_set<int>>* aggregateSets,
   MaxKCoverEngine maxKCoverEngine
 ) 
 {
@@ -177,6 +176,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     int* data = cEngine.linearize(
       tRRRSets, 
       vertexToProcess, 
+      /// TODO: Most likely a memroy leak, free this data at some point
       *(cEngine.buildPrefixSum(setSize->countPerProcess.data(), world_size)), 
       setSize->count, 
       world_size
@@ -192,15 +192,23 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     // std::cout << " ------- time for single all to all = " << (end - start).count() << " ------- " << std::endl;
     timeAggregator.allToAllTimer.endTimer();
 
+    delete setSize;
+
     // std::cout << "first max_cover_greedy, rank = " << world_rank << std::endl;
     timeAggregator.max_k_localTimer.startTimer();
-    std::pair<std::vector<unsigned int>, int> localSeeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, thetaPrime*2);
+
+    /// TODO: This needs to output a std::pair<unordered_set<unsigned int>, int> instead of a vector. This will allow you to do constant time 
+    ///   lookup in the next stage when you linearize these results. 
+    std::pair<std::unordered_set<unsigned int>, int> localSeeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, thetaPrime*2);
     // end = std::chrono::high_resolution_clock::now();
     timeAggregator.max_k_localTimer.endTimer();
 
     // linearize the winning k seeds from each local process (vertexID: {RRR set IDs}) and send them to process 1 (reduce operation). 
     // std::cout << "linearize, rank = " << world_rank << std::endl;
-    std::pair<int, int*> linearLocalSeeds = cEngine.linearize(*aggregateSets);
+
+    /// TODO: Linear Local Seeds is generated from the output of maxKCoverEngine.max_cover + the aggregateSets. Currently you are sending all 
+    ///   of your data to the global node (node 0) instead of just the top k seeds from each vertex. This is why it's so slow. 
+    std::pair<int, int*> linearLocalSeeds = cEngine.linearizeLocalSeeds(*aggregateSets, localSeeds);
 
     // std::cout << "global aggregation, rank = " << world_rank << std::endl;
     // mpi_gather for rank 1. Gathers the size of all linearLocalSeeds to send
@@ -211,7 +219,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     int* aggregatedSeeds = globalAggregation.second;
     int totalData = globalAggregation.first;
 
-    // TODO: This will become more expensive with each martigale iteration (the rest of a martigale iteration 
+    /// TODO: This will become more expensive with each martigale iteration (the rest of a martigale iteration 
     // does not become more expensive with each iteration due to the progressive data generation). This means that
     // when k is very large this can become very expensive. Look into ways to optimize the aggregate key seleciton.
     if (world_rank == 0) {
@@ -228,6 +236,11 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       // end = std::chrono::high_resolution_clock::now();
       timeAggregator.max_k_globalTimer.endTimer();
     }    
+
+    // free statements to prevent memory leaks.
+    delete aggregatedSeeds;
+    delete linearLocalSeeds.second;
+    delete aggregateSets;
   });
   
   record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
@@ -235,11 +248,6 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   auto timeMostInfluential = measure<>::exec_time([&]() { });
 
   record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
-
-  // free statements to prevent memory leak.
-  //  TODO: find all memory generation processes and free allocated memory
-  // free(setSize);
-  // free(aggregateSets);
 
   // std::cout << "returning global seeds" << std::endl;
   return globalSeeds;
@@ -301,7 +309,6 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   TimerAggregator timeAggregator;
 
   CommunicationEngine<GraphTy> cEngine;
-  std::unordered_map<int, std::unordered_set<int>>* aggregateSets;
   MaxKCoverEngine maxKCoverEngine;
 
   // martingale loop
@@ -320,7 +327,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
       std::forward<diff_model_tag>(model_tag),
       std::forward<execution_tag>(ex_tag),
       vertexToProcess, world_size, world_rank,
-      cEngine, aggregateSets, maxKCoverEngine
+      cEngine, maxKCoverEngine
     );
 
     // f is the fraction of RRRsets covered by the seeds / the total number of RRRSets (in the current iteration of the martigale loop)
@@ -381,7 +388,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     std::forward<diff_model_tag>(model_tag),
     std::forward<execution_tag>(ex_tag),
     vertexToProcess, world_size, world_rank,
-    cEngine, aggregateSets, maxKCoverEngine
+    cEngine, maxKCoverEngine
   );
 
   // std::cout << "total communication time: " << cEngine.getCommunicationTime() << std::endl;
@@ -449,6 +456,8 @@ auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
     vertexToProcess,
     world_size, world_rank
   );
+
+  delete tRRRSets;
 
   return seeds.first;
 }

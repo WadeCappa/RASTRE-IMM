@@ -21,7 +21,12 @@ class TransposeRRRSets
 
     ~TransposeRRRSets() 
     {
-        delete sets;
+        for (int i = 0; i < sets->size(); i++) {
+            free(sets->at(i).first);
+            free(sets->at(i).second);
+        }
+
+        free(sets);
     }
 
     void addToSet(int index, typename GraphTy::vertex_type vertex) 
