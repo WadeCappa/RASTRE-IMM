@@ -199,7 +199,9 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     /// TODO: This needs to output a std::pair<unordered_set<unsigned int>, int> instead of a vector. This will allow you to do constant time 
     ///   lookup in the next stage when you linearize these results. 
-    std::pair<std::unordered_set<unsigned int>, int> localSeeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, thetaPrime*2);
+    std::pair<std::vector<unsigned int>, int> localSeeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, thetaPrime*2);
+    std::unordered_set<unsigned int> localSeedsSet(localSeeds.first.begin(), localSeeds.first.end());
+
     // end = std::chrono::high_resolution_clock::now();
     timeAggregator.max_k_localTimer.endTimer();
 
@@ -208,7 +210,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     /// TODO: Linear Local Seeds is generated from the output of maxKCoverEngine.max_cover + the aggregateSets. Currently you are sending all 
     ///   of your data to the global node (node 0) instead of just the top k seeds from each vertex. This is why it's so slow. 
-    std::pair<int, int*> linearLocalSeeds = cEngine.linearizeLocalSeeds(*aggregateSets, localSeeds);
+    std::pair<int, int*> linearLocalSeeds = cEngine.linearizeLocalSeeds(*aggregateSets, localSeedsSet);
 
     // std::cout << "global aggregation, rank = " << world_rank << std::endl;
     // mpi_gather for rank 1. Gathers the size of all linearLocalSeeds to send
@@ -232,7 +234,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       // run max-k-cover on the aggregated data for k seeds
       // std::cout << "calculating global seeds, rank = " << world_rank << std::endl;
       timeAggregator.max_k_globalTimer.startTimer();
-      globalSeeds = maxKCoverEngine.max_cover_lazy_greedy(bestKMSeeds, (int)CFG.k, thetaPrime * 2);
+      globalSeeds = maxKCoverEngine.max_cover(bestKMSeeds, (int)CFG.k, thetaPrime * 2);
       // end = std::chrono::high_resolution_clock::now();
       timeAggregator.max_k_globalTimer.endTimer();
     }    

@@ -49,6 +49,7 @@ class MaxKCoverEngine
                 }
             }
 
+            #pragma omp parallel for 
             for( const auto& t : data ) {
 
                 std::set<int> temp;
@@ -71,7 +72,7 @@ class MaxKCoverEngine
         return std::make_pair(result, totalUniqueCovered);
     }
 
-    std::pair<std::unordered_set<unsigned int>, int> max_cover_lazy_greedy(std::unordered_map<int, std::unordered_set<int>>& data, int k, int theta) 
+    std::pair<std::vector<unsigned int>, int> max_cover_lazy_greedy(std::unordered_map<int, std::unordered_set<int>>& data, int k, int theta) 
     {
         CompareMaxHeap<int> cmp;
         int totalRRRSetsUsed = 0;
@@ -83,11 +84,12 @@ class MaxKCoverEngine
 
         ripples::Bitmask<int> covered(theta);
         
-        std::unordered_set<unsigned int> result;
+        std::vector<unsigned int> result(k, -1);
+        int count = 0;
 
         std::cout << "theta = " << theta << " , k = " << k << " , data.size() = " << data.size() << std::endl;
         
-        while(result.size() < k && pq.size() > 1) {                        
+        while(count < k && pq.size() > 1) {                        
             auto l = pq.top();
             pq.pop();       
 
@@ -116,7 +118,7 @@ class MaxKCoverEngine
             
             // if marginal of l is better than r's utility, l is the current best     
             if (marginal_gain >= r.second.size()) {
-                result.insert(l.first);
+                result[count++] = l.first;
                 
                 for (int e : l.second) {
                     if (e > theta || e < 0) {

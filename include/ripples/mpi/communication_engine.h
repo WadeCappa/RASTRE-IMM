@@ -44,13 +44,13 @@ class CommunicationEngine
         return prefixSum;
     }
 
-    std::pair<int, int*>linearizeLocalSeeds(std::unordered_map<int, std::unordered_set<int>> &aggregateSets, std::pair<std::unordered_set<unsigned int>, int>& localSeeds) 
+    std::pair<int, int*>linearizeLocalSeeds(std::unordered_map<int, std::unordered_set<int>> &aggregateSets, std::unordered_set<unsigned int>& localSeeds) 
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
         int runningSum = 0;
 
         for (const auto & keyVal : aggregateSets) {
-            if (localSeeds.first.find(keyVal.first) != localSeeds.first.end()) {
+            if (localSeeds.find(keyVal.first) != localSeeds.end()) {
                 setsPrefixSum.push_back(std::make_pair(keyVal.first, runningSum));
                 runningSum += keyVal.second.size() + 2;
             }
