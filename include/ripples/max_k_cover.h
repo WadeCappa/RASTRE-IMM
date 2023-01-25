@@ -26,6 +26,8 @@ class MaxKCoverEngine
         ripples::Bitmask<int> covered(theta);
         std::vector<unsigned int> result(k, -1);
         int totalUniqueCovered = 0;
+        std::vector<int> vertices;
+        for( const auto& t : data ) { vertices.push_back(t.first); }
 
         for (size_t i = 0; i < k; i++) {
 
@@ -50,21 +52,24 @@ class MaxKCoverEngine
             }
 
             #pragma omp parallel for 
-            for( const auto& t : data ) {
+            for( int i = 0; i < vertices.size(); i++ ) {
+                if (data.find(vertices[i]) != data.end()) 
+                {
+                    auto RRRSets = data[vertices[i]];
 
-                std::set<int> temp;
-                if (t.first != max_key) {
-                    for (int e: t.second) {
-                        if (covered.get(e)) {
-                            temp.insert(e);
+                    std::set<int> temp;
+                    if (vertices[i] != max_key) {
+                        for (int e: RRRSets) {
+                            if (covered.get(e)) {
+                                temp.insert(e);
+                            }
                         }
-                    }
-                    for (int e: temp) {
-                        data[t.first].erase(e); 
-                    }
+                        for (int e: temp) {
+                            data[vertices[i]].erase(e); 
+                        }
 
+                    }
                 }
-
             }
 
             data.erase(max_key);
