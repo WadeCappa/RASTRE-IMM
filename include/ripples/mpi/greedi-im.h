@@ -146,8 +146,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   std::vector<int> vertexToProcess,
   int world_size, 
   int world_rank,
-  CommunicationEngine<GraphTy> cEngine,
-  MaxKCoverEngine maxKCoverEngine
+  CommunicationEngine<GraphTy> cEngine
 ) 
 {
   double f;
@@ -199,7 +198,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     /// TODO: This needs to output a std::pair<unordered_set<unsigned int>, int> instead of a vector. This will allow you to do constant time 
     ///   lookup in the next stage when you linearize these results. 
-    std::pair<std::vector<unsigned int>, int> localSeeds = maxKCoverEngine.max_cover_lazy_greedy(*aggregateSets, (int)CFG.k, thetaPrime*2);
+    MaxKCoverEngine localKCoverEngine((int)CFG.k);
+    std::pair<std::vector<unsigned int>, int> localSeeds = localKCoverEngine.useLazyGreedy(*aggregateSets)->run_max_k_cover(*aggregateSets, thetaPrime*2);
     std::unordered_set<unsigned int> localSeedsSet(localSeeds.first.begin(), localSeeds.first.end());
 
     // end = std::chrono::high_resolution_clock::now();
@@ -234,7 +234,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       // run max-k-cover on the aggregated data for k seeds
       // std::cout << "calculating global seeds, rank = " << world_rank << std::endl;
       timeAggregator.max_k_globalTimer.startTimer();
-      globalSeeds = maxKCoverEngine.max_cover(bestKMSeeds, (int)CFG.k, thetaPrime * 2);
+      MaxKCoverEngine globalKCoverEngine((int)CFG.k);
+      globalSeeds = globalKCoverEngine.useStochasticGreedy((double)CFG.epsilon)->useLazyGreedy(bestKMSeeds)->run_max_k_cover(bestKMSeeds, thetaPrime * 2);
       // end = std::chrono::high_resolution_clock::now();
       timeAggregator.max_k_globalTimer.endTimer();
     }    
@@ -311,7 +312,6 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   TimerAggregator timeAggregator;
 
   CommunicationEngine<GraphTy> cEngine;
-  MaxKCoverEngine maxKCoverEngine;
 
   // martingale loop
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
@@ -329,7 +329,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
       std::forward<diff_model_tag>(model_tag),
       std::forward<execution_tag>(ex_tag),
       vertexToProcess, world_size, world_rank,
-      cEngine, maxKCoverEngine
+      cEngine
     );
 
     // f is the fraction of RRRsets covered by the seeds / the total number of RRRSets (in the current iteration of the martigale loop)
@@ -390,7 +390,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     std::forward<diff_model_tag>(model_tag),
     std::forward<execution_tag>(ex_tag),
     vertexToProcess, world_size, world_rank,
-    cEngine, maxKCoverEngine
+    cEngine
   );
 
   // std::cout << "total communication time: " << cEngine.getCommunicationTime() << std::endl;
@@ -434,8 +434,6 @@ auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
   int world_size, world_rank;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-  MaxKCoverEngine maxKCoverEngine;
 
   // TOOD: randomize the bucketing of vertices to processes, use a coinflip algorithm
   //  that chooses a process for each vertex as a loop linearly scans through the 
