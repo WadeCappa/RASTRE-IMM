@@ -103,7 +103,7 @@ private:
             int theta
         ) override
         {
-            int totalCovered;
+            int totalCovered = 0;
             std::pair<int, std::unordered_set<int>*> l = this->heap->front();
             std::pop_heap(this->heap->begin(), this->heap->end(), this->cmp);
 

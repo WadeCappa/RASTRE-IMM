@@ -349,6 +349,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     if (f >= std::pow(2, -x)) {
       // std::cout << "Fraction " << f << std::endl;
       LB = (G.num_nodes() * f) / (1 + epsilonPrime);
+      spdlog::get("console")->info("Lower Bound {}", LB);
       break;
     }
   }
