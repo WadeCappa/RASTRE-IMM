@@ -4,11 +4,11 @@
 #SBATCH -C cpu
 #SBATCH -t 3:00:00 
 #SBATCH -q regular
-#SBATCH -N 32 
+#SBATCH -N 128 
 #SBATCH --ntasks-per-node=1
-#SBATCH -J Orkut32_global_lazy
-#SBATCH -o /global/homes/w/wadecap/ripples/output/orkut/Orkut32_global_lazy.o
-#SBATCH -e /global/homes/w/wadecap/ripples/output/orkut/Orkut32_global_lazy.e
+#SBATCH -J Orkut128_global_lazy
+#SBATCH -o /global/homes/w/wadecap/ripples/output/orkut/Orkut128_global_lazy.o
+#SBATCH -e /global/homes/w/wadecap/ripples/output/orkut/Orkut128_global_lazy.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -27,4 +27,4 @@ module load cmake/3.24.3
 module load openmpi
 #module load cudatoolkit/11.0
 
-mpirun -n 32 ./build/release/tools/mpi-greedi-im -i test-data/orkut_small.txt -w -k 100 -p -d IC -e 0.13 -o imm_Orkut32_results.json
+mpirun -n 128 ./build/release/tools/mpi-greedi-im -i test-data/orkut_small.txt -w -k 100 -p -d IC -e 0.13 -o Orkut128_global_lazy_results.json

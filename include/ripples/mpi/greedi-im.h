@@ -198,6 +198,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     /// TODO: This needs to output a std::pair<unordered_set<unsigned int>, int> instead of a vector. This will allow you to do constant time 
     ///   lookup in the next stage when you linearize these results. 
+
+    // double check this
     MaxKCoverEngine localKCoverEngine((int)CFG.k);
     std::pair<std::vector<unsigned int>, int> localSeeds = localKCoverEngine.useLazyGreedy(*aggregateSets)->run_max_k_cover(*aggregateSets, thetaPrime*2);
     std::unordered_set<unsigned int> localSeedsSet(localSeeds.first.begin(), localSeeds.first.end());
@@ -369,6 +371,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   record.Theta = theta;
   spdlog::get("console")->info("Theta {}", theta);
 
+  // Remove this secriont of code, redundant, run github test to verify output
   record.GenerateRRRSets = measure<>::exec_time([&]() {
     if (localTheta > RR.size()) {
       size_t final_delta = localTheta - RR.size();
