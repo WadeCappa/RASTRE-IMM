@@ -45,6 +45,12 @@
 
 #include <cstddef>
 #include <memory>
+#include <string.h>
+#include <assert.h>
+
+#include <bit>
+#include <bitset>
+#include <cstdint>
 
 namespace ripples {
 template <typename BaseTy>
@@ -55,7 +61,7 @@ class Bitmask {
       : size_(O.size_),
         data_size_(O.data_size_),
         data_(new BaseTy[O.data_size_]) {
-    std::memcpy(data_.get(), O.data_.get(), data_size_ * sizeof(BaseTy));
+    memcpy(data_.get(), O.data_.get(), data_size_ * sizeof(BaseTy));
   }
 
   Bitmask(Bitmask &&) = default;
@@ -64,14 +70,14 @@ class Bitmask {
       : size_(num_bits),
         data_size_((size_ / (8 * sizeof(BaseTy)) + 1)),
         data_(new BaseTy[(size_ / (8 * sizeof(BaseTy)) + 1)]) {
-    std::memset(data_.get(), 0, data_size_ * sizeof(BaseTy));
+    memset(data_.get(), 0, data_size_ * sizeof(BaseTy));
   }
 
   Bitmask &operator=(const Bitmask &O) {
     size_ = O.size_;
     data_size_ = O.data_size_;
     data_ = std::unique_ptr<BaseTy[]>(new BaseTy[data_size_]);
-    std::memcpy(data_.get(), O.data_.get(), data_size_ * sizeof(BaseTy));
+    memcpy(data_.get(), O.data_.get(), data_size_ * sizeof(BaseTy));
     return *this;
   }
   Bitmask &operator=(Bitmask &&) = default;
@@ -85,10 +91,33 @@ class Bitmask {
     return data_[i / (8 * sizeof(BaseTy))] & m;
   }
 
+  Bitmask &andOperation(Bitmask& bitmap) {
+    assert(bitmap.size() == this->size());
+    for (int i = 0; i < this->data_size_; i++) {
+      this->data_[i] &= bitmap.data()[i];
+    }
+    return *this;
+  }
+
+  Bitmask &orOperation(Bitmask& bitmap) {
+    assert(bitmap.size() == this->size());
+    for (int i = 0; i < this->data_size_; i++) {
+      this->data_[i] |= bitmap.data()[i];
+    }
+    return *this;
+  }
+
+  Bitmask &notOperation() {
+    for (int i = 0; i < this->data_size_; i++) {
+      this->data()[i] = ~this->data()[i];
+    }
+    return *this;
+  }
+
   size_t popcount() const {
     size_t count = 0;
     for (size_t i = 0; i < data_size_; ++i) {
-      count += __builtin_popcount(data_[i]);
+      count += std::__popcount<BaseTy>(data_[i]);
     }
     return count;
   }

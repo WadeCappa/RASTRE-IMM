@@ -33,9 +33,7 @@ private:
             delete this->allSets;
         }
 
-        virtual int findNextInfluential (
-            std::vector<unsigned int>& seedSet,
-            int current_K_index,
+        virtual ssize_t findNextInfluential (
             ripples::Bitmask<int>& covered,
             int theta
         ) = 0;
@@ -96,14 +94,12 @@ private:
             return this;
         }
 
-        int findNextInfluential(
-            std::vector<unsigned int>& seedSet,
-            int current_K_index,
+        ssize_t findNextInfluential(
             ripples::Bitmask<int>& covered,
             int theta
         ) override
         {
-            int totalCovered = 0;
+            ssize_t totalCovered = 0;
             std::pair<int, std::unordered_set<int>*> l = this->heap->front();
             std::pop_heap(this->heap->begin(), this->heap->end(), this->cmp);
 
@@ -131,9 +127,8 @@ private:
             auto r = this->heap->front();
             
             // if marginal of l is better than r's utility, l is the current best     
-            if (marginal_gain >= r.second->size()) {
-                seedSet[current_K_index] = l.first;
-                
+            if (marginal_gain >= r.second->size()) 
+            {               
                 for (int e : *(l.second)) {
                     if (e > theta || e < 0) {
                         std::cout << "e is greater than theta, e = " << e << " , theta = " << theta << std::endl;
@@ -143,17 +138,15 @@ private:
                         covered.set(e);
                     }
                 }
+                return l.first;
             }
             // else push l's marginal into the heap 
             else {
                 this->heap->push_back(l);
                 std::push_heap(this->heap->begin(), this->heap->end(), this->cmp);
-                return findNextInfluential(
-                    seedSet, current_K_index, covered, theta
-                );
-            }
 
-            return totalCovered;
+                return findNextInfluential( covered, theta );
+            }
         }
 
         private:
@@ -181,10 +174,7 @@ private:
             }
         }
 
-        ~NaiveGreedy()
-        {
-            // std::cout << "deallocating Naive-Greedy finder ..." << std::endl;
-        }
+        ~NaiveGreedy(){}
 
         NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
         {
@@ -198,16 +188,13 @@ private:
             return this;
         }
 
-        int findNextInfluential(
-            std::vector<unsigned int>& seedSet,
-            int current_K_index,
+        ssize_t findNextInfluential(
             ripples::Bitmask<int>& covered,
             int theta
         ) override
         {
             int max = 0;
             int max_key = -1;
-            int totalCovered = 0;
 
             for ( int i = 0; i < this->subset_size; i++ )
             {
@@ -218,12 +205,10 @@ private:
                     max_key = vertex;
                 }
             }
-            seedSet[current_K_index] = max_key;
 
             for (int e: *(this->allSets->at(max_key))) {
                 if (!covered.get(e)) {
                     covered.set(e);
-                    totalCovered++;
                 }
             }
 
@@ -252,7 +237,97 @@ private:
             }
 
             this->allSets->erase(max_key);
-            return totalCovered;
+            return max_key;
+        }
+    };
+
+    class NaiveBitMapGreedy : public NextMostInfluentialFinder
+    {
+    private:
+        std::unordered_map<int, ripples::Bitmask<int>*>* bitmaps = 0;
+
+    public:
+        NaiveBitMapGreedy(std::unordered_map<int, std::unordered_set<int>>& data, int theta) 
+        {
+            this->bitmaps = new std::unordered_map<int, ripples::Bitmask<int>*>();
+            this->allSets = new std::unordered_map<int, std::unordered_set<int>*>();
+
+            for (const auto & l : data)
+            {
+                ripples::Bitmask<int>* newBitMask = new ripples::Bitmask<int>(theta);
+                for (const auto & r : l.second)
+                {
+                    newBitMask->set(r);
+                }
+                this->bitmaps->insert({ l.first, newBitMask });
+            }
+        }
+
+        ~NaiveBitMapGreedy()
+        {
+            delete bitmaps;
+        }
+
+        NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
+        {
+            this->vertex_subset = subset_of_selection_sets;
+            this->subset_size = subset_size;
+            return this;
+        } 
+
+        NextMostInfluentialFinder* reloadSubset () override 
+        {
+            return this;
+        }
+
+        ssize_t findNextInfluential(
+            ripples::Bitmask<int>& covered,
+            int theta
+        ) override
+        {
+            int best_score = -1;
+            int max_key = -1;
+            ssize_t totalCovered = 0;
+
+            ripples::Bitmask<int> localCovered(covered);
+            localCovered.notOperation();
+
+            // check this->bitmaps for the bitmap that has the maximal marginal gain when bitmap[i] & ~covered is used. 
+            #pragma omp parallel 
+            {
+                int local_best_score = best_score;
+                int local_max_key = max_key;
+
+                # pragma omp for 
+                for ( int i = 0; i < this->subset_size; i++ )
+                {
+                    int vertex = this->vertex_subset->at(i);
+                    if (this->bitmaps->find(vertex) != this->bitmaps->end())
+                    {
+                        ripples::Bitmask<int> working(localCovered);
+                        working.andOperation(*(this->bitmaps->at(vertex)));
+                        size_t popcount = working.popcount();
+                        if ((int)popcount > local_best_score) {
+                            local_best_score = popcount;
+                            local_max_key = vertex;
+                        }
+                    }
+                }
+
+                #pragma omp critical 
+                {
+                    if (local_best_score > best_score) {
+                        best_score = local_best_score;
+                        max_key = local_max_key;
+                    }
+                }
+            }
+
+            // update covered
+            covered.orOperation(*(this->bitmaps->at(max_key)));
+
+            this->bitmaps->erase(max_key);
+            return max_key;
         }
     };
 
@@ -321,7 +396,15 @@ public:
         return this;
     }
 
-    std::pair<std::vector<unsigned int>, int> run_max_k_cover(std::unordered_map<int, std::unordered_set<int>>& data, ssize_t theta)
+    MaxKCoverEngine* useNaiveBitmapGreedy(std::unordered_map<int, std::unordered_set<int>>& data, int theta)
+    {
+        this->finder = new NaiveBitMapGreedy(data, theta);
+
+        return this;
+    }
+
+
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::unordered_map<int, std::unordered_set<int>>& data, ssize_t theta)
     {
         std::vector<unsigned int> res(this->k, -1);
         ripples::Bitmask<int> covered(theta);
@@ -332,7 +415,6 @@ public:
         for (const auto & l : data) { all_vertices->push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
-        int uniqueCounted = 0;
         for (int currentSeed = 0; currentSeed < k; currentSeed++)
         {
             if (this->usingStochastic)
@@ -341,12 +423,12 @@ public:
                 this->finder->reloadSubset();
             }
 
-            uniqueCounted += finder->findNextInfluential(
-                res, currentSeed, covered, theta
+            res[currentSeed] = finder->findNextInfluential(
+                covered, theta
             );
         }
         
         delete all_vertices;
-        return std::make_pair(res, uniqueCounted);
+        return std::make_pair(res, covered.popcount());
     }
 };

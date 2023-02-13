@@ -235,7 +235,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       // std::cout << "calculating global seeds, rank = " << world_rank << std::endl;
       timeAggregator.max_k_globalTimer.startTimer();
       MaxKCoverEngine globalKCoverEngine((int)CFG.k);
-      globalSeeds = globalKCoverEngine.useStochasticGreedy((double)CFG.epsilon)->useLazyGreedy(bestKMSeeds)->run_max_k_cover(bestKMSeeds, thetaPrime * 2);
+      globalSeeds = globalKCoverEngine.useLazyGreedy(bestKMSeeds)->run_max_k_cover(bestKMSeeds, thetaPrime * 2);
       // end = std::chrono::high_resolution_clock::now();
       timeAggregator.max_k_globalTimer.endTimer();
     }    
