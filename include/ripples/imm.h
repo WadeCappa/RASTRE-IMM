@@ -74,6 +74,7 @@ struct IMMConfiguration : public TIMConfiguration {
   size_t streaming_gpu_workers{0};
   size_t seed_select_max_workers{std::numeric_limits<size_t>::max()};
   size_t seed_select_max_gpu_workers{0};
+  bool dump_sampling_data_flag{false};
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
 
@@ -95,6 +96,7 @@ struct IMMConfiguration : public TIMConfiguration {
     app.add_option("--seed-select-max-gpu-workers", seed_select_max_gpu_workers,
                    "The max number of GPU workers for seed selection.")
         ->group("Streaming-Engine Options");
+    app.add_option("--dump-sampling-data", dump_sampling_data_flag, "Output all sampling data to your output file")->group("Streaming-Engine Options");
   }
 };
 

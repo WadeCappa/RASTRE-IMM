@@ -237,7 +237,9 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       // std::cout << "calculating global seeds, rank = " << world_rank << std::endl;
       timeAggregator.max_k_globalTimer.startTimer();
       MaxKCoverEngine globalKCoverEngine((int)CFG.k);
-      globalSeeds = globalKCoverEngine.useLazyGreedy(bestKMSeeds)->run_max_k_cover(bestKMSeeds, thetaPrime * 2);
+      // globalSeeds = globalKCoverEngine.useStochasticGreedy((double)CFG.epsilon)->useLazyGreedy(bestKMSeeds)->run_max_k_cover(bestKMSeeds, thetaPrime * 2);
+      globalSeeds = globalKCoverEngine.useStochasticGreedy((double)CFG.epsilon)->useLazyGreedy(bestKMSeeds)->run_max_k_cover(bestKMSeeds, thetaPrime*2);
+      
       // end = std::chrono::high_resolution_clock::now();
       timeAggregator.max_k_globalTimer.endTimer();
     }    
@@ -396,6 +398,18 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     vertexToProcess, world_size, world_rank,
     cEngine
   );
+
+  if (CFG.dump_sampling_data_flag) {
+    std::ofstream output_samples("output_sampling.txt");
+    for (const auto & RRRSet : *(tRRRSets.sets)) {
+      
+      std::stringstream result;
+      std::copy(RRRSet.second->begin(), RRRSet.second->end(), std::ostream_iterator<int>(result, ", "));
+
+      output_samples << result.str() << std::endl;
+    }
+    output_samples.close();
+  }
 
   // std::cout << "total communication time: " << cEngine.getCommunicationTime() << std::endl;
   // std::cout << "total sample time: " << totalSampleTime << std::endl;
