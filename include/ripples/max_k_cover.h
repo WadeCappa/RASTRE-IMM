@@ -10,7 +10,9 @@
 #include <cstdlib>
 #include <bits/stdc++.h>
 #include <cmath>
+// #include "mpi/communication_engine.h"
 
+template <typename GraphTy>
 class MaxKCoverEngine 
 {
 private:
@@ -339,6 +341,8 @@ private:
     int k;
     double epsilon;
     bool usingStochastic = false;
+    bool sendPartialSolutions;
+    CommunicationEngine<GraphTy>* cEngine;
     NextMostInfluentialFinder* finder = 0;
 
     void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int> seedSet)
@@ -374,6 +378,7 @@ public:
     MaxKCoverEngine(int k) 
     {
         this->k = k;
+        this->sendPartialSolutions = false;
     };
 
     ~MaxKCoverEngine() {
@@ -408,6 +413,12 @@ public:
         return this;
     }
 
+    MaxKCoverEngine* setSendPartialSolutions(CommunicationEngine<GraphTy>* cEngine)
+    {
+        this->sendPartialSolutions = true;
+        this->cEngine = cEngine;
+        return this;
+    }
 
     std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::unordered_map<int, std::unordered_set<int>>& data, ssize_t theta)
     {
@@ -431,6 +442,23 @@ public:
             res[currentSeed] = finder->findNextInfluential(
                 covered, theta
             );
+
+            // This code block sends data to the global protion of the streaming solution if the 
+            //  streaming setting has been selected. 
+            if (this->sendPartialSolutions) {
+                std::unordered_map<int, std::unordered_set<int>> targetSeed;
+                targetSeed.insert({res[currentSeed], data[res[currentSeed]]});
+                std::pair<int, int*> sendData = this->cEngine->linearize(targetSeed);
+
+                // cengine does mpi send to global node
+                this->cEngine->SendToGlobal(
+                    sendData.second, 
+                    sendData.first, 
+                    this->k == currentSeed + 1 ? true : false
+                );
+
+                delete sendData.second;
+            }
         }
         
         delete all_vertices;

@@ -44,6 +44,14 @@ class CommunicationEngine
         return prefixSum;
     }
 
+    void SendToGlobal(int* data, int size, bool lastSeed) {
+        MPI_Request request = MPI_REQUEST_NULL;
+        MPI_Isend(data, size, MPI_INT, 0, lastSeed ? 0 : 1,
+            MPI_COMM_WORLD, &request);
+    }
+
+    
+
     std::pair<int, int*>linearizeLocalSeeds(std::unordered_map<int, std::unordered_set<int>> &aggregateSets, std::unordered_set<unsigned int>& localSeeds) 
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
