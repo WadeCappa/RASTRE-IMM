@@ -210,12 +210,15 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         // runs max_k_cover over the local partition in a single thread.
         // TODO: verify that running other threads in the streaming engine won't take resources
         //  away from this thread, as this would cause a slowdown here as the number of buckets increase.
-        auto f = [](int k, std::unordered_map<int, std::unordered_set<int>>& sets) { 
-          MaxKCoverEngine<GraphTy> localKCoverEngine(k);
-          localKCoverEngine.useLazyGreedy(sets)->setSendPartialSolutions(&cEngine);
-          localKCoverEngine.run_max_k_cover(sets, thetaPrime*2);
+
+        // Ownership of the values used in the lambda function is not controlled, you should probably make 
+        //  copies of these values before they are used here. 
+        auto f = [&CFG, &aggregateSets, &cEngine, &thetaPrime]() { 
+          MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
+          localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine);
+          localKCoverEngine.run_max_k_cover(*aggregateSets, thetaPrime*2);
         };
-        std::thread max_cover_thread(f, (int)CFG.k, *aggregateSets);
+        std::thread max_cover_thread(f);
         
         // gets global seeds using the greedy streaming algorithm 
         // TODO: Calcualte deltaZero and total buckets. 
