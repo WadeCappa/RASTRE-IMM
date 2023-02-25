@@ -45,9 +45,13 @@ class CommunicationEngine
     }
 
     void SendToGlobal(int* data, int size, bool lastSeed) {
-        MPI_Request request = MPI_REQUEST_NULL;
-        MPI_Isend(data, size, MPI_INT, 0, lastSeed ? 0 : 1,
-            MPI_COMM_WORLD, &request);
+        // TODO: Verify that using isend will not cause dataloss, most likely a better idea 
+        //  to just use standard mpi_send as there is no chance of dataloss and requires less
+        //  code. For future optimizations isend can be used.
+
+        // MPI_Request request = MPI_REQUEST_NULL;
+        MPI_Send(data, size, MPI_INT, 0, lastSeed ? 0 : 1,
+            MPI_COMM_WORLD);
     }
 
     

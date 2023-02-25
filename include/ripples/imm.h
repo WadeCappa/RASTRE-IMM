@@ -74,6 +74,7 @@ struct IMMConfiguration : public TIMConfiguration {
   size_t streaming_gpu_workers{0};
   size_t seed_select_max_workers{std::numeric_limits<size_t>::max()};
   size_t seed_select_max_gpu_workers{0};
+  bool use_streaming = false;
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
 
@@ -94,6 +95,9 @@ struct IMMConfiguration : public TIMConfiguration {
         ->group("Streaming-Engine Options");
     app.add_option("--seed-select-max-gpu-workers", seed_select_max_gpu_workers,
                    "The max number of GPU workers for seed selection.")
+        ->group("Streaming-Engine Options");
+    app.add_option("--run-streaming", use_streaming,
+                   "Run max-k-cover within a streaming algorithm. False by default.")
         ->group("Streaming-Engine Options");
   }
 };

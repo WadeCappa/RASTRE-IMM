@@ -50,6 +50,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <thread>
 
 #include "trng/lcg64.hpp"
 
@@ -63,6 +64,8 @@
 #include "ripples/mpi/communication_engine.h"
 #include "ripples/max_k_cover.h"
 #include "ripples/TimerAggregator.h"
+
+#include "ripples/mpi/streaming_randgreedi_engine.h"
 
 namespace ripples {
 namespace mpi {
@@ -200,17 +203,37 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     ///   lookup in the next stage when you linearize these results. 
 
 
-    if (false) {
-      if (world_rank == 0) {
-          
+    if (CFG.use_streaming == true) 
+    {
+      if (world_rank == 0) 
+      {
+        // runs max_k_cover over the local partition in a single thread.
+        // TODO: verify that running other threads in the streaming engine won't take resources
+        //  away from this thread, as this would cause a slowdown here as the number of buckets increase.
+        auto f = [](int k, std::unordered_map<int, std::unordered_set<int>>& sets) { 
+          MaxKCoverEngine<GraphTy> localKCoverEngine(k);
+          localKCoverEngine.useLazyGreedy(sets)->setSendPartialSolutions(&cEngine);
+          localKCoverEngine.run_max_k_cover(sets, thetaPrime*2);
+        };
+        std::thread max_cover_thread(f, (int)CFG.k, *aggregateSets);
+        
+        // gets global seeds using the greedy streaming algorithm 
+        // TODO: Calcualte deltaZero and total buckets. 
+        int deltaZero = 0;
+        size_t totalBuckets = 0;
+        StreamingRandGreedIEngine streamingEngine(thetaPrime*2, deltaZero, (int)CFG.k, (double)CFG.epsilon, totalBuckets);
+        globalSeeds = streamingEngine.stream<GraphTy>(cEngine, world_size);
       }
-      else {
+      else 
+      {
         MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
-        std::pair<std::vector<unsigned int>, int> localSeeds = localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine)->run_max_k_cover(*aggregateSets, thetaPrime*2);
-        std::unordered_set<unsigned int> localSeedsSet(localSeeds.first.begin(), localSeeds.first.end());
+        localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine);
+        localKCoverEngine.run_max_k_cover(*aggregateSets, thetaPrime*2);
+        // std::unordered_set<unsigned int> localSeedsSet(localSeeds.first.begin(), localSeeds.first.end());
       }
     }
-    else {
+    else 
+    {
       // non-streaming greedi case
       MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
       std::pair<std::vector<unsigned int>, int> localSeeds = localKCoverEngine.useLazyGreedy(*aggregateSets)->run_max_k_cover(*aggregateSets, thetaPrime*2);
