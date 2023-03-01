@@ -219,9 +219,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         
         // gets global seeds using the greedy streaming algorithm 
         // TODO: Calcualte deltaZero and total buckets. 
-        int deltaZero = 0;
-        size_t totalBuckets = 0;
-        StreamingRandGreedIEngine streamingEngine(thetaPrime*2, deltaZero, (int)CFG.k, (double)CFG.epsilon, totalBuckets, world_size);
+        StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon, world_size);
         globalSeeds = streamingEngine.stream();
       }
       else 
