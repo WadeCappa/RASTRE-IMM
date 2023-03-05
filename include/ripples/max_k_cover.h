@@ -454,14 +454,21 @@ public:
                 this->cEngine->SendToGlobal(
                     sendData.second, 
                     sendData.first, 
-                    this->k == currentSeed + 1 ? true : false
+                    currentSeed + 1 == k ? true : false
                 );
 
                 delete sendData.second;
             }
         }
+
+        // this->cEngine->SendToGlobal(
+        //     new int[1], 
+        //     1, 
+        //     true
+        // );
         
         delete all_vertices;
+
         return std::make_pair(res, covered.popcount());
     }
 };

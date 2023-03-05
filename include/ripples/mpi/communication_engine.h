@@ -50,7 +50,7 @@ class CommunicationEngine
         //  code. For future optimizations isend can be used.
 
         // MPI_Request request = MPI_REQUEST_NULL;
-        MPI_Send(data, size, MPI_INT, 0, lastSeed ? 0 : 1,
+        MPI_Send(data, size, MPI_INT, 0, lastSeed ? 1 : 0,
             MPI_COMM_WORLD);
     }
 

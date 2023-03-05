@@ -56,6 +56,8 @@ class TimerAggregator
     Timer allGatherTimer;
     Timer allToAllTimer;
     Timer broadcastTimer;
+    Timer globalStreamTimer;
+    Timer localStreamTimer;
 
     TimerAggregator(){}
     ~TimerAggregator(){}
