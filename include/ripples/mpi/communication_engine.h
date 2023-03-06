@@ -44,13 +44,13 @@ class CommunicationEngine
         return prefixSum;
     }
 
-    void SendToGlobal(int* data, int size, bool lastSeed) {
+    void SendToGlobal(int* data, int size, int tag) {
         // TODO: Verify that using isend will not cause dataloss, most likely a better idea 
         //  to just use standard mpi_send as there is no chance of dataloss and requires less
         //  code. For future optimizations isend can be used.
 
         // MPI_Request request = MPI_REQUEST_NULL;
-        MPI_Send(data, size, MPI_INT, 0, lastSeed ? 1 : 0,
+        MPI_Send(data, size, MPI_INT, 0, tag,
             MPI_COMM_WORLD);
     }
 

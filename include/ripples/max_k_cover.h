@@ -345,6 +345,7 @@ private:
     CommunicationEngine<GraphTy>* cEngine;
     NextMostInfluentialFinder* finder = 0;
     TimerAggregator* timer = 0;
+    MPI_Request *request;
 
     void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int> seedSet)
     {
@@ -464,11 +465,20 @@ public:
 
                 // cengine does mpi send to global node
                 this->timer->sendTimer.startTimer();
-                this->cEngine->SendToGlobal(
-                    sendData.second, 
-                    sendData.first, 
-                    currentSeed + 1 == k ? true : false
+
+                MPI_Status status;
+
+                if (currentSeed > 0)
+                {
+                    MPI_Wait(this->request, &status);
+                }
+
+                MPI_Isend(
+                    sendData.second, sendData.first, 
+                    MPI_INT, 0, currentSeed, 
+                    MPI_COMM_WORLD, this->request
                 );
+
                 this->timer->sendTimer.endTimer();
 
                 delete sendData.second;
