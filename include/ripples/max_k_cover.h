@@ -344,6 +344,7 @@ private:
     bool sendPartialSolutions;
     CommunicationEngine<GraphTy>* cEngine;
     NextMostInfluentialFinder* finder = 0;
+    TimerAggregator* timer = 0;
 
     void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int> seedSet)
     {
@@ -413,10 +414,11 @@ public:
         return this;
     }
 
-    MaxKCoverEngine* setSendPartialSolutions(CommunicationEngine<GraphTy>* cEngine)
+    MaxKCoverEngine* setSendPartialSolutions(CommunicationEngine<GraphTy>* cEngine, TimerAggregator* timer)
     {
         this->sendPartialSolutions = true;
         this->cEngine = cEngine;
+        this->timer = timer;
         return this;
     }
 
@@ -439,9 +441,19 @@ public:
                 this->finder->reloadSubset();
             }
 
+            if (this->timer != 0) 
+            {
+                this->timer->max_k_localTimer.startTimer();
+            }
+
             res[currentSeed] = finder->findNextInfluential(
                 covered, theta
             );
+
+            if (this->timer != 0) 
+            {
+                this->timer->max_k_localTimer.endTimer();
+            }
 
             // This code block sends data to the global protion of the streaming solution if the 
             //  streaming setting has been selected. 
@@ -451,11 +463,13 @@ public:
                 std::pair<int, int*> sendData = this->cEngine->linearize(targetSeed);
 
                 // cengine does mpi send to global node
+                this->timer->sendTimer.startTimer();
                 this->cEngine->SendToGlobal(
                     sendData.second, 
                     sendData.first, 
                     currentSeed + 1 == k ? true : false
                 );
+                this->timer->sendTimer.endTimer();
 
                 delete sendData.second;
             }

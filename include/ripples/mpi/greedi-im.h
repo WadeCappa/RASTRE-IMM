@@ -62,8 +62,8 @@
 
 #include "ripples/generate_rrr_sets.h"
 #include "ripples/mpi/communication_engine.h"
-#include "ripples/max_k_cover.h"
 #include "ripples/TimerAggregator.h"
+#include "ripples/max_k_cover.h"
 
 #include "ripples/mpi/streaming_randgreedi_engine.h"
 
@@ -203,30 +203,33 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         // runs max_k_cover over the local partition in a single thread.
         // TODO: verify that running other threads in the streaming engine won't take resources
         //  away from this thread, as this would cause a slowdown here as the number of buckets increase.
-        auto f = [&CFG, &aggregateSets, &cEngine, &thetaPrime]() { 
+
+        Timer* timer = &(timeAggregator.max_k_globalTimer);
+
+        timeAggregator.globalStreamTimer.startTimer();
+        auto f = [&CFG, &aggregateSets, &cEngine, &thetaPrime, &timeAggregator]() { 
           MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
-          localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine);
+          localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
           localKCoverEngine.run_max_k_cover(*aggregateSets, thetaPrime*2);
           return;
         };
 
-        timeAggregator.globalStreamTimer.startTimer();
         std::thread max_cover_thread(f);
         
         // gets global seeds using the greedy streaming algorithm 
         // TODO: Calcualte deltaZero and total buckets. 
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon, world_size);
-        globalSeeds = streamingEngine.stream();
+        globalSeeds = streamingEngine.stream(timer);
         std::cout << "got best seeds" << std::endl;
-        timeAggregator.globalStreamTimer.endTimer();
 
         max_cover_thread.join();        
+        timeAggregator.globalStreamTimer.endTimer();
       }
       else 
       {
         timeAggregator.localStreamTimer.startTimer();
         MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
-        localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine);
+        localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
         localKCoverEngine.run_max_k_cover(*aggregateSets, thetaPrime*2);
         // std::unordered_set<unsigned int> localSeedsSet(localSeeds.first.begin(), localSeeds.first.end());
         timeAggregator.localStreamTimer.startTimer();
@@ -434,9 +437,15 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   else 
   {
     std::cout << "Samping time: " << timeAggregator.samplingTimer.resolveTimer() << std::endl;
-    std::cout << "Broadcast time: " << timeAggregator.broadcastTimer.resolveTimer() << std::endl;
+    std::cout << "Local max-cover time: " << timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
+    std::cout << "Global processing time: " << timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
+
     std::cout << "Local Stream time: " << timeAggregator.localStreamTimer.resolveTimer() << std::endl;
     std::cout << "Global Stream time: " << timeAggregator.globalStreamTimer.resolveTimer() << std::endl;
+
+    std::cout << "Local send to global time: " << timeAggregator.sendTimer.resolveTimer() << std::endl;
+    std::cout << "f score Broadcast time: " << timeAggregator.broadcastTimer.resolveTimer() << std::endl;
+    std::cout << "AlltoAll time: " << timeAggregator.allToAllTimer.resolveTimer() << std::endl;
   }
 
   return bestSeeds;
