@@ -95,9 +95,9 @@ class StreamingRandGreedIEngine
 
         this->deltaZero = maxval;
 
-        int num_buckets = (int)(0.5 + [](double base, double val) {
+        int num_buckets = (int)(0.5 + [](double val, double base) {
             return log2(val) / log2(base);
-        }((1+this->epsilon), ((double)(k-1)*((double)this->deltaZero/(double)(2*k)))));
+        }((double)k, (1+this->epsilon)));
 
         for (int i = 0; i < num_buckets + 1; i++)
         {
@@ -110,8 +110,10 @@ class StreamingRandGreedIEngine
         if (this->deltaZero == -1)
             return;
 
-        for (auto & element: elements)
+        #pragma omp parallel for
+        for (int i = 0; i < elements.size(); i++)
         {
+            auto element = elements[i];
 
             #pragma omp parallel for
             for (size_t t = 0; t < buckets.size(); t++) 
@@ -121,9 +123,6 @@ class StreamingRandGreedIEngine
                     int(buckets[t]->attemptInsert(element));
                 }                
             }
-
-            // when you refactor this function to process the whole queue in parallel, delete this in the parent function, not here
-            delete element.second;
         }
     }
 
@@ -157,7 +156,7 @@ class StreamingRandGreedIEngine
 
     public:
     StreamingRandGreedIEngine(int k, int theta, double epsilon, int world_size)
-        : receive_buffers(world_size)
+        : receive_buffers(world_size, std::vector<ReceiveObject>(k))
     {
         this->theta = theta;
         this->k = k;
@@ -168,8 +167,6 @@ class StreamingRandGreedIEngine
         // initialization step
         for (int i = 0; i < this->world_size; i++) 
         {
-            this->receive_buffers[i] = std::vector<ReceiveObject>(this->k);
-
             for (int j = 0; j < this->k; j++)
             {
                 // In the future this could be a bitmap to save space and lower communciation times
@@ -197,9 +194,9 @@ class StreamingRandGreedIEngine
         int received_elements = 0;
         int local_process_sent_first_seed = 0;
 
-        for (int i = 0; i < world_size; i++) 
+        for (int i = 0; i < receive_buffers->size(); i++) 
         {            
-            for (int j = 0; j < receive_buffers->at(j).size(); j++)
+            for (int j = 0; j < receive_buffers->at(i).size(); j++)
             {
                 if (receive_buffers->at(i)[j].active)
                 {
@@ -294,6 +291,11 @@ class StreamingRandGreedIEngine
                 int new_element_count = ret.get();
 
                 this->active_senders = senders;
+
+                for (auto & e : *q)
+                {
+                    delete e.second;
+                }
 
                 delete q;
                 q = new_q;

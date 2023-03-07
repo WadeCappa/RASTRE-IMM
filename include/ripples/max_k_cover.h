@@ -464,12 +464,11 @@ public:
                 std::pair<int, int*> sendData = this->cEngine->linearize(targetSeed);
 
                 // cengine does mpi send to global node
-                this->timer->sendTimer.startTimer();
-
-                MPI_Status status;
+                this->timer->sendTimer.startTimer();                
 
                 if (currentSeed > 0)
                 {
+                    MPI_Status status;
                     MPI_Wait(this->request, &status);
                 }
 
@@ -490,6 +489,9 @@ public:
         //     1, 
         //     true
         // );
+
+        MPI_Status status;
+        MPI_Wait(this->request, &status);
         
         delete all_vertices;
 
