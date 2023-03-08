@@ -434,6 +434,8 @@ public:
         for (const auto & l : data) { all_vertices->push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
+        MPI_Request request;
+
         for (int currentSeed = 0; currentSeed < k; currentSeed++)
         {
             if (this->usingStochastic)
@@ -451,6 +453,8 @@ public:
                 covered, theta
             );
 
+            std::cout << "current seed: " << res[currentSeed] << " with size of " << data[res[currentSeed]].size() << std::endl;
+
             if (this->timer != 0) 
             {
                 this->timer->max_k_localTimer.endTimer();
@@ -458,24 +462,23 @@ public:
 
             // This code block sends data to the global protion of the streaming solution if the 
             //  streaming setting has been selected. 
-            if (this->sendPartialSolutions) {
-                std::unordered_map<int, std::unordered_set<int>> targetSeed;
-                targetSeed.insert({res[currentSeed], data[res[currentSeed]]});
-                std::pair<int, int*> sendData = this->cEngine->linearize(targetSeed);
+            if (this->sendPartialSolutions) 
+            {
+                std::pair<int, int*> sendData = this->cEngine->LinearizeSingleSeed(res[currentSeed], data[res[currentSeed]]);
 
                 // cengine does mpi send to global node
-                this->timer->sendTimer.startTimer();                
+                this->timer->sendTimer.startTimer();
 
-                if (currentSeed > 0)
-                {
-                    MPI_Status status;
-                    MPI_Wait(this->request, &status);
-                }
+                // if (currentSeed > 0)
+                // {
+                MPI_Status status;
+                //     MPI_Wait(&request, &status);
+                // }
 
-                MPI_Isend(
+                MPI_Send(
                     sendData.second, sendData.first, 
                     MPI_INT, 0, currentSeed, 
-                    MPI_COMM_WORLD, this->request
+                    MPI_COMM_WORLD
                 );
 
                 this->timer->sendTimer.endTimer();
@@ -484,16 +487,12 @@ public:
             }
         }
 
-        // this->cEngine->SendToGlobal(
-        //     new int[1], 
-        //     1, 
-        //     true
-        // );
-
-        MPI_Status status;
-        MPI_Wait(this->request, &status);
+        // MPI_Status status;
+        // MPI_Wait(&request, &status);
         
         delete all_vertices;
+
+        std::cout << "LOCAL PROCESS FOUND LOCAL SEEDS" << std::endl;
 
         return std::make_pair(res, covered.popcount());
     }

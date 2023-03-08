@@ -46,12 +46,17 @@ class ThresholdBucket
 
     bool attemptInsert(const std::pair<int, std::unordered_set<int>*>& element) 
     {
+        if (this->seeds.size() == this->k)
+        {
+            return false;
+        }
+        
         std::unordered_set<int> temp;
         for (const int e : *(element.second)) {
             if (!localCovered.get(e))
                 temp.insert(e);
         }
-        if (temp.size() >= this->marginalGainThreshold && this->seeds.size() < this->k) {
+        if (temp.size() >= this->marginalGainThreshold) {
             for (const int e : temp) {
                 localCovered.set(e);
             }
@@ -164,6 +169,8 @@ class StreamingRandGreedIEngine
         this->world_size = world_size;
         this->active_senders = world_size;
 
+        std::cout << "init receive buffers" << std::endl;
+
         // initialization step
         for (int i = 0; i < this->world_size; i++) 
         {
@@ -181,6 +188,8 @@ class StreamingRandGreedIEngine
                 );
             }
         }
+
+        std::cout << "finished building receive buffers" << std::endl;
     }
 
     static int handleNewElements(
@@ -228,7 +237,7 @@ class StreamingRandGreedIEngine
 
     ~StreamingRandGreedIEngine() {}
 
-    std::pair<std::vector<unsigned int>, int> stream(Timer* timer) 
+    std::pair<std::vector<unsigned int>, int> Stream(Timer* timer) 
     {
         int received_elements = 0;
         std::vector<std::pair<int, std::unordered_set<int>*>>* q = new std::vector<std::pair<int, std::unordered_set<int>*>>();
@@ -240,6 +249,7 @@ class StreamingRandGreedIEngine
             && this->active_senders > 0
         ) 
         {
+            std::cout << "streaming..." << std::endl;
             if (this->buckets.size() == 0)
             {
                 int new_element_count = StreamingRandGreedIEngine::handleNewElements(
@@ -260,6 +270,7 @@ class StreamingRandGreedIEngine
                 
                 if (received_buffers == this->world_size && this->buckets.size() == 0)
                 {
+                    std::cout << "creating buckets" << std::endl;
                     this->createBuckets(*q);
                 }
             }
@@ -272,6 +283,7 @@ class StreamingRandGreedIEngine
                 int t = this->theta;
                 int m = this->world_size;
 
+                std::cout << "handling new elements in parallel" << std::endl;
                 auto ret = std::async(
                     [&new_q, &buffers, &senders, &t, &m](){
                         return StreamingRandGreedIEngine::handleNewElements(

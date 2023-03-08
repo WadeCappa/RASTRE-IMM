@@ -65,7 +65,7 @@
 #include "ripples/TimerAggregator.h"
 #include "ripples/max_k_cover.h"
 
-#include "ripples/mpi/streaming_randgreedi_engine.h"
+#include "ripples/mpi/streaming_engine.h"
 
 namespace ripples {
 namespace mpi {
@@ -211,18 +211,19 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
           MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
           localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
           localKCoverEngine.run_max_k_cover(*aggregateSets, thetaPrime*2);
-          return;
+          return true;
         };
 
-        std::thread max_cover_thread(f);
+        auto max_cover_thread = std::async(std::launch::async, f);
         
         // gets global seeds using the greedy streaming algorithm 
         // TODO: Calcualte deltaZero and total buckets. 
+        std::cout << "theta = " << thetaPrime << std::endl;
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon, world_size);
-        globalSeeds = streamingEngine.stream(timer);
+        globalSeeds = streamingEngine.Stream(timer);
         std::cout << "got best seeds" << std::endl;
 
-        max_cover_thread.join();        
+        auto res = max_cover_thread.get();     
         timeAggregator.globalStreamTimer.endTimer();
       }
       else 
@@ -276,7 +277,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   auto timeMostInfluential = measure<>::exec_time([&]() { });
   record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
 
-  std::cout << "returning global seeds" << std::endl;
+  std::cout << "rank " << world_rank << " returning global seeds" << std::endl;
   return globalSeeds;
 }
 

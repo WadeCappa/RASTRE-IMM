@@ -108,6 +108,22 @@ class CommunicationEngine
         return std::make_pair(totalData, linearAggregateSets);
     }
 
+    std::pair<int, int*> LinearizeSingleSeed(const int vertexID, const std::unordered_set<int>& set) 
+    {
+        int* linearAggregateSets = new int[set.size()+2];
+        int offset = 1;
+
+        *linearAggregateSets = vertexID;
+
+        for (const auto & RRRSetID : set) {
+            *(linearAggregateSets + offset++) = RRRSetID;
+        }
+
+        *(linearAggregateSets + offset) = -1;
+
+        return std::make_pair(set.size()+2, linearAggregateSets);
+    }
+
     int* linearize(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, std::vector<int> dataStartPartialSum, int totalData, int p) 
     {
         int* linearTRRRSets = new int[totalData];
