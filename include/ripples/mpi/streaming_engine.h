@@ -13,6 +13,8 @@
 #include <thread>
 #include <future>
 
+using ElementList = std::vector<std::pair<int, std::unordered_set<int>*>>;
+
 class ThresholdBucket 
 {
     private:
@@ -86,7 +88,7 @@ class BucketController
     int fullBuckets = 0;
 
     public:
-    void CreateBuckets(std::vector<std::pair<int, std::unordered_set<int>*>>* current_elements)
+    void CreateBuckets(ElementList* current_elements)
     {
         // calculate deltaZero
         size_t maxval = 0;
@@ -109,10 +111,10 @@ class BucketController
         }
     }
 
-    std::vector<std::pair<int, std::unordered_set<int>*>>* ProcessData(std::vector<std::pair<int, std::unordered_set<int>*>>* elements)
+    std::pair<bool, ElementList*> ProcessData(ElementList* elements)
     {
         if (this->deltaZero == -1)
-            return elements;
+            return std::make_pair(false, elements);
 
         std::cout << "processing " << elements->size() << " elements..." << std::endl;
 
@@ -127,8 +129,7 @@ class BucketController
 
         std::cout << "successfully processed data..." << std::endl;
 
-        delete elements;
-        return new std::vector<std::pair<int, std::unordered_set<int>*>>();
+        return std::make_pair(true, elements);
     }
 
     bool AllBucketsFull()
@@ -189,7 +190,7 @@ class StreamingRandGreedIEngine
     ssize_t theta;
     double epsilon;
 
-    std::vector<std::pair<int, std::unordered_set<int>*>>* elements;
+    ElementList* elements;
 
     static std::pair<int, std::unordered_set<int>*> ExtractElement(int* data)
     {
@@ -200,6 +201,8 @@ class StreamingRandGreedIEngine
             received_data->insert(*e);
         }
 
+        std::cout << "extracted seed " << *data << " of size " << received_data->size() << std::endl;;
+ 
         return std::make_pair(*data, received_data);
     }
 
@@ -246,7 +249,7 @@ class StreamingRandGreedIEngine
         this->first_values_from_senders = 0;
         this->theta = theta;
 
-        this->elements = new std::vector<std::pair<int, std::unordered_set<int>*>>();
+        this->elements = new ElementList();
 
         this->buffer = new int[theta];
         this->ResetBuffer();
@@ -264,9 +267,17 @@ class StreamingRandGreedIEngine
 
             this->elements->push_back(this->ExtractElement(this->buffer));
 
-            this->ResetBuffer();
+            if (i != this->world_size * this->k - 1)
+            {
+                this->ResetBuffer();
+            }
 
-            this->elements = this->buckets.ProcessData(this->elements);
+            auto processing_results = this->buckets.ProcessData(this->elements);
+            if (processing_results.first)
+            {
+                delete this->elements;
+                this->elements = new ElementList();
+            }
         }
 
         return this->buckets.GetBestSeeds();
