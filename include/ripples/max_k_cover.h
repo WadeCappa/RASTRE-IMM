@@ -454,8 +454,6 @@ public:
                 covered, theta
             );
 
-            std::cout << "current seed: " << res[currentSeed] << " with size of " << data[res[currentSeed]].size() << std::endl;
-
             if (this->timer != 0) 
             {
                 this->timer->max_k_localTimer.endTimer();

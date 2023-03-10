@@ -31,7 +31,6 @@ class ThresholdBucket
         this->theta = theta;
         this->marginalGainThreshold = ( (double)deltaZero / (double)( 2 * k )) * (double)std::pow(1 + epsilon, numBucket);
         this->k = k;
-        std::cout << "built bucket " << numBucket << " with threshold of " << this->marginalGainThreshold << std::endl;
     }
 
     size_t getUtility() 
@@ -90,8 +89,6 @@ class BucketController
     public:
     void CreateBuckets(ElementList* current_elements)
     {
-        std::cout << "looking at " << current_elements->size() << " elements for initializing buckets" << std::endl;
-
         // calculate deltaZero
         size_t maxval = 0;
         for (const auto & r : *current_elements)
@@ -120,7 +117,7 @@ class BucketController
 
     void ProcessData(const ElementList* elements, const size_t threads)
     {
-        std::cout << "processing " << elements->size() << " elements..." << std::endl;
+        // std::cout << "processing " << elements->size() << " elements..." << std::endl;
 
         #pragma omp parallel for num_threads(threads)
         for (size_t t = 0; t < buckets.size(); t++)
@@ -130,8 +127,6 @@ class BucketController
                 buckets[t]->attemptInsert(elements->at(i));
             }
         }
-
-        std::cout << "successfully processed data..." << std::endl;
     }
 
     bool AllBucketsFull()
@@ -203,8 +198,6 @@ class StreamingRandGreedIEngine
             received_data->insert(*e);
         }
 
-        std::cout << "extracted seed " << *data << " of size " << received_data->size() << std::endl;;
- 
         return std::make_pair(*data, received_data);
     }
 
@@ -227,8 +220,6 @@ class StreamingRandGreedIEngine
 
         if (status.MPI_TAG == 0)
         {
-            std::cout << "first element from " << status.MPI_SOURCE << std::endl;
-
             this->first_values_from_senders++;
 
             if (this->first_values_from_senders == this->world_size)
@@ -267,7 +258,6 @@ class StreamingRandGreedIEngine
     std::pair<std::vector<unsigned int>, int> Stream(Timer* timer)
     {
         MPI_Status status;
-        std::cout << "started streaming" << std::endl;
         std::mutex* lock = new std::mutex(); 
         bool streaming_finished = false;
         bool buckets_initialized = false;
@@ -280,7 +270,6 @@ class StreamingRandGreedIEngine
             {
                 for (int i = 0; i < (this->world_size * this->k) && this->active_senders > 0; i++)
                 {
-                    std::cout << "waiting for seed " << i << std::endl;
                     MPI_Wait(this->request, &status);
 
                     lock->lock();
@@ -333,10 +322,13 @@ class StreamingRandGreedIEngine
 
                     if (local_elements != 0)
                     {
+                        timer->startTimer();
                         this->buckets.ProcessData(local_elements, threads - 1);
+                        timer->endTimer();
+                        
                         delete local_elements;
                         local_elements = 0;
-                    }                    
+                    }
                 }
             }
         }

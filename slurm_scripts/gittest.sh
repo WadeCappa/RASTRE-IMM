@@ -6,9 +6,9 @@
 #SBATCH -q regular
 #SBATCH -N 5
 #SBATCH --ntasks-per-node=1
-#SBATCH -J Github4
-#SBATCH -o output/github/Github4.o
-#SBATCH -e output/github/Github4.e
+#SBATCH -J Github5
+#SBATCH -o output/github/Github5.o
+#SBATCH -e output/github/Github5.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module unload cray-libsci
 module load openmpi
 #module load cudatoolkit/11.0
 
-mpirun -n 5 ./build/release/tools/mpi-greedi-im -i test-data/githubSmall.txt -w -k 16 -p -d IC -e 0.13 -o Github4.json --run-streaming=true
+mpirun -n 5 ./build/release/tools/mpi-greedi-im -i test-data/githubSmall.txt -w -k 16 -p -d IC -e 0.13 -o Github5.json --run-streaming=true

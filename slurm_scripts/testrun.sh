@@ -4,11 +4,11 @@
 #SBATCH -C cpu
 #SBATCH -t 3:00:00 
 #SBATCH -q regular
-#SBATCH -N 16
+#SBATCH -N 65
 #SBATCH --ntasks-per-node=1
-#SBATCH -J Orkut16_global_stoc_dumping_sets
-#SBATCH -o /global/homes/w/wadecap/ripples/output/orkut/Orkut16_global_stoc_dumping_sets.o
-#SBATCH -e /global/homes/w/wadecap/ripples/output/orkut/Orkut16_global_stoc_dumping_sets.e
+#SBATCH -J Orkut65_streaming
+#SBATCH -o /global/homes/w/wadecap/ripples/output/orkut/Orkut65_streaming.o
+#SBATCH -e /global/homes/w/wadecap/ripples/output/orkut/Orkut65_streaming.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module unload cray-libsci
 module load openmpi
 #module load cudatoolkit/11.0
 
-mpirun -n 16 ./build/release/tools/mpi-greedi-im -i test-data/orkut_small.txt -w -k 100 -p -d IC -e 0.13 -o Orkut16_global_stoc_dumping_sets.json --dump-sampling-data true
+mpirun -n 65 ./build/release/tools/mpi-greedi-im -i test-data/orkut_small.txt -w -k 100 -p -d IC -e 0.13 -o Orkut65_streaming.json --run-streaming=true

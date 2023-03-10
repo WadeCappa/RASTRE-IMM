@@ -204,12 +204,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
         timeAggregator.globalStreamTimer.startTimer();
        
-        // gets global seeds using the greedy streaming algorithm 
-        // TODO: Calcualte deltaZero and total buckets. 
-        std::cout << "theta = " << thetaPrime << std::endl;
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
         globalSeeds = streamingEngine.Stream(timer);
-        std::cout << "got best seeds" << std::endl;
 
         timeAggregator.globalStreamTimer.endTimer();
       }
@@ -350,8 +346,10 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     // this has to be a global value, if one process succeeds and another fails it will get stuck in communication (the algorithm will fail). 
     double f;
 
+    std::cout << "thetaprime: " << thetaPrime << std::endl;
+
     if (world_rank == 0) {
-      f = double(seeds.second) / thetaPrime;
+      f = (double)(seeds.second) / thetaPrime;
     }
     // mpi_broadcast f(s)
 
@@ -423,6 +421,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     std::cout << "AllGather time: " << timeAggregator.allGatherTimer.resolveTimer() << std::endl;
     std::cout << "AlltoAll time: " << timeAggregator.allToAllTimer.resolveTimer() << std::endl;
     std::cout << "Broadcast time: " << timeAggregator.broadcastTimer.resolveTimer() << std::endl;
+    std::cout << "Total Local Send Time" << timeAggregator.sendTimer.resolveTimer() << std::endl;
   }
   else 
   {
