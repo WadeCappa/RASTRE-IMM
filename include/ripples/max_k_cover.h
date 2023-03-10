@@ -435,6 +435,7 @@ public:
         this->finder->setSubset(all_vertices, subset_size);
 
         MPI_Request request;
+        std::pair<int, int*> sendData;
 
         for (int currentSeed = 0; currentSeed < k; currentSeed++)
         {
@@ -464,31 +465,31 @@ public:
             //  streaming setting has been selected. 
             if (this->sendPartialSolutions) 
             {
-                std::pair<int, int*> sendData = this->cEngine->LinearizeSingleSeed(res[currentSeed], data[res[currentSeed]]);
-
                 // cengine does mpi send to global node
                 this->timer->sendTimer.startTimer();
 
-                // if (currentSeed > 0)
-                // {
-                MPI_Status status;
-                //     MPI_Wait(&request, &status);
-                // }
+                if (currentSeed > 0)
+                {
+                    MPI_Status status;
+                    MPI_Wait(&request, &status);
+                    delete sendData.second;
+                }
 
-                MPI_Send(
+                sendData = this->cEngine->LinearizeSingleSeed(res[currentSeed], data[res[currentSeed]]);
+
+                MPI_Isend(
                     sendData.second, sendData.first, 
                     MPI_INT, 0, currentSeed, 
-                    MPI_COMM_WORLD
+                    MPI_COMM_WORLD, &request
                 );
 
                 this->timer->sendTimer.endTimer();
-
-                delete sendData.second;
             }
         }
 
-        // MPI_Status status;
-        // MPI_Wait(&request, &status);
+        MPI_Status status;
+        MPI_Wait(&request, &status);
+        delete sendData.second;
         
         delete all_vertices;
 

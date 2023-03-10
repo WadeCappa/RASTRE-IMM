@@ -75,6 +75,7 @@ struct IMMConfiguration : public TIMConfiguration {
   size_t seed_select_max_workers{std::numeric_limits<size_t>::max()};
   size_t seed_select_max_gpu_workers{0};
   bool use_streaming = false;
+  double epsilon_2 = 0.13; 
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
 
@@ -98,6 +99,9 @@ struct IMMConfiguration : public TIMConfiguration {
         ->group("Streaming-Engine Options");
     app.add_option("--run-streaming", use_streaming,
                    "Run max-k-cover within a streaming algorithm. False by default.")
+        ->group("Streaming-Engine Options");
+    app.add_option("--epsilon-2", epsilon_2,
+                   "Set the error parameter for the streaming step. Default of 0.13 to acheive approximation garuntee of 21%")
         ->group("Streaming-Engine Options");
   }
 };

@@ -207,7 +207,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         // gets global seeds using the greedy streaming algorithm 
         // TODO: Calcualte deltaZero and total buckets. 
         std::cout << "theta = " << thetaPrime << std::endl;
-        StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon, world_size - 1);
+        StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
         globalSeeds = streamingEngine.Stream(timer);
         std::cout << "got best seeds" << std::endl;
 
@@ -408,6 +408,8 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     vertexToProcess, world_size, world_rank,
     cEngine
   );
+
+  std::cout << "finished final iteration, aquired utility of " << bestSeeds.second << std::endl;
 
   // std::cout << "total communication time: " << cEngine.getCommunicationTime() << std::endl;
   // std::cout << "total sample time: " << totalSampleTime << std::endl;

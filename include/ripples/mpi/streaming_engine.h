@@ -90,6 +90,8 @@ class BucketController
     public:
     void CreateBuckets(ElementList* current_elements)
     {
+        std::cout << "looking at " << current_elements->size() << " elements for initializing buckets" << std::endl;
+
         // calculate deltaZero
         size_t maxval = 0;
         for (const auto & r : *current_elements)
@@ -111,14 +113,16 @@ class BucketController
         }
     }
 
-    std::pair<bool, ElementList*> ProcessData(ElementList* elements)
+    bool Initialized()
     {
-        if (this->deltaZero == -1)
-            return std::make_pair(false, elements);
+        return this->buckets.size() > 0;
+    }
 
+    void ProcessData(const ElementList* elements, const size_t threads)
+    {
         std::cout << "processing " << elements->size() << " elements..." << std::endl;
 
-        #pragma omp parallel for
+        #pragma omp parallel for num_threads(threads)
         for (size_t t = 0; t < buckets.size(); t++)
         {
             for (int i = 0; i < elements->size(); i++) 
@@ -128,8 +132,6 @@ class BucketController
         }
 
         std::cout << "successfully processed data..." << std::endl;
-
-        return std::make_pair(true, elements);
     }
 
     bool AllBucketsFull()
@@ -219,15 +221,20 @@ class StreamingRandGreedIEngine
         );
     }
 
-    void HandleStatus(MPI_Status& status)
+    bool HandleStatus(MPI_Status& status)
     {
+        bool buckets_initialized = false;
+
         if (status.MPI_TAG == 0)
         {
             std::cout << "first element from " << status.MPI_SOURCE << std::endl;
+
             this->first_values_from_senders++;
+
             if (this->first_values_from_senders == this->world_size)
             {
                 this->buckets.CreateBuckets(this->elements);
+                buckets_initialized = true;
             }
         }
 
@@ -236,6 +243,8 @@ class StreamingRandGreedIEngine
             // this means that last element from a process has been sent
             this->active_senders--;
         }
+
+        return buckets_initialized;
     }
 
     public:
@@ -259,25 +268,76 @@ class StreamingRandGreedIEngine
     {
         MPI_Status status;
         std::cout << "started streaming" << std::endl;
-        for (int i = 0; i < (this->world_size * this->k) && this->active_senders > 0; i++)
+        std::mutex* lock = new std::mutex(); 
+        bool streaming_finished = false;
+        bool buckets_initialized = false;
+
+        size_t threads = omp_get_num_threads();
+
+        # pragma omp parallel num_threads(2) shared(lock, buckets_initialized)
         {
-            std::cout << "waiting for seed " << i << std::endl;
-            MPI_Wait(this->request, &status);
-
-            this->HandleStatus(status);
-
-            this->elements->push_back(this->ExtractElement(this->buffer));
-
-            if (i != this->world_size * this->k - 1)
+            if (omp_get_thread_num() == 0) // receiver
             {
-                this->ResetBuffer();
+                for (int i = 0; i < (this->world_size * this->k) && this->active_senders > 0; i++)
+                {
+                    std::cout << "waiting for seed " << i << std::endl;
+                    MPI_Wait(this->request, &status);
+
+                    lock->lock();
+
+                    buckets_initialized = this->HandleStatus(status);
+
+                    this->elements->push_back(this->ExtractElement(this->buffer));
+
+                    lock->unlock();
+
+                    if (i != this->world_size * this->k - 1)
+                    {
+                        this->ResetBuffer();
+                    }
+                }
+
+                streaming_finished = true;
             }
+            else // processor
+            {   
+                ElementList* local_elements = 0;
+                int number = 0;
 
-            auto processing_results = this->buckets.ProcessData(this->elements);
-            if (processing_results.first)
-            {
-                delete this->elements;
-                this->elements = new ElementList();
+                while (true) 
+                {
+                    lock->lock();
+
+                    if (this->buckets.Initialized())
+                    {
+                        lock->unlock();
+                        break;
+                    }
+
+                    lock->unlock();
+                }
+
+                std::cout << "exited while loop, no longer waiting" << std::endl;
+
+                while (streaming_finished == false)
+                {
+                    lock->lock();
+
+                    if (this->elements->size() > 0)
+                    {
+                        local_elements = this->elements;
+                        this->elements = new ElementList(); 
+                    }
+
+                    lock->unlock();
+
+                    if (local_elements != 0)
+                    {
+                        this->buckets.ProcessData(local_elements, threads - 1);
+                        delete local_elements;
+                        local_elements = 0;
+                    }                    
+                }
             }
         }
 
