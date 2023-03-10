@@ -118,7 +118,7 @@ class BucketController
 
         std::cout << "processing " << elements->size() << " elements..." << std::endl;
 
-        // #pragma omp parallel for
+        #pragma omp parallel for
         for (size_t t = 0; t < buckets.size(); t++)
         {
             for (int i = 0; i < elements->size(); i++) 
@@ -258,6 +258,7 @@ class StreamingRandGreedIEngine
     std::pair<std::vector<unsigned int>, int> Stream(Timer* timer)
     {
         MPI_Status status;
+        std::cout << "started streaming" << std::endl;
         for (int i = 0; i < (this->world_size * this->k) && this->active_senders > 0; i++)
         {
             std::cout << "waiting for seed " << i << std::endl;

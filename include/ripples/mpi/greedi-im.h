@@ -200,30 +200,17 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     {
       if (world_rank == 0) 
       {
-        // runs max_k_cover over the local partition in a single thread.
-        // TODO: verify that running other threads in the streaming engine won't take resources
-        //  away from this thread, as this would cause a slowdown here as the number of buckets increase.
-
         Timer* timer = &(timeAggregator.max_k_globalTimer);
 
         timeAggregator.globalStreamTimer.startTimer();
-        auto f = [&CFG, &aggregateSets, &cEngine, &thetaPrime, &timeAggregator]() { 
-          MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
-          localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
-          localKCoverEngine.run_max_k_cover(*aggregateSets, thetaPrime*2);
-          return true;
-        };
-
-        auto max_cover_thread = std::async(std::launch::async, f);
-        
+       
         // gets global seeds using the greedy streaming algorithm 
         // TODO: Calcualte deltaZero and total buckets. 
         std::cout << "theta = " << thetaPrime << std::endl;
-        StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon, world_size);
+        StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon, world_size - 1);
         globalSeeds = streamingEngine.Stream(timer);
         std::cout << "got best seeds" << std::endl;
 
-        auto res = max_cover_thread.get();     
         timeAggregator.globalStreamTimer.endTimer();
       }
       else 
@@ -484,9 +471,9 @@ auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
   //  that chooses a process for each vertex as a loop linearly scans through the 
   //  verticesPerProcess vector.
   std::vector<int> vertexToProcess(G.num_nodes(), -1);
-  int verticesPerProcess = G.num_nodes() / world_size + 1;
+  int verticesPerProcess = (G.num_nodes() / (world_size - 1)) + 1;
   for (int i = 0; i < G.num_nodes(); i++) {
-    vertexToProcess[i] = i % world_size;
+    vertexToProcess[i] = (i % world_size) + 1;
   }
 
   TransposeRRRSets<GraphTy>* tRRRSets = new TransposeRRRSets<GraphTy>(G.num_nodes());
