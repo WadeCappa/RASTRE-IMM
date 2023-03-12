@@ -346,6 +346,7 @@ private:
     NextMostInfluentialFinder* finder = 0;
     TimerAggregator* timer = 0;
     MPI_Request *request;
+    std::vector<std::pair<MPI_Request*, int*>> send_buffers;
 
     void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int> seedSet)
     {
@@ -420,6 +421,7 @@ public:
         this->sendPartialSolutions = true;
         this->cEngine = cEngine;
         this->timer = timer;
+
         return this;
     }
 
@@ -436,6 +438,14 @@ public:
 
         MPI_Request request;
         std::pair<int, int*> sendData;
+
+        if (this->sendPartialSolutions)
+        {
+            for (int i = 0; i < this->k; i++)
+            {
+                this->send_buffers.push_back(std::make_pair(new MPI_Request(), (int*)0));
+            }
+        }
 
         for (int currentSeed = 0; currentSeed < k; currentSeed++)
         {
@@ -466,28 +476,36 @@ public:
                 // cengine does mpi send to global node
                 this->timer->sendTimer.startTimer();
 
-                if (currentSeed > 0)
-                {
-                    MPI_Status status;
-                    MPI_Wait(&request, &status);
-                    delete sendData.second;
-                }
-
                 sendData = this->cEngine->LinearizeSingleSeed(res[currentSeed], data[res[currentSeed]]);
 
-                MPI_Isend(
-                    sendData.second, sendData.first, 
-                    MPI_INT, 0, currentSeed, 
-                    MPI_COMM_WORLD, &request
+                this->send_buffers[currentSeed].second = sendData.second;
+
+                MPI_Isend (
+                    this->send_buffers[currentSeed].second,
+                    sendData.first,
+                    MPI_INT, 0,
+                    currentSeed,
+                    MPI_COMM_WORLD,
+                    this->send_buffers[currentSeed].first
                 );
 
                 this->timer->sendTimer.endTimer();
             }
         }
 
-        MPI_Status status;
-        MPI_Wait(&request, &status);
-        delete sendData.second;
+        if (this->sendPartialSolutions)
+        {
+            MPI_Status status;
+
+            for (int i = 0; i < this->k; i++)
+            {
+                auto & p = this->send_buffers[i];
+
+                MPI_Wait(p.first, &status);
+                delete p.second;
+                delete p.first;
+            }
+        }
         
         delete all_vertices;
 

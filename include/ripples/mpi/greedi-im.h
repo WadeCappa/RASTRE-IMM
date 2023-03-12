@@ -65,6 +65,10 @@
 #include "ripples/TimerAggregator.h"
 #include "ripples/max_k_cover.h"
 
+#include <time.h>
+#include <cstdlib>
+#include <random>
+
 #include "ripples/mpi/streaming_engine.h"
 
 namespace ripples {
@@ -193,6 +197,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     // auto end = std::chrono::high_resolution_clock::now();
     // std::cout << " ------- time for single all to all = " << (end - start).count() << " ------- " << std::endl;
     timeAggregator.allToAllTimer.endTimer();
+
+    std::cout << "COUNTING ELEMENTS: process " << world_rank << " has " << aggregateSets->size() << " vertices" << std::endl;
 
     delete setSize;
 
@@ -472,9 +478,17 @@ auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
   //  that chooses a process for each vertex as a loop linearly scans through the 
   //  verticesPerProcess vector.
   std::vector<int> vertexToProcess(G.num_nodes(), -1);
-  int verticesPerProcess = (G.num_nodes() / (world_size - 1)) + 1;
+
+  unsigned int seed = (unsigned int)time(0);
+
+  MPI_Bcast(&seed, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+
+  // srand(seed);
+  std::uniform_int_distribution<int> uniform_distribution(CFG.use_streaming ? 1 : 0, world_size - 1);
+  std::default_random_engine number_selecter( seed );
+
   for (int i = 0; i < G.num_nodes(); i++) {
-    vertexToProcess[i] = (i % world_size) + 1;
+    vertexToProcess[i] = (uniform_distribution(number_selecter) % (world_size - 1)) + 1;
   }
 
   TransposeRRRSets<GraphTy>* tRRRSets = new TransposeRRRSets<GraphTy>(G.num_nodes());
