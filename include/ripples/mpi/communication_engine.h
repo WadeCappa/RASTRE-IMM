@@ -44,6 +44,18 @@ class CommunicationEngine
         return prefixSum;
     }
 
+    void SendToGlobal(int* data, int size, int tag) {
+        // TODO: Verify that using isend will not cause dataloss, most likely a better idea 
+        //  to just use standard mpi_send as there is no chance of dataloss and requires less
+        //  code. For future optimizations isend can be used.
+
+        // MPI_Request request = MPI_REQUEST_NULL;
+        MPI_Send(data, size, MPI_INT, 0, tag,
+            MPI_COMM_WORLD);
+    }
+
+    
+
     std::pair<int, int*>linearizeLocalSeeds(std::unordered_map<int, std::unordered_set<int>> &aggregateSets, std::unordered_set<unsigned int>& localSeeds) 
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
@@ -94,6 +106,22 @@ class CommunicationEngine
             *(linearAggregateSets + setsPrefixSum[setIndex].second + aggregateSets[setsPrefixSum[setIndex].first].size() + 1) = -1;
         }
         return std::make_pair(totalData, linearAggregateSets);
+    }
+
+    std::pair<int, int*> LinearizeSingleSeed(const int vertexID, const std::unordered_set<int>& set) 
+    {
+        int* linearAggregateSets = new int[set.size()+2];
+        int offset = 1;
+
+        *linearAggregateSets = vertexID;
+
+        for (const auto & RRRSetID : set) {
+            *(linearAggregateSets + offset++) = RRRSetID;
+        }
+
+        *(linearAggregateSets + offset) = -1;
+
+        return std::make_pair(set.size()+2, linearAggregateSets);
     }
 
     int* linearize(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, std::vector<int> dataStartPartialSum, int totalData, int p) 

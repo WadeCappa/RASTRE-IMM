@@ -10,7 +10,9 @@
 #include <cstdlib>
 #include <bits/stdc++.h>
 #include <cmath>
+// #include "mpi/communication_engine.h"
 
+template <typename GraphTy>
 class MaxKCoverEngine 
 {
 private:
@@ -339,7 +341,12 @@ private:
     int k;
     double epsilon;
     bool usingStochastic = false;
+    bool sendPartialSolutions;
+    CommunicationEngine<GraphTy>* cEngine;
     NextMostInfluentialFinder* finder = 0;
+    TimerAggregator* timer = 0;
+    MPI_Request *request;
+    std::vector<std::pair<MPI_Request*, int*>> send_buffers;
 
     void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int> seedSet)
     {
@@ -374,6 +381,7 @@ public:
     MaxKCoverEngine(int k) 
     {
         this->k = k;
+        this->sendPartialSolutions = false;
     };
 
     ~MaxKCoverEngine() {
@@ -408,6 +416,14 @@ public:
         return this;
     }
 
+    MaxKCoverEngine* setSendPartialSolutions(CommunicationEngine<GraphTy>* cEngine, TimerAggregator* timer)
+    {
+        this->sendPartialSolutions = true;
+        this->cEngine = cEngine;
+        this->timer = timer;
+
+        return this;
+    }
 
     std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::unordered_map<int, std::unordered_set<int>>& data, ssize_t theta)
     {
@@ -420,6 +436,17 @@ public:
         for (const auto & l : data) { all_vertices->push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
+        MPI_Request request;
+        std::pair<int, int*> sendData;
+
+        if (this->sendPartialSolutions)
+        {
+            for (int i = 0; i < this->k; i++)
+            {
+                this->send_buffers.push_back(std::make_pair(new MPI_Request(), (int*)0));
+            }
+        }
+
         for (int currentSeed = 0; currentSeed < k; currentSeed++)
         {
             if (this->usingStochastic)
@@ -428,12 +455,62 @@ public:
                 this->finder->reloadSubset();
             }
 
+            if (this->timer != 0) 
+            {
+                this->timer->max_k_localTimer.startTimer();
+            }
+
             res[currentSeed] = finder->findNextInfluential(
                 covered, theta
             );
+
+            if (this->timer != 0) 
+            {
+                this->timer->max_k_localTimer.endTimer();
+            }
+
+            // This code block sends data to the global protion of the streaming solution if the 
+            //  streaming setting has been selected. 
+            if (this->sendPartialSolutions) 
+            {
+                // cengine does mpi send to global node
+                this->timer->sendTimer.startTimer();
+
+                sendData = this->cEngine->LinearizeSingleSeed(res[currentSeed], data[res[currentSeed]]);
+
+                this->send_buffers[currentSeed].second = sendData.second;
+
+                MPI_Isend (
+                    this->send_buffers[currentSeed].second,
+                    sendData.first,
+                    MPI_INT, 0,
+                    currentSeed,
+                    MPI_COMM_WORLD,
+                    this->send_buffers[currentSeed].first
+                );
+
+                this->timer->sendTimer.endTimer();
+            }
+        }
+
+        if (this->sendPartialSolutions)
+        {
+            MPI_Status status;
+
+            for (int i = 0; i < this->k; i++)
+            {
+                auto & p = this->send_buffers[i];
+
+                MPI_Wait(p.first, &status);
+                delete p.second;
+                delete p.first;
+            }
         }
         
         delete all_vertices;
+
+        std::cout << "LOCAL PROCESS FOUND LOCAL SEEDS" << std::endl;
+
         return std::make_pair(res, covered.popcount());
     }
 };
