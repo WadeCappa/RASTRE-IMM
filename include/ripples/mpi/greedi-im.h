@@ -248,6 +248,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
         cEngine.aggregateLocalKSeeds(bestKMSeeds, aggregatedSeeds, totalData);
 
+
         timeAggregator.max_k_globalTimer.startTimer();
         MaxKCoverEngine<GraphTy> globalKCoverEngine((int)CFG.k);
         globalSeeds = globalKCoverEngine.useLazyGreedy(bestKMSeeds)->run_max_k_cover(bestKMSeeds, thetaPrime * 2);
@@ -412,6 +413,19 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     vertexToProcess, world_size, world_rank,
     cEngine
   );
+
+
+  if (CFG.dump_sampling_data_flag) {
+    std::ofstream output_samples("output_sampling.txt");
+    for (const auto & RRRSet : *(tRRRSets.sets)) {
+      
+      std::stringstream result;
+      std::copy(RRRSet.second->begin(), RRRSet.second->end(), std::ostream_iterator<int>(result, ", "));
+
+      output_samples << result.str() << std::endl;
+    }
+    output_samples.close();
+  }
 
   std::cout << "finished final iteration, aquired utility of " << bestSeeds.second << std::endl;
 
