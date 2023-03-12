@@ -17,7 +17,7 @@ class RipplesConan(ConanFile):
     def requirements(self):
         self.requires('spdlog/1.11.0')
         self.requires('nlohmann_json/3.9.1')
-        self.requires('catch2/2.13.3')
+        self.requires('catch2/2.13.7')
         self.requires('cli11/2.1.1')
         self.requires('libtrng/4.22@user/stable')
         self.requires('WafGen/0.1@user/stable')

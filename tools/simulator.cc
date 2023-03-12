@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
   CFG.ParseCmdOptions(argc, argv);
 
   auto simRecord =
-      spdlog::rotating_logger_st("simRecord", CFG.OutputFile, 0, 3);
+      spdlog::rotating_logger_st("simRecord", CFG.OutputFile, 1, 3);
   simRecord->set_pattern("%v");
 
   trng::lcg64 weightGen;

@@ -160,8 +160,11 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
 
   auto start = std::chrono::high_resolution_clock::now();
   size_t thetaPrime = 0;
+
+  // start martigale loop
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
     // Equation 9
+    // Generate thetaPrime number of samples (in our case this will be in the transpose fashion)
     ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
                                     mpi_omp_parallel_tag{});
 
@@ -188,6 +191,7 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
     });
     record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
 
+    // f is the fraction of RRRsets covered by the seeds / the total number of local RRRSets (in the current iteration of the martigale loop)
     if (f >= std::pow(2, -x)) {
       // std::cout << "Fraction " << f << std::endl;
       LB = (G.num_nodes() * f) / (1 + epsilonPrime);
