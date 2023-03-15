@@ -345,8 +345,8 @@ private:
     CommunicationEngine<GraphTy>* cEngine;
     NextMostInfluentialFinder* finder = 0;
     TimerAggregator* timer = 0;
-    MPI_Request *request;
-    std::vector<std::pair<MPI_Request*, int*>> send_buffers;
+    MPI_Request *request = new MPI_Request();
+    std::vector<std::pair<int, int*>> send_buffers;
 
     void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int> seedSet)
     {
@@ -377,6 +377,34 @@ private:
         return ((size_t)std::round((double)n/(double)k) * std::log10(1/epsilon)) + 1;
     }
 
+    void InsertNextSeedIntoSendBuffer(
+        const unsigned int current_seed, 
+        const unsigned int vertex_id, 
+        const std::unordered_set<int>& RRRSetIDs 
+    )
+    {
+        auto sendData = this->cEngine->LinearizeSingleSeed(vertex_id, RRRSetIDs);
+
+        this->send_buffers[current_seed].second = sendData.second;
+        this->send_buffers[current_seed].first = sendData.first;
+    }
+
+    void SendNextSeed(const unsigned int current_send_index)
+    {
+        this->timer->sendTimer.startTimer();
+
+        MPI_Isend (
+            this->send_buffers[current_send_index].second,
+            this->send_buffers[current_send_index].first,
+            MPI_INT, 0,
+            current_send_index,
+            MPI_COMM_WORLD,
+            this->request
+        );
+
+        this->timer->sendTimer.endTimer();
+    }
+
 public:
     MaxKCoverEngine(int k) 
     {
@@ -386,6 +414,7 @@ public:
 
     ~MaxKCoverEngine() {
         delete this->finder;
+        delete this->request;
     }
 
     MaxKCoverEngine* useStochasticGreedy(double e)
@@ -436,6 +465,8 @@ public:
         for (const auto & l : data) { all_vertices->push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
+        unsigned int current_send_index = 0;
+
         MPI_Request request;
         std::pair<int, int*> sendData;
 
@@ -443,11 +474,11 @@ public:
         {
             for (int i = 0; i < this->k; i++)
             {
-                this->send_buffers.push_back(std::make_pair(new MPI_Request(), (int*)0));
+                this->send_buffers.push_back(std::make_pair(0, (int*)0));
             }
         }
 
-        for (int currentSeed = 0; currentSeed < k; currentSeed++)
+        for (unsigned int currentSeed = 0; currentSeed < k; currentSeed++)
         {
             if (this->usingStochastic)
             {
@@ -473,23 +504,27 @@ public:
             //  streaming setting has been selected. 
             if (this->sendPartialSolutions) 
             {
-                // cengine does mpi send to global node
-                this->timer->sendTimer.startTimer();
+                if (currentSeed > 0)
+                {
+                    MPI_Status status;
+                    int flag;
+                    MPI_Test(this->request, &flag, &status);
+                    if (flag == 1)
+                    {
+                        delete this->send_buffers[current_send_index++].second;
 
-                sendData = this->cEngine->LinearizeSingleSeed(res[currentSeed], data[res[currentSeed]]);
-
-                this->send_buffers[currentSeed].second = sendData.second;
-
-                MPI_Isend (
-                    this->send_buffers[currentSeed].second,
-                    sendData.first,
-                    MPI_INT, 0,
-                    currentSeed,
-                    MPI_COMM_WORLD,
-                    this->send_buffers[currentSeed].first
-                );
-
-                this->timer->sendTimer.endTimer();
+                        if (current_send_index != k)
+                        {
+                            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data[res[current_send_index]]);
+                            this->SendNextSeed(current_send_index);
+                        }
+                    }
+                }
+                else 
+                {
+                    this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data[res[current_send_index]]);
+                    this->SendNextSeed(current_send_index);
+                }
             }
         }
 
@@ -497,14 +532,27 @@ public:
         {
             MPI_Status status;
 
-            for (int i = 0; i < this->k; i++)
-            {
-                auto & p = this->send_buffers[i];
+            this->timer->sendTimer.startTimer();
+            MPI_Wait(this->request, &status);
 
-                MPI_Wait(p.first, &status);
-                delete p.second;
-                delete p.first;
+            delete this->send_buffers[current_send_index].second;
+            current_send_index++;
+            
+            for (; current_send_index < k; current_send_index++)
+            {
+                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data[res[current_send_index]]);
+                MPI_Send (
+                    this->send_buffers[current_send_index].second,
+                    this->send_buffers[current_send_index].first,
+                    MPI_INT, 0,
+                    current_send_index,
+                    MPI_COMM_WORLD
+                );
+
+                delete this->send_buffers[current_send_index].second;
             }
+
+            this->timer->sendTimer.endTimer();
         }
         
         delete all_vertices;

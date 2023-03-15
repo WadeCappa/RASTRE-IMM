@@ -214,28 +214,26 @@ class StreamingRandGreedIEngine
         );
     }
 
-    bool HandleStatus(MPI_Status& status)
+    std::pair<int,int> HandleStatus(MPI_Status& status)
     {
-        bool buckets_initialized = false;
-
-        if (status.MPI_TAG == 0)
+        int local_seed = status.MPI_TAG;
+        if (local_seed == 0)
         {
             this->first_values_from_senders++;
 
             if (this->first_values_from_senders == this->world_size)
             {
                 this->buckets.CreateBuckets(this->elements);
-                buckets_initialized = true;
             }
         }
 
-        if (status.MPI_TAG == this->k - 1)
+        if (local_seed == this->k - 1)
         {
             // this means that last element from a process has been sent
             this->active_senders--;
         }
 
-        return buckets_initialized;
+        return std::make_pair(local_seed, status.MPI_SOURCE);
     }
 
     public:
@@ -255,7 +253,8 @@ class StreamingRandGreedIEngine
         this->ResetBuffer();
     }
 
-    std::pair<std::vector<unsigned int>, int> Stream(Timer* timer)
+
+    std::pair<std::vector<unsigned int>, int> Stream(TimerAggregator* timer)
     {
         MPI_Status status;
         std::mutex* lock = new std::mutex(); 
@@ -264,17 +263,21 @@ class StreamingRandGreedIEngine
 
         size_t threads = omp_get_num_threads();
 
+        omp_set_nested(2);
+
         # pragma omp parallel num_threads(2) shared(lock, buckets_initialized)
         {
             if (omp_get_thread_num() == 0) // receiver
             {
                 for (int i = 0; i < (this->world_size * this->k) && this->active_senders > 0; i++)
                 {
+                    timer->receiveTimer.startTimer();
                     MPI_Wait(this->request, &status);
+                    timer->receiveTimer.startTimer();
 
                     lock->lock();
 
-                    buckets_initialized = this->HandleStatus(status);
+                    this->HandleStatus(status);
 
                     this->elements->push_back(this->ExtractElement(this->buffer));
 
@@ -322,9 +325,9 @@ class StreamingRandGreedIEngine
 
                     if (local_elements != 0)
                     {
-                        timer->startTimer();
+                        timer->max_k_globalTimer.startTimer();
                         this->buckets.ProcessData(local_elements, threads - 1);
-                        timer->endTimer();
+                        timer->max_k_globalTimer.endTimer();
                         
                         delete local_elements;
                         local_elements = 0;

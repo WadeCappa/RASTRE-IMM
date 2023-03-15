@@ -206,12 +206,10 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     {
       if (world_rank == 0) 
       {
-        Timer* timer = &(timeAggregator.max_k_globalTimer);
-
         timeAggregator.globalStreamTimer.startTimer();
        
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
-        globalSeeds = streamingEngine.Stream(timer);
+        globalSeeds = streamingEngine.Stream(&timeAggregator);
 
         timeAggregator.globalStreamTimer.endTimer();
       }

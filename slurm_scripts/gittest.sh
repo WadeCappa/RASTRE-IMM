@@ -24,9 +24,9 @@ export OMP_PROC_BIND=spread
 # module load python/3.9-anaconda-2021.11
 module load gcc/11.2.0
 module load cmake/3.24.3
-module unload cray-mpich
-module unload cray-libsci
-module load openmpi
+module load cray-mpich
+module load cray-libsci
+#module load openmpi
 #module load cudatoolkit/11.0
 
-mpirun -n 5 ./build/release/tools/mpi-greedi-im -i test-data/githubSmall.txt -w -k 16 -p -d IC -e 0.13 -o Github5.json --run-streaming=true
+srun -n 5 ./build/release/tools/mpi-greedi-im -i test-data/githubSmall.txt -w -k 16 -p -d IC -e 0.13 -o Github5.json --run-streaming=true --epsilon-2=0.1
