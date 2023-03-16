@@ -209,7 +209,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         timeAggregator.globalStreamTimer.startTimer();
        
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
-        globalSeeds = streamingEngine.Stream(&timeAggregator);
+        globalSeeds = streamingEngine.MinimalSyncrhonizationStreaming(&timeAggregator);
 
         timeAggregator.globalStreamTimer.endTimer();
       }
