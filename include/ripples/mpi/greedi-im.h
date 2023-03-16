@@ -209,7 +209,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         timeAggregator.globalStreamTimer.startTimer();
        
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
-        globalSeeds = streamingEngine.MinimalSyncrhonizationStreaming(&timeAggregator);
+        globalSeeds = streamingEngine.Stream(&timeAggregator);
 
         timeAggregator.globalStreamTimer.endTimer();
       }
@@ -433,13 +433,19 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
 
   if (CFG.use_streaming == false)
   {
+    std::cout << " --- SHARED --- " << std::endl; 
     std::cout << "Samping time: " << timeAggregator.samplingTimer.resolveTimer() << std::endl;
-    std::cout << "Max-k-cover local process time: " << timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
-    std::cout << "Max-k-cover global process time: " << timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
-    std::cout << "AllGather time: " << timeAggregator.allGatherTimer.resolveTimer() << std::endl;
     std::cout << "AlltoAll time: " << timeAggregator.allToAllTimer.resolveTimer() << std::endl;
-    std::cout << "Broadcast time: " << timeAggregator.broadcastTimer.resolveTimer() << std::endl;
-    std::cout << "Total Local Send Time" << timeAggregator.sendTimer.resolveTimer() << std::endl;
+    std::cout << "Receive Broadcast: " << timeAggregator.broadcastTimer.resolveTimer() << std::endl;
+
+    std::cout << " --- SENDER --- " << std::endl; 
+    std::cout << "Select Next Seed: " << timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
+    std::cout << "Send Next Seed: " << timeAggregator.sendTimer.resolveTimer() << std::endl;
+    
+    std::cout << " --- GLOBAL --- " << std::endl; 
+    std::cout << "Initialize Buckets: " << timeAggregator.initBucketTimer.resolveTimer() << std::endl;
+    std::cout << "Receive Next Seed: " << timeAggregator.receiveTimer.resolveTimer() << std::endl;
+    std::cout << "Insert Into Buckets: " << timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
   }
   else 
   {

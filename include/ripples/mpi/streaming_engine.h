@@ -87,16 +87,9 @@ class BucketController
     int fullBuckets = 0;
 
     public:
-    void CreateBuckets(ElementList* current_elements)
+    void CreateBuckets(size_t deltaZero)
     {
-        // calculate deltaZero
-        size_t maxval = 0;
-        for (const auto & r : *current_elements)
-        {
-            maxval = std::max(maxval, r.second->size());
-        }
-
-        this->deltaZero = maxval;
+        this->deltaZero = deltaZero;
 
         int num_buckets = (int)(0.5 + [](double val, double base) {
             return log2(val) / log2(base);
@@ -281,23 +274,29 @@ class StreamingRandGreedIEngine
         {
             if (omp_get_thread_num() == 0) // receiver
             {
+                size_t maxVal = 0;
+
                 for (int i = 0; i < (this->world_size * this->k) && this->active_senders > 0; i++)
                 {
                     timer->receiveTimer.startTimer();
                     MPI_Wait(this->request, &status);
-                    timer->receiveTimer.startTimer();
+                    timer->receiveTimer.endTimer();
 
                     lock->lock();
 
+                    auto next_element = this->ExtractElement(this->buffer);
+                    maxVal = std::max(maxVal, next_element.second->size());
+                    this->elements->push_back(next_element);
+
                     if (this->HandleStatus(status))
                     {
-                        this->buckets.CreateBuckets(this->elements);
+                        timer->initBucketTimer.startTimer();
+                        this->buckets.CreateBuckets(maxVal);
+                        timer->initBucketTimer.endTimer();
 
                         #pragma omp atomic 
                         buckets_initialized++;
                     }
-
-                    this->elements->push_back(this->ExtractElement(this->buffer));
 
                     lock->unlock();
 
@@ -349,6 +348,13 @@ class StreamingRandGreedIEngine
                         local_elements = 0;
                     }
                 }
+
+                if (this->elements->size() > 0)
+                {
+                    timer->max_k_globalTimer.startTimer();
+                    this->buckets.ProcessData(this->elements);
+                    timer->max_k_globalTimer.endTimer();
+                }
             }
         }
 
@@ -385,6 +391,8 @@ class StreamingRandGreedIEngine
         {
             if (omp_get_thread_num() == 0) // receiver
             {
+                size_t maxVal = 0;
+
                 for (int i = 0; i < (this->world_size * this->k); i++)
                 {
                     // TODO: Add all stop conidtions
@@ -399,46 +407,39 @@ class StreamingRandGreedIEngine
 
                     timer->receiveTimer.startTimer();
                     MPI_Wait(this->request, &status);
-                    if (this->HandleStatus(status))
-                    {
-                        for (const auto & a : availability_index)
-                        {
-                            if (a.first == 1)
-                            {
-                                this->elements->push_back(element_matrix[a.second.first][a.second.second]);
-                            }
-                            else {
-                                break;
-                            }
-                        }
-
-                        this->buckets.CreateBuckets(this->elements);
-
-                        #pragma omp atomic 
-                        buckets_initialized++;
-                    }
+                    timer->receiveTimer.endTimer();
 
                     int tag = status.MPI_TAG;
                     int source = status.MPI_SOURCE - 1;
 
                     auto new_element = this->ExtractElement(this->buffer);
 
-                    timer->receiveTimer.endTimer();
+                    element_matrix[source][tag] = new_element;
 
-                    element_matrix[source][tag].first = new_element.first;            
-                    element_matrix[source][tag].second = new_element.second;
+                    maxVal = std::max(maxVal, new_element.second->size());
+
+                    if (this->HandleStatus(status))
+                    {
+                        timer->initBucketTimer.startTimer();
+                        this->buckets.CreateBuckets(maxVal);
+                        timer->initBucketTimer.endTimer();
+
+                        #pragma omp atomic 
+                        buckets_initialized++;
+                    }
 
                     availability_index[i].second.first = source;
                     availability_index[i].second.second = tag;
+
+                    #pragma omp atomic 
+                    availability_index[i].first++;
 
                     if (i != this->world_size * this->k - 1)
                     {
                         this->ResetBuffer();
                     }
-
-                    #pragma omp atomic 
-                    availability_index[i].first++;
                 }
+
                 std::cout << "killing processors, waiting for them to exit..." << std::endl;
 
                 streaming_finished = true;
@@ -479,10 +480,11 @@ class StreamingRandGreedIEngine
                 std::cout << "starting to process elements..." << std::endl;
 
                 timer->max_k_globalTimer.startTimer();
-                #pragma omp parallel for
+                #pragma omp parallel for num_threads(threads-1)
                 for (int i = 0; i < bucketMap.size(); i++)
                 {
                     auto thread_buckets = bucketMap[i];
+                    int local_dummy_value = 0;
 
                     for (int local_received_index = 0; local_received_index < availability_index.size(); local_received_index++)
                     {
@@ -494,7 +496,7 @@ class StreamingRandGreedIEngine
                             }
 
                             # pragma omp atomic
-                            dummy_value++;
+                            local_dummy_value++;
                         }
 
                         if (availability_index[local_received_index].first == 1)

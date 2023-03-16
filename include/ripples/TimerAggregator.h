@@ -60,6 +60,8 @@ class TimerAggregator
     Timer localStreamTimer;
     Timer sendTimer;
     Timer receiveTimer;
+    Timer initBucketTimer;
+    Timer insertIntoBucketTimer;
 
     TimerAggregator(){}
     ~TimerAggregator(){}

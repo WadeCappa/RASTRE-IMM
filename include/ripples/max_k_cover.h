@@ -515,15 +515,20 @@ public:
 
                         if (current_send_index != k)
                         {
+                            timer->sendTimer.startTimer();
                             this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data[res[current_send_index]]);
                             this->SendNextSeed(current_send_index);
+                            timer->sendTimer.endTimer();
+
                         }
                     }
                 }
                 else 
                 {
+                    timer->sendTimer.startTimer();
                     this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data[res[current_send_index]]);
                     this->SendNextSeed(current_send_index);
+                    timer->sendTimer.endTimer();
                 }
             }
         }
