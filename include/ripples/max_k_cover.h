@@ -1,6 +1,8 @@
 #include <vector>
 #include <unordered_set>
+#include <set>
 #include <unordered_map>
+#include <map>
 #include <set>
 #include <mutex>
 #include <iostream>
@@ -21,7 +23,7 @@ private:
     { 
     protected:
         std::vector<unsigned int>* vertex_subset;
-        std::unordered_map<int, std::unordered_set<int>*>* allSets;
+        std::map<int, std::vector<int>*>* allSets;
         size_t subset_size;
 
     public:
@@ -54,20 +56,20 @@ private:
         template <typename idTy>
         struct CompareMaxHeap {
 
-            bool operator()(const std::pair<idTy, std::unordered_set<idTy>*> a,
-                            const std::pair<idTy, std::unordered_set<idTy>*> b) {
+            bool operator()(const std::pair<idTy, std::vector<idTy>*> a,
+                            const std::pair<idTy, std::vector<idTy>*> b) {
                 return a.second->size() < b.second->size();
             }
         };
 
         CompareMaxHeap<int> cmp;            
-        std::vector<std::pair<int, std::unordered_set<int>*>>* heap;
+        std::vector<std::pair<int, std::vector<int>*>>* heap;
 
         void generateQueue(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size)
         {
             for (int i = 0; i < subset_size - this->heap->size(); i++) 
             {
-                this->heap->push_back(std::make_pair(0,(std::unordered_set<int>*)0));
+                this->heap->push_back(std::make_pair(0,(std::vector<int>*)0));
             }
 
             for (int i = 0; i < subset_size; i++)
@@ -79,13 +81,13 @@ private:
         }
 
     public:
-        LazyGreedy(std::unordered_map<int, std::unordered_set<int>>& data)
+        LazyGreedy(std::map<int, std::vector<int>>& data)
         {
-            this->allSets = new std::unordered_map<int, std::unordered_set<int>*>();
+            this->allSets = new std::map<int, std::vector<int>*>();
 
             for (const auto & l : data)
             {
-                this->allSets->insert({ l.first, new std::unordered_set<int>(l.second.begin(), l.second.end()) });
+                this->allSets->insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
             }
         }
 
@@ -98,7 +100,7 @@ private:
         NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
         {
             this->subset_size = subset_size;
-            this->heap = new std::vector<std::pair<int, std::unordered_set<int>*>>(this->subset_size);
+            this->heap = new std::vector<std::pair<int, std::vector<int>*>>(this->subset_size);
 
             generateQueue(subset_of_selection_sets, subset_size);
             this->vertex_subset = subset_of_selection_sets;
@@ -116,27 +118,21 @@ private:
             int theta
         ) override
         {
-            ssize_t totalCovered = 0;
-            std::pair<int, std::unordered_set<int>*> l = this->heap->front();
+            std::pair<int, std::vector<int>*> l = this->heap->front();
             std::pop_heap(this->heap->begin(), this->heap->end(), this->cmp);
             this->heap->pop_back();
 
-            std::unordered_set<int> temp;
+            std::vector<int> new_set;
 
             // remove RR IDs from l that are already covered. 
             for (int e: *(l.second)) {
-                if (e > theta || e < 0) {
-                    std::cout << "e is greater than theta, e = " << e << " , theta = " << theta << std::endl;
+                if (!(covered.get(e))) {
+                    new_set.push_back(e);
                 }
-                else if (covered.get(e)) {
-                    temp.insert(e);
-                }
-            }            
+            }      
 
-            for (const int e : temp) 
-            {
-                l.second->erase(e); 
-            }
+            // delete l.second;
+            *(this->allSets->at(l.first)) = new_set;
             
             // calculate marginal gain
             auto marginal_gain = l.second->size();
@@ -148,11 +144,7 @@ private:
             if (marginal_gain >= r.second->size()) 
             {               
                 for (int e : *(l.second)) {
-                    if (e > theta || e < 0) {
-                        std::cout << "e is greater than theta, e = " << e << " , theta = " << theta << std::endl;
-                    }
-                    else if (!covered.get(e)) {
-                        totalCovered++;
+                    if (!covered.get(e)) {
                         covered.set(e);
                     }
                 }
@@ -171,13 +163,13 @@ private:
     class NaiveGreedy : public NextMostInfluentialFinder
     {
     public:
-        NaiveGreedy(std::unordered_map<int, std::unordered_set<int>>& data) 
+        NaiveGreedy(std::map<int, std::vector<int>>& data) 
         {
-            this->allSets = new std::unordered_map<int, std::unordered_set<int>*>();
+            this->allSets = new std::map<int, std::vector<int>*>();
 
             for (const auto & l : data)
             {
-                this->allSets->insert({ l.first, new std::unordered_set<int>(l.second.begin(), l.second.end()) });
+                this->allSets->insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
             }
         }
 
@@ -227,11 +219,11 @@ private:
                     {
                         auto RRRSets = this->allSets->at(this->vertex_subset->at(i));
 
-                        std::set<int> temp;
+                        std::vector<int> temp;
                         if (this->vertex_subset->at(i) != max_key) {
                             for (int e: *RRRSets) {
                                 if (covered.get(e)) {
-                                    temp.insert(e);
+                                    temp.push_back(e);
                                 }
                             }
                             for (int e: temp) {
@@ -251,13 +243,13 @@ private:
     class NaiveBitMapGreedy : public NextMostInfluentialFinder
     {
     private:
-        std::unordered_map<int, ripples::Bitmask<int>*>* bitmaps = 0;
+        std::map<int, ripples::Bitmask<int>*>* bitmaps = 0;
 
     public:
-        NaiveBitMapGreedy(std::unordered_map<int, std::unordered_set<int>>& data, int theta) 
+        NaiveBitMapGreedy(std::map<int, std::vector<int>>& data, int theta) 
         {
-            this->bitmaps = new std::unordered_map<int, ripples::Bitmask<int>*>();
-            this->allSets = new std::unordered_map<int, std::unordered_set<int>*>();
+            this->bitmaps = new std::map<int, ripples::Bitmask<int>*>();
+            this->allSets = new std::map<int, std::vector<int>*>();
 
             for (const auto & l : data)
             {
@@ -294,7 +286,6 @@ private:
         {
             int best_score = -1;
             int max_key = -1;
-            ssize_t totalCovered = 0;
 
             ripples::Bitmask<int> localCovered(covered);
             localCovered.notOperation();
@@ -380,7 +371,7 @@ private:
     void InsertNextSeedIntoSendBuffer(
         const unsigned int current_seed, 
         const unsigned int vertex_id, 
-        const std::unordered_set<int>& RRRSetIDs 
+        const std::vector<int>& RRRSetIDs 
     )
     {
         auto sendData = this->cEngine->LinearizeSingleSeed(vertex_id, RRRSetIDs);
@@ -424,21 +415,21 @@ public:
         return this;
     }
 
-    MaxKCoverEngine* useLazyGreedy(std::unordered_map<int, std::unordered_set<int>>& data)
+    MaxKCoverEngine* useLazyGreedy(std::map<int, std::vector<int>>& data)
     {
         this->finder = new LazyGreedy(data);
 
         return this;
     }
 
-    MaxKCoverEngine* useNaiveGreedy(std::unordered_map<int, std::unordered_set<int>>& data)
+    MaxKCoverEngine* useNaiveGreedy(std::map<int, std::vector<int>>& data)
     {
         this->finder = new NaiveGreedy(data);
 
         return this;
     }
 
-    MaxKCoverEngine* useNaiveBitmapGreedy(std::unordered_map<int, std::unordered_set<int>>& data, int theta)
+    MaxKCoverEngine* useNaiveBitmapGreedy(std::map<int, std::vector<int>>& data, int theta)
     {
         this->finder = new NaiveBitMapGreedy(data, theta);
 
@@ -454,7 +445,7 @@ public:
         return this;
     }
 
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::unordered_map<int, std::unordered_set<int>>& data, ssize_t theta)
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta)
     {
         std::vector<unsigned int> res(this->k, -1);
         ripples::Bitmask<int> covered(theta);
@@ -504,6 +495,8 @@ public:
             //  streaming setting has been selected. 
             if (this->sendPartialSolutions) 
             {
+                // TODO: When each seed is sent output the size of that set, on receive output the size of a received element, verify no data loss.
+
                 if (currentSeed > 0)
                 {
                     MPI_Status status;
@@ -516,17 +509,16 @@ public:
                         if (current_send_index != k)
                         {
                             timer->sendTimer.startTimer();
-                            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data[res[current_send_index]]);
+                            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
                             this->SendNextSeed(current_send_index);
                             timer->sendTimer.endTimer();
-
                         }
                     }
                 }
                 else 
                 {
                     timer->sendTimer.startTimer();
-                    this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data[res[current_send_index]]);
+                    this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
                     this->SendNextSeed(current_send_index);
                     timer->sendTimer.endTimer();
                 }
@@ -543,9 +535,13 @@ public:
             delete this->send_buffers[current_send_index].second;
             current_send_index++;
             
+            // TODO: For last tag, set the tag to the local utilty. On the receiver side, check
+            //  for tags > k for stopping conditions for senders. 
+
+            timer->sendTimer.startTimer();
             for (; current_send_index < k; current_send_index++)
             {
-                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data[res[current_send_index]]);
+                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
                 MPI_Send (
                     this->send_buffers[current_send_index].second,
                     this->send_buffers[current_send_index].first,
@@ -561,6 +557,8 @@ public:
         }
         
         delete all_vertices;
+
+        // TODO: Output total utilty for local solution before returning to verify that work has been done
 
         std::cout << "LOCAL PROCESS FOUND LOCAL SEEDS" << std::endl;
 

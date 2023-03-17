@@ -1,6 +1,8 @@
 #include <vector>
 #include <unordered_set>
+#include <set>
 #include <unordered_map>
+#include <map>
 #include <mutex>
 #include <iostream> 
 #include <utility>
@@ -56,7 +58,7 @@ class CommunicationEngine
 
     
 
-    std::pair<int, int*>linearizeLocalSeeds(std::unordered_map<int, std::unordered_set<int>> &aggregateSets, std::unordered_set<unsigned int>& localSeeds) 
+    std::pair<int, int*>linearizeLocalSeeds(std::map<int, std::vector<int>> &aggregateSets, std::unordered_set<unsigned int>& localSeeds) 
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
         int runningSum = 0;
@@ -83,7 +85,7 @@ class CommunicationEngine
         return std::make_pair(totalData, linearAggregateSets);
     }
 
-    std::pair<int, int*> linearize(std::unordered_map<int, std::unordered_set<int>> &aggregateSets) 
+    std::pair<int, int*> linearize(std::map<int, std::vector<int>> &aggregateSets) 
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
         int runningSum = 0;
@@ -108,7 +110,7 @@ class CommunicationEngine
         return std::make_pair(totalData, linearAggregateSets);
     }
 
-    std::pair<int, int*> LinearizeSingleSeed(const int vertexID, const std::unordered_set<int>& set) 
+    std::pair<int, int*> LinearizeSingleSeed(const int vertexID, const std::vector<int>& set) 
     {
         int* linearAggregateSets = new int[set.size()+2];
         int offset = 1;
@@ -174,7 +176,7 @@ class CommunicationEngine
     /// @param receivedDataSizes is the data collected from MPI_alltoall
     /// @param p number of processes
     /// @param RRRIDsPerProcess the upper bound of the maximum number of RRRIDs that each process is responsible for generating
-    void aggregateTRRRSets(std::unordered_map<int, std::unordered_set<int>> &aggregateSets, int* data, int* receivedDataSizes, int p, int RRRIDsPerProcess)
+    void aggregateTRRRSets(std::map<int, std::vector<int>> &aggregateSets, int* data, int* receivedDataSizes, int p, int RRRIDsPerProcess)
     {
         int totalData = 0;
         for (int i = 0; i < p; i++) {
@@ -185,19 +187,19 @@ class CommunicationEngine
 
         // cycle over data
         int vertexID = *data;   
-        aggregateSets.insert({ vertexID, *(new std::unordered_set<int>()) });
+        aggregateSets.insert({ vertexID, *(new std::vector<int>()) });
         for (int rankDataProcessed = 1, i = 1; i < totalData - 1; i++, rankDataProcessed++) {
             if (*(data + i) == -1) {
                 vertexID = *(data + ++i);
                 rankDataProcessed++;
-                aggregateSets.insert({ vertexID, *(new std::unordered_set<int>()) });
+                aggregateSets.insert({ vertexID, *(new std::vector<int>()) });
             }
 
             else {
                 // add each RRRSetID to the map indexed by the target vertex id. 
                 // The RRRSetIDs need to be modified such that they are unique from the sent process. 
                 // This is possible because the order is known and the expected sizes of data that should be sent. 
-                aggregateSets[vertexID].insert(*(data + i) + (RRRIDsPerProcess * receivedDataRank));
+                aggregateSets[vertexID].push_back(*(data + i) + (RRRIDsPerProcess * receivedDataRank));
             }
 
             // track the current receiving process rank
@@ -209,19 +211,19 @@ class CommunicationEngine
     }
 
 
-    void aggregateLocalKSeeds(std::unordered_map<int, std::unordered_set<int>> &bestMKSeeds, int* data, int totalData)
+    void aggregateLocalKSeeds(std::map<int, std::vector<int>> &bestMKSeeds, int* data, int totalData)
     {
         // cycle over data
         int vertexID = *data;   
-        bestMKSeeds.insert({ vertexID, *(new std::unordered_set<int>()) });
+        bestMKSeeds.insert({ vertexID, *(new std::vector<int>()) });
         for (int rankDataProcessed = 1, i = 1; i < totalData - 1; i++) {
             if (*(data + i) == -1) {
                 vertexID = *(data + ++i);
-                bestMKSeeds.insert({ vertexID, *(new std::unordered_set<int>()) });
+                bestMKSeeds.insert({ vertexID, *(new std::vector<int>()) });
             }
 
             else {
-                bestMKSeeds[vertexID].insert(*(data + i));
+                bestMKSeeds[vertexID].push_back(*(data + i));
             }
         }
     }
@@ -267,7 +269,7 @@ class CommunicationEngine
     }
 
     void getProcessSpecificVertexRRRSets(
-        std::unordered_map<int, std::unordered_set<int>> &aggregateSets, 
+        std::map<int, std::vector<int>> &aggregateSets, 
         int* linearizedData,
         int* countPerProcess,
         int p,

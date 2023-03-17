@@ -1,5 +1,5 @@
 #include <vector>
-#include <unordered_set>
+#include <set>
 #include <mutex>
 #include <iostream>
 
@@ -7,15 +7,15 @@ template <typename GraphTy>
 class TransposeRRRSets
 {
     public:
-    std::vector<std::pair<std::mutex*, std::unordered_set<typename GraphTy::vertex_type>*>> *sets;
+    std::vector<std::pair<std::mutex*, std::set<typename GraphTy::vertex_type>*>> *sets;
 
     public:
     TransposeRRRSets(int numberOfVertices) 
     {
-        sets = new std::vector<std::pair<std::mutex*, std::unordered_set<typename GraphTy::vertex_type>*>>(numberOfVertices);
+        sets = new std::vector<std::pair<std::mutex*, std::set<typename GraphTy::vertex_type>*>>(numberOfVertices);
         for (int i = 0; i < numberOfVertices; i++) {
             (*sets)[i].first = new std::mutex();
-            (*sets)[i].second = new std::unordered_set<typename GraphTy::vertex_type>();
+            (*sets)[i].second = new std::set<typename GraphTy::vertex_type>();
         }
     }
 

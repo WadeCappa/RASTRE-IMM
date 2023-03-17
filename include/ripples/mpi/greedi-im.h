@@ -50,6 +50,8 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
+#include <map>
 #include <thread>
 
 #include "trng/lcg64.hpp"
@@ -189,7 +191,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     );
 
     // std::cout << "linearizing data, rank = " << world_rank << std::endl;
-    std::unordered_map<int, std::unordered_set<int>>* aggregateSets = new std::unordered_map<int, std::unordered_set<int>>();
+    std::map<int, std::vector<int>>* aggregateSets = new std::map<int, std::vector<int>>();
 
     timeAggregator.allToAllTimer.startTimer();
     // auto start = std::chrono::high_resolution_clock::now();
@@ -202,6 +204,11 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     delete setSize;
 
+    // TODO: The end of randi requires a comparison between all local solutions and the global solution. The solution with the max
+    //  utility (the max covered) is your new global solution (between all local and global). You can do this easily by remembering
+    //  all elements as they are sent to the global process. It can do this in both cases (streaming and rand-greedi) to easily
+    //  select the best solution.
+
     if (CFG.use_streaming == true) 
     {
       if (world_rank == 0) 
@@ -209,7 +216,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         timeAggregator.globalStreamTimer.startTimer();
        
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
-        globalSeeds = streamingEngine.Stream(&timeAggregator);
+        globalSeeds = streamingEngine.MinimalSyncrhonizationStreaming(&timeAggregator);
 
         timeAggregator.globalStreamTimer.endTimer();
       }
@@ -219,7 +226,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
         localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
         localKCoverEngine.run_max_k_cover(*aggregateSets, thetaPrime*2);
-        // std::unordered_set<unsigned int> localSeedsSet(localSeeds.first.begin(), localSeeds.first.end());
+
         timeAggregator.localStreamTimer.startTimer();
       }
     }
@@ -242,10 +249,9 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       int totalData = globalAggregation.first;
 
       if (world_rank == 0) {
-        std::unordered_map<int, std::unordered_set<int>> bestKMSeeds;
+        std::map<int, std::vector<int>> bestKMSeeds;
 
         cEngine.aggregateLocalKSeeds(bestKMSeeds, aggregatedSeeds, totalData);
-
 
         timeAggregator.max_k_globalTimer.startTimer();
         MaxKCoverEngine<GraphTy> globalKCoverEngine((int)CFG.k);
@@ -431,7 +437,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   // std::cout << "total sample time: " << totalSampleTime << std::endl;
   // std::cout << "total max_k_cover time: " << totalCoverTime << std::endl;
 
-  if (CFG.use_streaming == false)
+  if (CFG.use_streaming == true)
   {
     std::cout << " --- SHARED --- " << std::endl; 
     std::cout << "Samping time: " << timeAggregator.samplingTimer.resolveTimer() << std::endl;
@@ -446,8 +452,8 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     std::cout << "Initialize Buckets: " << timeAggregator.initBucketTimer.resolveTimer() << std::endl;
     std::cout << "Receive Next Seed: " << timeAggregator.receiveTimer.resolveTimer() << std::endl;
     std::cout << "Insert Into Buckets: " << timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
-  }
-  else 
+  } 
+  else  // TODO: Set up for lazy-lazy timings
   {
     std::cout << "Samping time: " << timeAggregator.samplingTimer.resolveTimer() << std::endl;
     std::cout << "Local max-cover time: " << timeAggregator.max_k_localTimer.resolveTimer() << std::endl;

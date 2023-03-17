@@ -1,6 +1,8 @@
 #include <vector>
 #include <unordered_set>
+#include <set>
 #include <unordered_map>
+#include <map>
 #include <mutex>
 #include <iostream> 
 #include <utility>
@@ -13,7 +15,7 @@
 #include <thread>
 #include <future>
 
-using ElementList = std::vector<std::pair<int, std::unordered_set<int>*>>;
+using ElementList = std::vector<std::pair<int, std::vector<int>*>>;
 
 class ThresholdBucket 
 {
@@ -48,20 +50,19 @@ class ThresholdBucket
         return this->seeds.size();
     }
 
-    bool attemptInsert(const std::pair<int, std::unordered_set<int>*>& element) 
+    bool attemptInsert(const std::pair<int, std::vector<int>*>& element) 
     {
         if (this->seeds.size() == this->k)
         {
             return false;
         }
        
-        std::unordered_set<int> temp;
+        std::vector<int> temp;
         for (const int e : *(element.second)) {
-            if (e > this->theta)
-                std::cout << "ELEMENT " << e << " BIGGER THAN THETA; " << this->theta << std::endl;
-            else if (!localCovered.get(e))
-                temp.insert(e);
+            if (!localCovered.get(e))
+                temp.push_back(e);
         }
+
         if (temp.size() >= this->marginalGainThreshold) {
             for (const int e : temp) {
                 localCovered.set(e);
@@ -192,13 +193,13 @@ class StreamingRandGreedIEngine
 
     ElementList* elements;
 
-    static std::pair<int, std::unordered_set<int>*> ExtractElement(int* data)
+    static std::pair<int, std::vector<int>*> ExtractElement(int* data)
     {
-        std::unordered_set<int>* received_data = new std::unordered_set<int>();
+        std::vector<int>* received_data = new std::vector<int>();
 
         for (int* e = data + 1; *(e) != -1; e++) 
         {
-            received_data->insert(*e);
+            received_data->push_back(*e);
         }
 
         return std::make_pair(*data, received_data);
@@ -372,11 +373,11 @@ class StreamingRandGreedIEngine
 
         int threads = omp_get_max_threads();
 
-        std::vector<std::vector<std::pair<int, std::unordered_set<int>*>>> element_matrix(
+        std::vector<std::vector<std::pair<int, std::vector<int>*>>> element_matrix(
             this->world_size, 
-            std::vector<std::pair<int, std::unordered_set<int>*>>(
+            std::vector<std::pair<int, std::vector<int>*>>(
                 this->k,
-                std::make_pair(-1, (std::unordered_set<int>*)0)
+                std::make_pair(-1, (std::vector<int>*)0)
             )
         );
 
@@ -393,6 +394,7 @@ class StreamingRandGreedIEngine
             {
                 size_t maxVal = 0;
 
+                timer->receiveTimer.startTimer();
                 for (int i = 0; i < (this->world_size * this->k); i++)
                 {
                     // TODO: Add all stop conidtions
@@ -404,10 +406,8 @@ class StreamingRandGreedIEngine
 
                     // TODO: Create a method for communicating with sending processes
                     //  after all buckets have filled up.
-
-                    timer->receiveTimer.startTimer();
+                    
                     MPI_Wait(this->request, &status);
-                    timer->receiveTimer.endTimer();
 
                     int tag = status.MPI_TAG;
                     int source = status.MPI_SOURCE - 1;
@@ -439,6 +439,8 @@ class StreamingRandGreedIEngine
                         this->ResetBuffer();
                     }
                 }
+
+                timer->receiveTimer.endTimer();
 
                 std::cout << "killing processors, waiting for them to exit..." << std::endl;
 
@@ -480,6 +482,9 @@ class StreamingRandGreedIEngine
                 std::cout << "starting to process elements..." << std::endl;
 
                 timer->max_k_globalTimer.startTimer();
+
+                // TODO: add two more timers for all parts of the receives.
+
                 #pragma omp parallel for num_threads(threads-1)
                 for (int i = 0; i < bucketMap.size(); i++)
                 {
@@ -512,6 +517,8 @@ class StreamingRandGreedIEngine
                 timer->max_k_globalTimer.endTimer();
             }
         }
+
+        // TODO: Print statement, output the selected bucket index
         auto bestSeeds = this->buckets.GetBestSeeds();
 
         std::cout << "number of seeds: " << bestSeeds.first.size() << std::endl;
