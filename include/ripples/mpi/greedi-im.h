@@ -448,23 +448,26 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     std::cout << "Select Next Seed: " << timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
     std::cout << "Send Next Seed: " << timeAggregator.sendTimer.resolveTimer() << std::endl;
     
-    std::cout << " --- GLOBAL --- " << std::endl; 
+    std::cout << " --- RECEIVER --- " << std::endl; 
     std::cout << "Initialize Buckets: " << timeAggregator.initBucketTimer.resolveTimer() << std::endl;
     std::cout << "Receive Next Seed: " << timeAggregator.receiveTimer.resolveTimer() << std::endl;
     std::cout << "Insert Into Buckets: " << timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
+    std::cout << "Handling received data (inserting into matrix and copying from buffer): " << timeAggregator.processingReceiveTimer.resolveTimer() << std::endl; 
+    std::cout << "Atomic Update (receiver side): " << timeAggregator.atomicUpdateTimer.resolveTimer() << std::endl; 
   } 
   else  // TODO: Set up for lazy-lazy timings
   {
+    std::cout << " --- SHARED --- " << std::endl; 
     std::cout << "Samping time: " << timeAggregator.samplingTimer.resolveTimer() << std::endl;
-    std::cout << "Local max-cover time: " << timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
-    std::cout << "Global processing time: " << timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
-
-    std::cout << "Local Stream time: " << timeAggregator.localStreamTimer.resolveTimer() << std::endl;
-    std::cout << "Global Stream time: " << timeAggregator.globalStreamTimer.resolveTimer() << std::endl;
-
-    std::cout << "Local send to global time: " << timeAggregator.sendTimer.resolveTimer() << std::endl;
     std::cout << "f score Broadcast time: " << timeAggregator.broadcastTimer.resolveTimer() << std::endl;
     std::cout << "AlltoAll time: " << timeAggregator.allToAllTimer.resolveTimer() << std::endl;
+    std::cout << "AllGather time: " << timeAggregator.allGatherTimer.resolveTimer() << std::endl;
+
+    std::cout << " --- LOCAL --- " << std::endl; 
+    std::cout << "Local max-cover time: " << timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
+
+    std::cout << " --- GLOBAL --- " << std::endl; 
+    std::cout << "Global max-cover time: " << timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
   }
 
   return bestSeeds;
@@ -512,7 +515,7 @@ auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
   std::default_random_engine number_selecter( seed );
 
   for (int i = 0; i < G.num_nodes(); i++) {
-    vertexToProcess[i] = (uniform_distribution(number_selecter) % (world_size - 1)) + 1;
+    vertexToProcess[i] = uniform_distribution(number_selecter);
   }
 
   TransposeRRRSets<GraphTy>* tRRRSets = new TransposeRRRSets<GraphTy>(G.num_nodes());

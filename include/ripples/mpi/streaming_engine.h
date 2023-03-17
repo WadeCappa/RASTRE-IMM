@@ -202,6 +202,8 @@ class StreamingRandGreedIEngine
             received_data->push_back(*e);
         }
 
+        std::cout << "extracted seed " << *data << " of size " << received_data->size() << std::endl;
+
         return std::make_pair(*data, received_data);
     }
 
@@ -394,7 +396,6 @@ class StreamingRandGreedIEngine
             {
                 size_t maxVal = 0;
 
-                timer->receiveTimer.startTimer();
                 for (int i = 0; i < (this->world_size * this->k); i++)
                 {
                     // TODO: Add all stop conidtions
@@ -407,7 +408,11 @@ class StreamingRandGreedIEngine
                     // TODO: Create a method for communicating with sending processes
                     //  after all buckets have filled up.
                     
+                    timer->receiveTimer.startTimer();
                     MPI_Wait(this->request, &status);
+                    timer->receiveTimer.endTimer();
+
+                    timer->processingReceiveTimer.startTimer();
 
                     int tag = status.MPI_TAG;
                     int source = status.MPI_SOURCE - 1;
@@ -431,16 +436,21 @@ class StreamingRandGreedIEngine
                     availability_index[i].second.first = source;
                     availability_index[i].second.second = tag;
 
+                    timer->processingReceiveTimer.endTimer();
+
+                    timer->atomicUpdateTimer.startTimer();
+
                     #pragma omp atomic 
                     availability_index[i].first++;
+                    
+                    timer->atomicUpdateTimer.endTimer();
+
 
                     if (i != this->world_size * this->k - 1)
                     {
                         this->ResetBuffer();
                     }
                 }
-
-                timer->receiveTimer.endTimer();
 
                 std::cout << "killing processors, waiting for them to exit..." << std::endl;
 
@@ -482,8 +492,6 @@ class StreamingRandGreedIEngine
                 std::cout << "starting to process elements..." << std::endl;
 
                 timer->max_k_globalTimer.startTimer();
-
-                // TODO: add two more timers for all parts of the receives.
 
                 #pragma omp parallel for num_threads(threads-1)
                 for (int i = 0; i < bucketMap.size(); i++)

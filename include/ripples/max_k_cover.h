@@ -508,6 +508,7 @@ public:
 
                         if (current_send_index != k)
                         {
+                            std::cout << "sending seed " << res[current_send_index] << " of size " << data.at(res[current_send_index]).size() << std::endl;
                             timer->sendTimer.startTimer();
                             this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
                             this->SendNextSeed(current_send_index);
@@ -517,6 +518,8 @@ public:
                 }
                 else 
                 {
+                    std::cout << "sending seed " << res[current_send_index] << " of size " << data.at(res[current_send_index]).size() << std::endl;
+
                     timer->sendTimer.startTimer();
                     this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
                     this->SendNextSeed(current_send_index);
@@ -541,6 +544,7 @@ public:
             timer->sendTimer.startTimer();
             for (; current_send_index < k; current_send_index++)
             {
+                std::cout << "sending seed " << res[current_send_index] << " of size " << data.at(res[current_send_index]).size() << std::endl;
                 this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
                 MPI_Send (
                     this->send_buffers[current_send_index].second,

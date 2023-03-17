@@ -6,9 +6,9 @@
 #SBATCH -q regular
 #SBATCH -N 33
 #SBATCH --ntasks-per-node=1
-#SBATCH -J Orkut33_streaming_B
-#SBATCH -o /global/homes/w/wadecap/ripples/output/orkut/Orkut33_streaming_B.o
-#SBATCH -e /global/homes/w/wadecap/ripples/output/orkut/Orkut33_streaming_B.e
+#SBATCH -J Orkut33_lazy_lazy
+#SBATCH -o /global/homes/w/wadecap/ripples/output/orkut/Orkut33_lazy_lazy.o
+#SBATCH -e /global/homes/w/wadecap/ripples/output/orkut/Orkut33_lazy_lazy.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 33 ./build/release/tools/mpi-greedi-im -i test-data/orkut_small.txt -w -k 100 -p -d IC -e 0.13 -o Orkut33_streaming_B.json --run-streaming=true
+srun -n 33 ./build/release/tools/mpi-greedi-im -i test-data/orkut_small.txt -w -k 100 -p -d IC -e 0.13 -o Orkut33_lazy_lazy.json --run-streaming=false

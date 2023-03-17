@@ -63,6 +63,9 @@ class TimerAggregator
     Timer initBucketTimer;
     Timer insertIntoBucketTimer;
 
+    Timer processingReceiveTimer;
+    Timer atomicUpdateTimer;
+
     TimerAggregator(){}
     ~TimerAggregator(){}
 };
