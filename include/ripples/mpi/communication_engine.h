@@ -58,30 +58,36 @@ class CommunicationEngine
 
     
 
-    std::pair<int, int*>linearizeLocalSeeds(std::map<int, std::vector<int>> &aggregateSets, std::unordered_set<unsigned int>& localSeeds) 
+    std::pair<int, int*>linearizeLocalSeeds(const std::map<int, std::vector<int>> &aggregateSets, const std::vector<unsigned int>& localSeeds, const size_t total_utility) 
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
         int runningSum = 0;
 
-        for (const auto & keyVal : aggregateSets) {
-            if (localSeeds.find(keyVal.first) != localSeeds.end()) {
-                setsPrefixSum.push_back(std::make_pair(keyVal.first, runningSum));
-                runningSum += keyVal.second.size() + 2;
-            }
+        for (const auto & seed : localSeeds) {
+            auto seed_set = aggregateSets.at(seed);
+            setsPrefixSum.push_back(std::make_pair(seed, runningSum));
+            runningSum += seed_set.size() + 2;
         }
 
-        int totalData = runningSum;
+        int totalData = runningSum + 1;
         int* linearAggregateSets = new int[totalData];
 
         #pragma omp for
         for (int setIndex = 0; setIndex < setsPrefixSum.size(); setIndex++) {
             *(linearAggregateSets + setsPrefixSum[setIndex].second) = setsPrefixSum[setIndex].first;
             int offset = setsPrefixSum[setIndex].second + 1;
-            for (const auto & RRRSetID : aggregateSets[setsPrefixSum[setIndex].first]) {
+            for (const auto & RRRSetID : aggregateSets.at(setsPrefixSum[setIndex].first)) {
                 *(linearAggregateSets + offset++) = RRRSetID;
             }
-            *(linearAggregateSets + setsPrefixSum[setIndex].second + aggregateSets[setsPrefixSum[setIndex].first].size() + 1) = -1;
+            *(linearAggregateSets + setsPrefixSum[setIndex].second + aggregateSets.at(setsPrefixSum[setIndex].first).size() + 1) = -1;
         }
+
+        // mark end of process seeds
+        *(linearAggregateSets + (totalData - 2)) = -2;
+
+        // mark total utility of local process
+        *(linearAggregateSets + (totalData - 1)) = total_utility;
+
         return std::make_pair(totalData, linearAggregateSets);
     }
 
@@ -211,13 +217,29 @@ class CommunicationEngine
     }
 
 
-    void aggregateLocalKSeeds(std::map<int, std::vector<int>> &bestMKSeeds, int* data, int totalData)
+    std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* aggregateLocalKSeeds(std::map<int, std::vector<int>> &bestMKSeeds, int* data, int totalData)
     {
+        // tracks total utility of each local process
+        std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* local_seeds = new std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>();
+        std::vector<unsigned int>* current_seeds = new std::vector<unsigned int>();
+
         // cycle over data
         int vertexID = *data;   
+        current_seeds->push_back(vertexID);
         bestMKSeeds.insert({ vertexID, *(new std::vector<int>()) });
+
         for (int rankDataProcessed = 1, i = 1; i < totalData - 1; i++) {
-            if (*(data + i) == -1) {
+            if (*(data + i) == -2) {
+                local_seeds->push_back(std::make_pair(*(data+i+1), current_seeds));
+                current_seeds = new std::vector<unsigned int>();
+                i++;
+                vertexID = *(data + ++i);
+                current_seeds->push_back(vertexID);
+                bestMKSeeds.insert({ vertexID, *(new std::vector<int>()) });
+            }
+
+            else if (*(data + i) == -1) {
+                current_seeds->push_back(vertexID);
                 vertexID = *(data + ++i);
                 bestMKSeeds.insert({ vertexID, *(new std::vector<int>()) });
             }
@@ -226,6 +248,8 @@ class CommunicationEngine
                 bestMKSeeds[vertexID].push_back(*(data + i));
             }
         }
+
+        return local_seeds;
     }
 
 

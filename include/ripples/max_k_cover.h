@@ -333,6 +333,7 @@ private:
     double epsilon;
     bool usingStochastic = false;
     bool sendPartialSolutions;
+    unsigned int utility = -1;
     CommunicationEngine<GraphTy>* cEngine;
     NextMostInfluentialFinder* finder = 0;
     TimerAggregator* timer = 0;
@@ -380,7 +381,7 @@ private:
         this->send_buffers[current_seed].first = sendData.first;
     }
 
-    void SendNextSeed(const unsigned int current_send_index)
+    void SendNextSeed(const unsigned int current_send_index, const unsigned int tag)
     {
         this->timer->sendTimer.startTimer();
 
@@ -388,12 +389,18 @@ private:
             this->send_buffers[current_send_index].second,
             this->send_buffers[current_send_index].first,
             MPI_INT, 0,
-            current_send_index,
+            tag,
             MPI_COMM_WORLD,
             this->request
         );
 
         this->timer->sendTimer.endTimer();
+    }
+
+    unsigned int GetUtility(ripples::Bitmask<int>& covered)
+    {
+        this->utility = this->utility == -1 ? covered.popcount() : this->utility;
+        return this->utility;
     }
 
 public:
@@ -445,6 +452,7 @@ public:
         return this;
     }
 
+    // TODO: Also have a sender total timer, this way we know the exact time of the sender, no need to do addition. Do same for receiver
     std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta)
     {
         std::vector<unsigned int> res(this->k, -1);
@@ -495,8 +503,6 @@ public:
             //  streaming setting has been selected. 
             if (this->sendPartialSolutions) 
             {
-                // TODO: When each seed is sent output the size of that set, on receive output the size of a received element, verify no data loss.
-
                 if (currentSeed > 0)
                 {
                     MPI_Status status;
@@ -510,7 +516,7 @@ public:
                         {
                             timer->sendTimer.startTimer();
                             this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                            this->SendNextSeed(current_send_index);
+                            this->SendNextSeed(current_send_index, current_send_index == k - 1 ? this->GetUtility(covered) : current_send_index);
                             timer->sendTimer.endTimer();
                         }
                     }
@@ -519,7 +525,7 @@ public:
                 {
                     timer->sendTimer.startTimer();
                     this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                    this->SendNextSeed(current_send_index);
+                    this->SendNextSeed(current_send_index, current_send_index == k - 1 ? this->GetUtility(covered) : current_send_index);
                     timer->sendTimer.endTimer();
                 }
             }
@@ -536,7 +542,7 @@ public:
             current_send_index++;
             
             // TODO: For last tag, set the tag to the local utilty. On the receiver side, check
-            //  for tags > k for stopping conditions for senders. 
+            //  for tags > k for stopping conditions for senders.
 
             timer->sendTimer.startTimer();
             for (; current_send_index < k; current_send_index++)
@@ -546,7 +552,7 @@ public:
                     this->send_buffers[current_send_index].second,
                     this->send_buffers[current_send_index].first,
                     MPI_INT, 0,
-                    current_send_index,
+                    current_send_index == k - 1 ? this->GetUtility(covered) : current_send_index,
                     MPI_COMM_WORLD
                 );
 
@@ -560,8 +566,8 @@ public:
 
         // TODO: Output total utilty for local solution before returning to verify that work has been done
 
-        std::cout << "LOCAL PROCESS FOUND LOCAL SEEDS" << std::endl;
+        std::cout << "LOCAL PROCESS FOUND LOCAL SEEDS, UTILITY; " << this->GetUtility(covered) << " OR " << covered.popcount() << std::endl;
 
-        return std::make_pair(res, covered.popcount());
+        return std::make_pair(res, this->GetUtility(covered));
     }
 };
