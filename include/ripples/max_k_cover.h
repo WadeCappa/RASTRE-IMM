@@ -452,7 +452,6 @@ public:
         return this;
     }
 
-    // TODO: Also have a sender total timer, this way we know the exact time of the sender, no need to do addition. Do same for receiver
     std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta)
     {
         std::vector<unsigned int> res(this->k, -1);
@@ -540,9 +539,6 @@ public:
 
             delete this->send_buffers[current_send_index].second;
             current_send_index++;
-            
-            // TODO: For last tag, set the tag to the local utilty. On the receiver side, check
-            //  for tags > k for stopping conditions for senders.
 
             timer->sendTimer.startTimer();
             for (; current_send_index < k; current_send_index++)
@@ -564,9 +560,7 @@ public:
         
         delete all_vertices;
 
-        // TODO: Output total utilty for local solution before returning to verify that work has been done
-
-        std::cout << "LOCAL PROCESS FOUND LOCAL SEEDS, UTILITY; " << this->GetUtility(covered) << " OR " << covered.popcount() << std::endl;
+        // std::cout << "LOCAL PROCESS FOUND LOCAL SEEDS, UTILITY; " << this->GetUtility(covered) << " OR " << covered.popcount() << std::endl;
 
         return std::make_pair(res, this->GetUtility(covered));
     }

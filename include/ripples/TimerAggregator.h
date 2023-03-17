@@ -56,7 +56,7 @@ class TimerAggregator
     Timer allGatherTimer;
     Timer allToAllTimer;
     Timer broadcastTimer;
-    Timer globalStreamTimer;
+    Timer totalGlobalStreamTimer;
     Timer localStreamTimer;
     Timer sendTimer;
     Timer receiveTimer;
@@ -65,6 +65,9 @@ class TimerAggregator
 
     Timer processingReceiveTimer;
     Timer atomicUpdateTimer;
+
+    Timer totalSendTimer;
+    Timer totalReceiveTimer;
 
     TimerAggregator(){}
     ~TimerAggregator(){}

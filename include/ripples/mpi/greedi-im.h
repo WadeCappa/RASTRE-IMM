@@ -200,34 +200,25 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     // std::cout << " ------- time for single all to all = " << (end - start).count() << " ------- " << std::endl;
     timeAggregator.allToAllTimer.endTimer();
 
-    std::cout << "COUNTING ELEMENTS: process " << world_rank << " has " << aggregateSets->size() << " vertices" << std::endl;
+    // std::cout << "COUNTING ELEMENTS: process " << world_rank << " has " << aggregateSets->size() << " vertices" << std::endl;
 
     delete setSize;
-
-    // TODO: The end of randi requires a comparison between all local solutions and the global solution. The solution with the max
-    //  utility (the max covered) is your new global solution (between all local and global). You can do this easily by remembering
-    //  all elements as they are sent to the global process. It can do this in both cases (streaming and rand-greedi) to easily
-    //  select the best solution.
 
     if (CFG.use_streaming == true) 
     {
       if (world_rank == 0) 
-      {
-        timeAggregator.globalStreamTimer.startTimer();
-       
+      {       
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
         globalSeeds = streamingEngine.Stream(&timeAggregator);
-
-        timeAggregator.globalStreamTimer.endTimer();
       }
       else 
       {
-        timeAggregator.localStreamTimer.startTimer();
+        timeAggregator.totalSendTimer.startTimer();
         MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
         localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
         localKCoverEngine.run_max_k_cover(*aggregateSets, thetaPrime*2);
 
-        timeAggregator.localStreamTimer.startTimer();
+        timeAggregator.totalSendTimer.startTimer();
       }
     }
     else 
@@ -263,7 +254,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
           if (s.first > globalSeeds.second)
           {
             globalSeeds.second = s.first;
-            globalSeeds.first = s.second;
+            globalSeeds.first = *(s.second);
           }
         }
 
@@ -462,6 +453,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     std::cout << " --- SENDER --- " << std::endl; 
     std::cout << "Select Next Seed: " << timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
     std::cout << "Send Next Seed: " << timeAggregator.sendTimer.resolveTimer() << std::endl;
+    std::cout << "Total Send Time: " << timeAggregator.totalSendTimer.resolveTimer() << std::endl;
     
     std::cout << " --- RECEIVER --- " << std::endl; 
     std::cout << "Initialize Buckets: " << timeAggregator.initBucketTimer.resolveTimer() << std::endl;
@@ -469,6 +461,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     std::cout << "Insert Into Buckets: " << timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
     std::cout << "Handling received data (inserting into matrix and copying from buffer): " << timeAggregator.processingReceiveTimer.resolveTimer() << std::endl; 
     std::cout << "Atomic Update (receiver side): " << timeAggregator.atomicUpdateTimer.resolveTimer() << std::endl; 
+    std::cout << "Total Global Streaming Time: " << timeAggregator.totalGlobalStreamTimer.resolveTimer() << std::endl;
   } 
   else  
   {

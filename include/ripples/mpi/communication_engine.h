@@ -47,11 +47,6 @@ class CommunicationEngine
     }
 
     void SendToGlobal(int* data, int size, int tag) {
-        // TODO: Verify that using isend will not cause dataloss, most likely a better idea 
-        //  to just use standard mpi_send as there is no chance of dataloss and requires less
-        //  code. For future optimizations isend can be used.
-
-        // MPI_Request request = MPI_REQUEST_NULL;
         MPI_Send(data, size, MPI_INT, 0, tag,
             MPI_COMM_WORLD);
     }
@@ -145,7 +140,6 @@ class CommunicationEngine
 
     void linearize(TransposeRRRSets<GraphTy> &tRRRSets, int* linearTRRRSets, std::vector<int> vertexToProcessor, std::vector<int> dataStartPartialSum, int totalData, int rank ) 
     {
-        // TODO: Calculate the partial sum, set the index to the correct starting position for the incoding data. 
         int index = dataStartPartialSum[rank];
         for (int i = 0; i < tRRRSets.sets->size(); i++) {
             if (vertexToProcessor[i] == rank) {

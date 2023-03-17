@@ -158,6 +158,8 @@ class BucketController
             seeds->push_back(p.first);
         }
 
+        std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets->at(max_covered_index)->getSeeds().size();
+
         return std::make_pair(*seeds, max_covered);
     }
 
@@ -174,6 +176,8 @@ class BucketController
         {
             delete b;
         }
+
+        delete this->buckets;
     }
 };
 
@@ -258,6 +262,13 @@ class StreamingRandGreedIEngine
         this->request = new MPI_Request();
         
         this->ResetBuffer();
+    }
+
+    ~StreamingRandGreedIEngine()
+    {
+        delete this->elements;
+        delete this->buffer;
+        delete this->request;
     }
 
 
@@ -391,7 +402,7 @@ class StreamingRandGreedIEngine
 
         omp_set_nested(2);
 
-        // TODO: Create a timer for the total receive process time, encapsulate the entire parallel region below
+        timer->totalGlobalStreamTimer.startTimer();
 
         # pragma omp parallel num_threads(2) shared(availability_index, element_matrix, buckets_initialized, dummy_value, kill_processors)
         {
@@ -399,7 +410,7 @@ class StreamingRandGreedIEngine
             {
                 size_t maxVal = 0;
 
-                std::cout << "RECEIVING WITH THREAD ID " << omp_get_thread_num() << std::endl;
+                // std::cout << "RECEIVING WITH THREAD ID " << omp_get_thread_num() << std::endl;
 
                 for (int i = 0; i < (this->world_size * this->k); i++)
                 {
@@ -420,7 +431,7 @@ class StreamingRandGreedIEngine
                     if (status.MPI_TAG > this->k - 1)
                     {
                         local_utilities[source] = status.MPI_TAG;
-                        std::cout << "received utility of " << tag << " from " << source << std::endl;
+                        // std::cout << "received utility of " << status.MPI_TAG << " from " << source << std::endl;
                     }
 
                     auto new_element = this->ExtractElement(this->buffer);
@@ -458,7 +469,7 @@ class StreamingRandGreedIEngine
                     }
                 }
 
-                std::cout << "killing processors, waiting for them to exit..." << std::endl;
+                // std::cout << "killing processors, waiting for them to exit..." << std::endl;
 
                 streaming_finished = true;
             }
@@ -475,7 +486,7 @@ class StreamingRandGreedIEngine
                     }
                 }
 
-                std::cout << "exited waiting loop..." << std::endl;
+                // std::cout << "exited waiting loop..." << std::endl;
 
                 // build mapping of each thread to number of buckets
                 auto buckets = this->buckets.GetBuckets();
@@ -495,7 +506,7 @@ class StreamingRandGreedIEngine
                     }
                 }
 
-                std::cout << "starting to process elements..." << std::endl;
+                // std::cout << "starting to process elements..." << std::endl;
 
                 timer->max_k_globalTimer.startTimer();
 
@@ -529,16 +540,15 @@ class StreamingRandGreedIEngine
             }
         }
 
-        // TODO: Print statement, output the selected bucket index
+        timer->totalGlobalStreamTimer.endTimer();
+
         auto bestSeeds = this->buckets.GetBestSeeds();
 
         for (int i = 0; i < local_utilities.size(); i++)
         {
-            std::cout << "looking at " << local_utilities[i] << " compared to " << bestSeeds.second << std::endl;
+            // std::cout << "looking at " << local_utilities[i] << " compared to " << bestSeeds.second << std::endl;
             if (local_utilities[i] > bestSeeds.second)
             {
-
-
                 bestSeeds.second = local_utilities[i];
                 std::vector<unsigned int> new_best_seeds;
                 for (const auto & s : element_matrix[i])
@@ -550,9 +560,18 @@ class StreamingRandGreedIEngine
             }
         }
 
-        std::cout << "number of seeds: " << bestSeeds.first.size() << std::endl;
+        // std::cout << "number of seeds: " << bestSeeds.first.size() << std::endl;
 
-        // TODO: Delete matrix and all malloc'd memory on cleanup
+        for (auto & r : element_matrix)
+        {
+            for (auto & c : r)
+            {
+                if (c.second != 0)
+                {
+                    delete c.second;
+                }
+            }
+        }
 
         return bestSeeds;
     }
