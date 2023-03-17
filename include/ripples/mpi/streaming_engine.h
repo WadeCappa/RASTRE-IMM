@@ -202,8 +202,6 @@ class StreamingRandGreedIEngine
             received_data->push_back(*e);
         }
 
-        std::cout << "extracted seed " << *data << " of size " << received_data->size() << std::endl;
-
         return std::make_pair(*data, received_data);
     }
 
@@ -288,6 +286,7 @@ class StreamingRandGreedIEngine
                     lock->lock();
 
                     auto next_element = this->ExtractElement(this->buffer);
+
                     maxVal = std::max(maxVal, next_element.second->size());
                     this->elements->push_back(next_element);
 
@@ -396,14 +395,11 @@ class StreamingRandGreedIEngine
             {
                 size_t maxVal = 0;
 
+                std::cout << "RECEIVING WITH THREAD ID " << omp_get_thread_num() << std::endl;
+
                 for (int i = 0; i < (this->world_size * this->k); i++)
                 {
                     // TODO: Add all stop conidtions
-
-                    // TODO: Veriy that k*world_size elements have been received (or 
-                    //  at least all expected elements have been received). Every sender
-                    //  tracks the number of sent elements, receiver tracks the number of
-                    //  sent elements, add these numbers up for every martigale round.
 
                     // TODO: Create a method for communicating with sending processes
                     //  after all buckets have filled up.
@@ -512,13 +508,10 @@ class StreamingRandGreedIEngine
                             local_dummy_value++;
                         }
 
-                        if (availability_index[local_received_index].first == 1)
+                        for (auto & b : thread_buckets)
                         {
-                            for (auto & b : thread_buckets)
-                            {
-                                auto p = availability_index[local_received_index].second;
-                                b->attemptInsert(element_matrix[p.first][p.second]);
-                            }
+                            auto p = availability_index[local_received_index].second;
+                            b->attemptInsert(element_matrix[p.first][p.second]);
                         }
                     }
                 }
