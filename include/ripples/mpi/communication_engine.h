@@ -25,11 +25,19 @@ class CommunicationEngine
     LinearizedSetsSize* count(TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, int p) {
         std::vector<int> countPerProcess = *(new std::vector<int>(p)); 
         LinearizedSetsSize* setSize = new LinearizedSetsSize();
+        std::vector<std::mutex> locksPerProcess(p);
+
         int count = 0;
-        for (int i = 0; i < vertexToProcessor.size(); i++) {
-            count += (*tRRRSets.sets)[i].second->size() + 2;
-            countPerProcess[vertexToProcessor[i]] += (*tRRRSets.sets)[i].second->size() + 2;
+        #pragma omp parallel for reduction(+:count)
+        for (int i = 0; i < vertexToProcessor.size(); i++) 
+        {
+            count += tRRRSets.sets[i].second.size() + 2;
+
+            locksPerProcess[vertexToProcessor[i]].lock();
+            countPerProcess[vertexToProcessor[i]] += tRRRSets.sets[i].second.size() + 2;
+            locksPerProcess[vertexToProcessor[i]].unlock();
         }   
+
         setSize->count = count;
         setSize->countPerProcess = countPerProcess;
 
@@ -67,7 +75,7 @@ class CommunicationEngine
         int totalData = runningSum + 1;
         int* linearAggregateSets = new int[totalData];
 
-        #pragma omp for
+        #pragma omp parallel for
         for (int setIndex = 0; setIndex < setsPrefixSum.size(); setIndex++) {
             *(linearAggregateSets + setsPrefixSum[setIndex].second) = setsPrefixSum[setIndex].first;
             int offset = setsPrefixSum[setIndex].second + 1;
@@ -131,7 +139,7 @@ class CommunicationEngine
     {
         int* linearTRRRSets = new int[totalData];
 
-        #pragma omp for
+        #pragma omp parallel for
         for (int rank = 0; rank < p; rank++) {
             linearize(tRRRSets, linearTRRRSets, vertexToProcessor, dataStartPartialSum, totalData, rank);
         }
@@ -141,10 +149,10 @@ class CommunicationEngine
     void linearize(TransposeRRRSets<GraphTy> &tRRRSets, int* linearTRRRSets, std::vector<int> vertexToProcessor, std::vector<int> dataStartPartialSum, int totalData, int rank ) 
     {
         int index = dataStartPartialSum[rank];
-        for (int i = 0; i < tRRRSets.sets->size(); i++) {
+        for (int i = 0; i < tRRRSets.sets.size(); i++) {
             if (vertexToProcessor[i] == rank) {
                 linearTRRRSets[index++] = i;
-                for (const auto& RRRid: *((*tRRRSets.sets)[i].second)) {
+                for (const auto& RRRid: tRRRSets.sets[i].second) {
                     linearTRRRSets[index++] = RRRid;
                 }
                 linearTRRRSets[index++] = -1;
@@ -187,12 +195,12 @@ class CommunicationEngine
 
         // cycle over data
         int vertexID = *data;   
-        aggregateSets.insert({ vertexID, *(new std::vector<int>()) });
+        aggregateSets.insert({ vertexID, std::vector<int>() });
         for (int rankDataProcessed = 1, i = 1; i < totalData - 1; i++, rankDataProcessed++) {
             if (*(data + i) == -1) {
                 vertexID = *(data + ++i);
                 rankDataProcessed++;
-                aggregateSets.insert({ vertexID, *(new std::vector<int>()) });
+                aggregateSets.insert({ vertexID, std::vector<int>() });
             }
 
             else {
@@ -209,7 +217,6 @@ class CommunicationEngine
             }
         }
     }
-
 
     std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* aggregateLocalKSeeds(std::map<int, std::vector<int>> &bestMKSeeds, int* data, int totalData)
     {
@@ -319,8 +326,8 @@ class CommunicationEngine
             MPI_COMM_WORLD
         );
 
-        // free(sendPrefixSum);
-        // free(receivePrefixSum);
+        delete sendPrefixSum;
+        delete receivePrefixSum;
 
         aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, p, RRRIDsPerProcess);
     }

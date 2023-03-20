@@ -157,6 +157,7 @@ int main(int argc, char *argv[]) {
 
   auto workers = CFG.streaming_workers;
   auto gpu_workers = CFG.streaming_gpu_workers;
+  TransposeRRRSets<GraphBwd> tRRRSets(G.num_nodes());
   if (CFG.diffusionModel == "IC") {
     ripples::StreamingRRRGenerator<
         decltype(G), decltype(generator),
@@ -167,7 +168,7 @@ int main(int argc, char *argv[]) {
     auto start = std::chrono::high_resolution_clock::now();
     console->info("finished initializing graph");
     seeds = ripples::mpi::GREEDI(
-        G, CFG, 1.0, se, R, ripples::independent_cascade_tag{},
+        G, tRRRSets, CFG, 1.0, se, R, ripples::independent_cascade_tag{},
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;
@@ -180,7 +181,7 @@ int main(int argc, char *argv[]) {
            CFG.worker_to_gpu);
     auto start = std::chrono::high_resolution_clock::now();
     seeds = ripples::mpi::GREEDI(
-        G, CFG, 1.0, se, R, ripples::linear_threshold_tag{},
+        G, tRRRSets, CFG, 1.0, se, R, ripples::linear_threshold_tag{},
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;

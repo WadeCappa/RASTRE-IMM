@@ -177,25 +177,32 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
                     std::forward<diff_model_tag>(model_tag),
                     std::forward<execution_tag>(ex_tag));
+
+    tRRRSets.removeDuplicates();
     timeAggregator.samplingTimer.endTimer();
 
+    timeAggregator.allToAllTimer.startTimer();
+    
     // std::cout << "start linearization rank = " << world_rank << std::endl;
     LinearizedSetsSize* setSize = cEngine.count(tRRRSets, vertexToProcess, world_size);
+
+    auto psum = cEngine.buildPrefixSum(setSize->countPerProcess.data(), world_size);
+
     int* data = cEngine.linearize(
       tRRRSets, 
       vertexToProcess, 
       /// TODO: Most likely a memroy leak, free this data at some point
-      *(cEngine.buildPrefixSum(setSize->countPerProcess.data(), world_size)), 
+      *(psum), 
       setSize->count, 
       world_size
     );
 
-    // std::cout << "linearizing data, rank = " << world_rank << std::endl;
-    std::map<int, std::vector<int>>* aggregateSets = new std::map<int, std::vector<int>>();
+    delete psum;
 
-    timeAggregator.allToAllTimer.startTimer();
-    // auto start = std::chrono::high_resolution_clock::now();
-    cEngine.getProcessSpecificVertexRRRSets(*aggregateSets, data, setSize->countPerProcess.data(), world_size, localThetaPrime);
+    // std::cout << "linearizing data, rank = " << world_rank << std::endl;
+    std::map<int, std::vector<int>> aggregateSets;  
+
+    cEngine.getProcessSpecificVertexRRRSets(aggregateSets, data, setSize->countPerProcess.data(), world_size, localThetaPrime);
     // auto end = std::chrono::high_resolution_clock::now();
     // std::cout << " ------- time for single all to all = " << (end - start).count() << " ------- " << std::endl;
     timeAggregator.allToAllTimer.endTimer();
@@ -215,10 +222,10 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       {
         timeAggregator.totalSendTimer.startTimer();
         MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
-        localKCoverEngine.useLazyGreedy(*aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
-        localKCoverEngine.run_max_k_cover(*aggregateSets, thetaPrime*2);
+        localKCoverEngine.useLazyGreedy(aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
+        localKCoverEngine.run_max_k_cover(aggregateSets, thetaPrime*2);
 
-        timeAggregator.totalSendTimer.startTimer();
+        timeAggregator.totalSendTimer.endTimer();
       }
     }
     else 
@@ -226,12 +233,12 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       timeAggregator.max_k_localTimer.startTimer();
 
       MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
-      std::pair<std::vector<unsigned int>, ssize_t> localSeeds = localKCoverEngine.useLazyGreedy(*aggregateSets)->run_max_k_cover(*aggregateSets, thetaPrime*2);
+      std::pair<std::vector<unsigned int>, ssize_t> localSeeds = localKCoverEngine.useLazyGreedy(aggregateSets)->run_max_k_cover(aggregateSets, thetaPrime*2);
 
       timeAggregator.max_k_localTimer.endTimer();
-      std::pair<int, int*> linearLocalSeeds = cEngine.linearizeLocalSeeds(*aggregateSets, localSeeds.first, localSeeds.second);
 
       timeAggregator.allGatherTimer.startTimer();
+      std::pair<int, int*> linearLocalSeeds = cEngine.linearizeLocalSeeds(aggregateSets, localSeeds.first, localSeeds.second);
       std::pair<int, int*> globalAggregation = cEngine.aggregateAggregateSets(linearLocalSeeds.first, world_size, linearLocalSeeds.second);
       timeAggregator.allGatherTimer.endTimer();
 
@@ -241,13 +248,14 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       if (world_rank == 0) {
         std::map<int, std::vector<int>> bestKMSeeds;
 
+        timeAggregator.allGatherTimer.startTimer();
         std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* local_seeds = cEngine.aggregateLocalKSeeds(bestKMSeeds, aggregatedSeeds, totalData);
+        timeAggregator.allGatherTimer.endTimer();
 
         timeAggregator.max_k_globalTimer.startTimer();
         MaxKCoverEngine<GraphTy> globalKCoverEngine((int)CFG.k);
         globalSeeds = globalKCoverEngine.useLazyGreedy(bestKMSeeds)->run_max_k_cover(bestKMSeeds, thetaPrime * 2);
         // end = std::chrono::high_resolution_clock::now();
-        timeAggregator.max_k_globalTimer.endTimer();
 
         for (const auto & s: *local_seeds)
         {
@@ -258,6 +266,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
           }
         }
 
+        timeAggregator.max_k_globalTimer.endTimer();
+
         for (auto & s : *local_seeds)
         {
           delete s.second;
@@ -265,12 +275,12 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
         delete local_seeds;
       }
+
+      spdlog::get("console")->info("end of martingale round, cleaning up...");
       delete aggregatedSeeds;
       delete linearLocalSeeds.second;
     }    
 
-    // free statements to prevent memory leaks.
-    delete aggregateSets;
   });
   
   record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
@@ -409,6 +419,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
       GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
                       std::forward<diff_model_tag>(model_tag),
                       std::forward<execution_tag>(ex_tag));
+      tRRRSets.removeDuplicates();
       timeAggregator.samplingTimer.endTimer();
     }
   });
@@ -423,19 +434,6 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     vertexToProcess, world_size, world_rank,
     cEngine
   );
-
-
-  if (CFG.dump_sampling_data_flag) {
-    std::ofstream output_samples("output_sampling.txt");
-    for (const auto & RRRSet : *(tRRRSets.sets)) {
-      
-      std::stringstream result;
-      std::copy(RRRSet.second->begin(), RRRSet.second->end(), std::ostream_iterator<int>(result, ", "));
-
-      output_samples << result.str() << std::endl;
-    }
-    output_samples.close();
-  }
 
   std::cout << "finished final iteration, aquired utility of " << bestSeeds.second << std::endl;
 
@@ -497,7 +495,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
 //! \param ex_tag The execution policy tag.
 template <typename GraphTy, typename ConfTy, typename diff_model_tag,
           typename GeneratorTy, typename ExTagTrait>
-auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
+auto GREEDI(const GraphTy &G, TransposeRRRSets<GraphTy>& tRRRSets, const ConfTy &CFG, double l, GeneratorTy &gen,
          IMMExecutionRecord &record, 
          diff_model_tag &&model_tag, ExTagTrait &&) {
   using vertex_type = typename GraphTy::vertex_type;
@@ -525,21 +523,17 @@ auto GREEDI(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
   for (int i = 0; i < G.num_nodes(); i++) {
     vertexToProcess[i] = uniform_distribution(number_selecter);
   }
-
-  TransposeRRRSets<GraphTy>* tRRRSets = new TransposeRRRSets<GraphTy>(G.num_nodes());
   
   // get local tRRRSets
   // std::cout << "entering transposeSampling" << std::endl;
   std::pair<std::vector<unsigned int>, int> seeds = mpi::TransposeSampling(
-    *tRRRSets,
+    tRRRSets,
     G, CFG, l, gen, record,
     std::forward<diff_model_tag>(model_tag),
     typename ExTagTrait::generate_ex_tag{},
     vertexToProcess,
     world_size, world_rank
   );
-
-  delete tRRRSets;
 
   return seeds.first;
 }

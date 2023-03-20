@@ -248,7 +248,7 @@ class StreamingRandGreedIEngine
     StreamingRandGreedIEngine(int k, ssize_t theta, double epsilon, int world_size) 
         : buckets(k, theta, epsilon)
     {
-        this->active_senders = world_size;
+        this->active_senders = world_size - 1;
         this->k = k;
         this->epsilon = epsilon;
         this->world_size = world_size;
@@ -270,110 +270,6 @@ class StreamingRandGreedIEngine
         delete this->buffer;
         delete this->request;
     }
-
-
-    // std::pair<std::vector<unsigned int>, int> Stream(TimerAggregator* timer)
-    // {
-    //     MPI_Status status;
-    //     std::mutex* lock = new std::mutex(); 
-    //     bool streaming_finished = false;
-    //     int buckets_initialized = 0;
-    //     int dummy_value = 0;
-
-    //     omp_set_nested(2);
-
-    //     # pragma omp parallel num_threads(2) shared(lock, buckets_initialized, dummy_value)
-    //     {
-    //         if (omp_get_thread_num() == 0) // receiver
-    //         {
-    //             size_t maxVal = 0;
-
-    //             for (int i = 0; i < (this->world_size * this->k) && this->active_senders > 0; i++)
-    //             {
-    //                 timer->receiveTimer.startTimer();
-    //                 MPI_Wait(this->request, &status);
-    //                 timer->receiveTimer.endTimer();
-
-    //                 lock->lock();
-
-    //                 auto next_element = this->ExtractElement(this->buffer);
-
-    //                 maxVal = std::max(maxVal, next_element.second->size());
-    //                 this->elements->push_back(next_element);
-
-    //                 if (this->HandleStatus(status))
-    //                 {
-    //                     timer->initBucketTimer.startTimer();
-    //                     this->buckets.CreateBuckets(maxVal);
-    //                     timer->initBucketTimer.endTimer();
-
-    //                     #pragma omp atomic 
-    //                     buckets_initialized++;
-    //                 }
-
-    //                 lock->unlock();
-
-    //                 if (i != this->world_size * this->k - 1)
-    //                 {
-    //                     this->ResetBuffer();
-    //                 }
-    //             }
-
-    //             streaming_finished = true;
-    //         }
-    //         else // processor
-    //         {   
-    //             ElementList* local_elements = 0;
-    //             int number = 0;
-
-    //             while (true) 
-    //             {
-    //                 # pragma omp atomic
-    //                 dummy_value++;
-                    
-    //                 if (buckets_initialized == 1)
-    //                 {
-    //                     break;
-    //                 }
-    //             }
-
-    //             std::cout << "exited while loop, no longer waiting" << std::endl;
-
-    //             while (streaming_finished == false)
-    //             {
-    //                 lock->lock();
-
-    //                 if (this->elements->size() > 0)
-    //                 {
-    //                     local_elements = this->elements;
-    //                     this->elements = new ElementList(); 
-    //                 }
-
-    //                 lock->unlock();
-
-    //                 if (local_elements != 0)
-    //                 {
-    //                     timer->max_k_globalTimer.startTimer();
-    //                     this->buckets.ProcessData(local_elements);
-    //                     timer->max_k_globalTimer.endTimer();
-                        
-    //                     delete local_elements;
-    //                     local_elements = 0;
-    //                 }
-    //             }
-
-    //             if (this->elements->size() > 0)
-    //             {
-    //                 timer->max_k_globalTimer.startTimer();
-    //                 this->buckets.ProcessData(this->elements);
-    //                 timer->max_k_globalTimer.endTimer();
-    //             }
-    //         }
-    //     }
-
-    //     delete lock;
-    //     return this->buckets.GetBestSeeds();
-    // }
 
     std::pair<std::vector<unsigned int>, int> Stream(TimerAggregator* timer)
     {
@@ -546,7 +442,8 @@ class StreamingRandGreedIEngine
 
         for (int i = 0; i < local_utilities.size(); i++)
         {
-            // std::cout << "looking at " << local_utilities[i] << " compared to " << bestSeeds.second << std::endl;
+            std::cout << "streaming utility is " << bestSeeds.second << std::endl;
+            std::cout << "looking at " << local_utilities[i] << " from local process " << i+1 << std::endl;
             if (local_utilities[i] > bestSeeds.second)
             {
                 bestSeeds.second = local_utilities[i];
