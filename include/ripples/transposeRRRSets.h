@@ -43,18 +43,13 @@ class TransposeRRRSets
         for (int i = 0; i < this->sets.size(); i++)
         {
             std::unordered_set<typename GraphTy::vertex_type> seen;
-            std::vector<typename GraphTy::vertex_type> cleaned_set;
 
             for (const auto & rrr_id : this->sets[i].second)
             {
-                if (seen.find(rrr_id) == seen.end())
-                {
-                    cleaned_set.push_back(rrr_id);
-                    seen.insert(rrr_id);
-                }
+                seen.insert(rrr_id);
             }
 
-            this->sets[i].second = cleaned_set;
+            this->sets[i].second.assign(seen.begin(), seen.end());
         }
     }
 };
