@@ -568,6 +568,21 @@ class GPUWalkWorker<GraphTy, PRNGeneratorTy, ItrTy, independent_cascade_tag>
       batch(first, last);
     }
   }
+  
+
+  // void svc_transpose_loop(std::atomic<size_t> &mpmc_head, TransposeRRRSets<GraphTy> &tRRRSets, ItrTy begin, ItrTy end) {
+  //   size_t offset = 0;
+  //   auto batch_size = conf_.num_gpu_threads();
+  //   while ((offset = mpmc_head.fetch_add(batch_size_)) <
+  //          std::distance(begin, end)) {
+  //     auto first = begin;
+  //     std::advance(first, offset);
+  //     auto last = first;
+  //     std::advance(last, batch_size_);
+  //     if (last > end) last = end;
+  //     batchTranspose(tRRRSets, first, last, std::distance(begin, first));
+  //   }
+  // }
 
  private:
   static constexpr size_t batch_size_ = 32;
@@ -631,6 +646,45 @@ class GPUWalkWorker<GraphTy, PRNGeneratorTy, ItrTy, independent_cascade_tag>
     p.n_ += size;
 #endif
   }
+
+//   void batchTranspose(TransposeRRRSets<GraphTy> &tRRRSets, ItrTy first, ItrTy last, int RRRStart) {
+// #if CUDA_PROFILE
+//     auto &p(prof_bd.back());
+//     auto start = std::chrono::high_resolution_clock::now();
+// #endif
+//     auto size = std::distance(first, last);
+
+//     cuda_lt_kernel(conf_.max_blocks_, conf_.block_size_, size,
+//                    this->G_.num_nodes(), d_trng_state_, d_lt_res_mask_,
+//                    conf_.mask_words_, cuda_ctx_.get(), cuda_stream_);
+// #if CUDA_PROFILE
+//     cuda_sync(cuda_stream_);
+//     auto t1 = std::chrono::high_resolution_clock::now();
+//     p.dwalk_ +=
+//         std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - start);
+//     auto t0 = t1;
+// #endif
+
+//     cuda_d2h(lt_res_mask_, d_lt_res_mask_,
+//              size * conf_.mask_words_ * sizeof(mask_word_t), cuda_stream_);
+//     cuda_sync(cuda_stream_);
+// #if CUDA_PROFILE
+//     t1 = std::chrono::high_resolution_clock::now();
+//     p.dd2h_ += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0);
+//     t0 = t1;
+// #endif
+
+//     batch_lt_build(first, size);
+// #if CUDA_PROFILE
+//     t1 = std::chrono::high_resolution_clock::now();
+//     p.dbuild_ += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0);
+// #endif
+
+// #if CUDA_PROFILE
+//     p.d_ += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - start);
+//     p.n_ += size;
+// #endif
+//   }
 
   void ic_build(ItrTy dst) {
     auto &rrr_set(*dst);

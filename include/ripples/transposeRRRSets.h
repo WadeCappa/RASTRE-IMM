@@ -8,7 +8,7 @@ template <typename GraphTy>
 class TransposeRRRSets
 {
     public:
-    std::vector<std::pair<std::mutex, std::vector<typename GraphTy::vertex_type>>> sets;
+    std::vector<std::pair<std::mutex, std::set<typename GraphTy::vertex_type>>> sets;
 
     public:
     TransposeRRRSets(int numberOfVertices) 
@@ -23,7 +23,7 @@ class TransposeRRRSets
     void addToSet(int index, typename GraphTy::vertex_type vertex) 
     {
         sets[index].first.lock(); 
-        sets[index].second.push_back(vertex);
+        sets[index].second.insert(vertex);
         sets[index].first.unlock();
     }
 
@@ -35,22 +35,6 @@ class TransposeRRRSets
     auto getEnd() 
     {
         return sets.end();
-    }
-
-    void removeDuplicates()
-    {
-        #pragma omp parallel for
-        for (int i = 0; i < this->sets.size(); i++)
-        {
-            std::unordered_set<typename GraphTy::vertex_type> seen;
-
-            for (const auto & rrr_id : this->sets[i].second)
-            {
-                seen.insert(rrr_id);
-            }
-
-            this->sets[i].second.assign(seen.begin(), seen.end());
-        }
     }
 };
 

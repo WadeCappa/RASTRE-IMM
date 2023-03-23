@@ -153,14 +153,14 @@ class BucketController
             }
         }
         
-        std::vector<unsigned int>* seeds = new std::vector<unsigned int>();
+        std::vector<unsigned int> seeds;
         for (const auto p : this->buckets->at(max_covered_index)->getSeeds()) {
-            seeds->push_back(p.first);
+            seeds.push_back(p.first);
         }
 
         std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets->at(max_covered_index)->getSeeds().size();
 
-        return std::make_pair(*seeds, max_covered);
+        return std::make_pair(seeds, max_covered);
     }
 
     BucketController(int k, ssize_t theta, double epsilon)

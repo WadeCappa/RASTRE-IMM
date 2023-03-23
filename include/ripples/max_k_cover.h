@@ -29,7 +29,7 @@ private:
     public:
         virtual ~NextMostInfluentialFinder()
         {
-            // std::cout << "deallocating base class..." << std::endl;
+            std::cout << "deallocating base class in max_k_cover..." << std::endl;
             for (const auto & l : *(this->allSets))
             {
                 delete l.second;
@@ -340,12 +340,12 @@ private:
     MPI_Request *request = new MPI_Request();
     std::vector<std::pair<int, int*>> send_buffers;
 
-    void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int> seedSet)
+    void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int>& seedSet)
     {
         // for i from 0 to n−2 do
         //     j ← random integer such that i ≤ j < n
         //     exchange a[i] and a[j]
-        std::unordered_set<int> seeds(seedSet.begin(), seedSet.end());
+        std::set<int> seeds(seedSet.begin(), seedSet.end());
 
         for (int i = 0; i < size; i++) 
         {
