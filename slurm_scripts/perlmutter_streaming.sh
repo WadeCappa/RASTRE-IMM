@@ -1,14 +1,14 @@
-#!/bin/bash
+#!/bin/bashmodulefiles
 
 #SBATCH -A m1641
 #SBATCH -C cpu
-#SBATCH -t 01:30:00
+#SBATCH -t 00:30:00
 #SBATCH -q regular
-#SBATCH -N 129
+#SBATCH -N 9
 #SBATCH --ntasks-per-node=1
-#SBATCH -J OrkutBig129_streaming
-#SBATCH -o /global/cfs/cdirs/m1641/network-results/orkut_big/OrkutBig129_streaming.o
-#SBATCH -e /global/cfs/cdirs/m1641/network-results/orkut_big/OrkutBig129_streaming.e
+#SBATCH -J k128_livejournal9
+#SBATCH -o /global/cfs/cdirs/m1641/network-results/livejournal/k128_livejournal9.o
+#SBATCH -e /global/cfs/cdirs/m1641/network-results/livejournal/k128_livejournal9.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 129 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/orkut_big_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/orkut_big/OrkutBig129_streaming.json --run-streaming=true --epsilon-2=0.08 --reload-binary
+srun -n 9 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/livejournal_binary.txt -w -k 128 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/livejournal/k128_livejournal9.json --run-streaming=true --epsilon-2=0.0111 --reload-binary

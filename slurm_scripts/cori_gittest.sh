@@ -21,4 +21,4 @@ export OMP_NUM_THREADS=32
 export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
-mpirun -n 4 ./build/release/tools/mpi-greedi-im -i test-data/githubSmall_binary.txt -w -k 100 -p -d IC -e 0.13 -o Github4.json --run-streaming=false --reload-binary
+mpirun -n 4 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/githubSmall_binary.txt -w -k 100 -p -d IC -e 0.13 -o Github4.json --run-streaming=false --reload-binary
