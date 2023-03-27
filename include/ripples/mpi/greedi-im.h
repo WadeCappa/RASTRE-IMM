@@ -227,20 +227,23 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     // std::cout << "COUNTING ELEMENTS: process " << world_rank << " has " << aggregateSets->size() << " vertices" << std::endl;
 
+    int kprime = int(CFG.alpha * (double)CFG.k);
+
     if (CFG.use_streaming == true) 
     {
       if (world_rank == 0) 
       {
         spdlog::get("console")->info("streaming...");
+
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
-        globalSeeds = streamingEngine.Stream(&timeAggregator);
+        globalSeeds = streamingEngine.Stream(&timeAggregator, kprime);
       }
       else 
       {
         spdlog::get("console")->info("local max-k-cover...");
         timeAggregator.totalSendTimer.startTimer();
         
-        MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
+        MaxKCoverEngine<GraphTy> localKCoverEngine(kprime);
         localKCoverEngine.useLazyGreedy(aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
         localKCoverEngine.run_max_k_cover(aggregateSets, thetaPrime*2);
 
@@ -255,7 +258,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       std::pair<std::vector<unsigned int>, ssize_t> localSeeds;
 
       {
-        MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
+        MaxKCoverEngine<GraphTy> localKCoverEngine(kprime);
         localSeeds = localKCoverEngine.useLazyGreedy(aggregateSets)->run_max_k_cover(aggregateSets, thetaPrime*2);
       }
 

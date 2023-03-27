@@ -77,6 +77,7 @@ struct IMMConfiguration : public TIMConfiguration {
   bool dump_sampling_data_flag{false};
   bool use_streaming = false;
   double epsilon_2 = 0.13; 
+  double alpha = 1;
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
 
@@ -105,6 +106,9 @@ struct IMMConfiguration : public TIMConfiguration {
         ->group("Streaming-Engine Options");
     app.add_option("--epsilon-2", epsilon_2,
                    "Set the error parameter for the streaming step. Default of 0.13 to acheive approximation garuntee of 21%")
+        ->group("Streaming-Engine Options");
+    app.add_option("--alpha", alpha,
+                "Set the fraction of local seeds to send to the final selection step, defaults to 1")
         ->group("Streaming-Engine Options");
 
   }

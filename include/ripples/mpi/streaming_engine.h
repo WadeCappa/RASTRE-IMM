@@ -222,7 +222,7 @@ class StreamingRandGreedIEngine
         );
     }
 
-    bool HandleStatus(MPI_Status& status)
+    bool HandleStatus(MPI_Status& status, int kprime)
     {
         bool buckets_initialized = false;
         if (status.MPI_TAG == 0)
@@ -235,7 +235,7 @@ class StreamingRandGreedIEngine
             }
         }
 
-        if (status.MPI_TAG >= this->k - 1)
+        if (status.MPI_TAG >= kprime - 1)
         {
             // this means that last element from a process has been sent
             this->active_senders--;
@@ -271,7 +271,7 @@ class StreamingRandGreedIEngine
         delete this->request;
     }
 
-    std::pair<std::vector<unsigned int>, int> Stream(TimerAggregator* timer)
+    std::pair<std::vector<unsigned int>, int> Stream(TimerAggregator* timer, int kprime)
     {
         MPI_Status status;
         int buckets_initialized = 0;
@@ -284,13 +284,13 @@ class StreamingRandGreedIEngine
         std::vector<std::vector<std::pair<int, std::vector<int>*>>> element_matrix(
             this->world_size, 
             std::vector<std::pair<int, std::vector<int>*>>(
-                this->k,
+                kprime,
                 std::make_pair(-1, (std::vector<int>*)0)
             )
         );
 
         std::vector<std::pair<int, std::pair<int,int>>> availability_index(
-            this->world_size * this->k, 
+            this->world_size * kprime, 
             std::make_pair(0, std::make_pair(-1,-1))
         );
 
@@ -308,7 +308,7 @@ class StreamingRandGreedIEngine
 
                 // std::cout << "RECEIVING WITH THREAD ID " << omp_get_thread_num() << std::endl;
 
-                for (int i = 0; i < (this->world_size * this->k); i++)
+                for (int i = 0; i < (this->world_size * kprime); i++)
                 {
                     // TODO: Add all stop conidtions
 
@@ -321,10 +321,10 @@ class StreamingRandGreedIEngine
 
                     timer->processingReceiveTimer.startTimer();
 
-                    int tag = status.MPI_TAG > this-> k - 1 ? this->k - 1 : status.MPI_TAG;
+                    int tag = status.MPI_TAG > this-> k - 1 ? kprime - 1 : status.MPI_TAG;
                     int source = status.MPI_SOURCE - 1;
 
-                    if (status.MPI_TAG > this->k - 1)
+                    if (status.MPI_TAG > kprime - 1)
                     {
                         local_utilities[source] = status.MPI_TAG;
                         // std::cout << "received utility of " << status.MPI_TAG << " from " << source << std::endl;
@@ -336,7 +336,7 @@ class StreamingRandGreedIEngine
 
                     maxVal = std::max(maxVal, new_element.second->size());
 
-                    if (this->HandleStatus(status))
+                    if (this->HandleStatus(status, kprime))
                     {
                         timer->initBucketTimer.startTimer();
                         this->buckets.CreateBuckets(maxVal);
@@ -359,7 +359,7 @@ class StreamingRandGreedIEngine
                     timer->atomicUpdateTimer.endTimer();
 
 
-                    if (i != this->world_size * this->k - 1)
+                    if (i != this->world_size * kprime - 1)
                     {
                         this->ResetBuffer();
                     }
