@@ -8,7 +8,7 @@ template <typename GraphTy>
 class TransposeRRRSets
 {
     public:
-    std::vector<std::pair<std::mutex, std::set<typename GraphTy::vertex_type>>> sets;
+    std::vector<std::pair<std::mutex, std::vector<size_t>>> sets;
 
     public:
     TransposeRRRSets(int numberOfVertices) 
@@ -20,11 +20,11 @@ class TransposeRRRSets
     {
     }
 
-    void addToSet(int index, typename GraphTy::vertex_type vertex) 
+    void addToSet(int vertex, size_t RRRId) 
     {
-        sets[index].first.lock(); 
-        sets[index].second.insert(vertex);
-        sets[index].first.unlock();
+        sets[vertex].first.lock(); 
+        sets[vertex].second.push_back(RRRId);
+        sets[vertex].first.unlock();
     }
 
     auto getBegin() 
@@ -35,6 +35,28 @@ class TransposeRRRSets
     auto getEnd() 
     {
         return sets.end();
+    }
+
+    void RemoveDuplicates()
+    {
+        #pragma omp parallel for
+        for (int i = 0; i < this->sets.size(); i++)
+        {
+            int sizeBefore = this->sets[i].second.size();
+
+            std::unordered_set<size_t> seen;
+            for (const auto & r : this->sets[i].second)
+            {
+                seen.insert(r);
+            }
+
+            this->sets[i].second.assign(seen.begin(), seen.end());
+
+            if (sizeBefore != this->sets[i].second.size())
+            {
+                std::cout << "size difference; " << sizeBefore -  this->sets[i].second.size() << std::endl;
+            }
+        }
     }
 };
 

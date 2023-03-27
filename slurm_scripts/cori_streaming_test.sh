@@ -21,4 +21,4 @@ export OMP_NUM_THREADS=32
 export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
-mpirun -n 33 ./build/release/tools/mpi-greedi-im -i test-data/orkut_small.txt -w -k 16 -p -d IC -e 0.13 -o Orkut33_streaming.json --run-streaming=true --epsilon-2=0.1
+mpirun -n 33 ./build/release/tools/mpi-greedi-im -i test-data/orkut_small.txt -w -k 100 -p -d IC -e 0.13 -o Orkut33_streaming.json --run-streaming=true --epsilon-2=0.1

@@ -144,8 +144,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   TimerAggregator &timeAggregator,
   ssize_t thetaPrime,  
   TransposeRRRSets<GraphTy>& tRRRSets,
-  std::vector<RRRset<GraphTy>> RR,
-  RRRsetAllocator<typename GraphTy::vertex_type> allocator,
+  std::vector<RRRset<GraphTy>>& RR,
+  RRRsetAllocator<typename GraphTy::vertex_type>& allocator,
   const GraphTy &G, 
   const ConfTy &CFG, 
   RRRGeneratorTy &generator, 
@@ -159,28 +159,35 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 ) 
 {
   double f ;
+
   // figure out how to exacly generate this number (remove rounding error)
   ssize_t localThetaPrime = (thetaPrime / world_size) + 1;
 
   std::pair<std::vector<unsigned int>, ssize_t> globalSeeds;
 
-  size_t delta = localThetaPrime - RR.size();
-  record.ThetaPrimeDeltas.push_back(delta);
-
   auto timeRRRSets = measure<>::exec_time([&]() {
-    RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
-    auto begin = RR.end() - delta;
+    if (localThetaPrime > RR.size()) {
+      size_t delta = localThetaPrime - RR.size();
+      record.ThetaPrimeDeltas.push_back(delta);
 
-    spdlog::get("console")->info("sampling...");
+      RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
+      auto begin = RR.end() - delta;
 
-    // std::cout << "generating transpose RRR sets within the martigale loop" << std::endl;
-    // within this function, there is a logical bug with counting RRRset IDs
-    timeAggregator.samplingTimer.startTimer();
-    GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
-                    std::forward<diff_model_tag>(model_tag),
-                    std::forward<execution_tag>(ex_tag));
+      // std::vector<bool> proxy_vector(RR.size()); // possible fix
 
-    timeAggregator.samplingTimer.endTimer();
+      spdlog::get("console")->info("sampling...");
+
+      // std::cout << "generating transpose RRR sets within the martigale loop" << std::endl;
+      // within this function, there is a logical bug with counting RRRset IDs
+      timeAggregator.samplingTimer.startTimer();
+      GenerateTransposeRRRSets(tRRRSets, RR.begin(), G, generator, begin, RR.end(), record,
+                      std::forward<diff_model_tag>(model_tag),
+                      std::forward<execution_tag>(ex_tag));
+
+      // tRRRSets.RemoveDuplicates();
+
+      timeAggregator.samplingTimer.endTimer();
+    }
 
     spdlog::get("console")->info("AlltoAll...");
 
@@ -189,13 +196,15 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     std::map<int, std::vector<int>> aggregateSets;  
     
     {
-      std::vector<int> countPerProcess;
-      int totalCount = cEngine.count(countPerProcess, tRRRSets, vertexToProcess, world_size);
+      std::vector<unsigned int> countPerProcess;
+      unsigned long long totalCount = cEngine.count(countPerProcess, tRRRSets, vertexToProcess, world_size);
 
-      std::vector<int> psum;
+      std::vector<unsigned int> psum;
       cEngine.buildPrefixSum(psum, countPerProcess.data(), world_size);
 
-      std::vector<int> data;
+      std::vector<unsigned int> data(totalCount);
+
+      spdlog::get("console")->info("Linearizing data for AllToAll...");
 
       cEngine.linearize(
         data,
@@ -207,6 +216,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       );
 
       // std::cout << "linearizing data, rank = " << world_rank << std::endl;
+
+      spdlog::get("console")->info("distributing samples, AllToAll operation...");
 
       cEngine.getProcessSpecificVertexRRRSets(aggregateSets, data.data(), countPerProcess.data(), world_size, localThetaPrime);
     }
@@ -228,6 +239,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       {
         spdlog::get("console")->info("local max-k-cover...");
         timeAggregator.totalSendTimer.startTimer();
+        
         MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k);
         localKCoverEngine.useLazyGreedy(aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
         localKCoverEngine.run_max_k_cover(aggregateSets, thetaPrime*2);
@@ -252,13 +264,13 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       spdlog::get("console")->info("all gather...");
       timeAggregator.allGatherTimer.startTimer();
 
-      std::vector<int> globalAggregation;
-      int totalData = 0;
+      std::vector<unsigned int> globalAggregation;
+      unsigned long long totalData = 0;
 
       {
-        std::vector<int> linearAggregateSets;
+        std::vector<unsigned int> linearAggregateSets;
 
-        int totalLinearLocalSeedsData = cEngine.linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second);
+        unsigned long long totalLinearLocalSeedsData = cEngine.linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second);
         totalData = cEngine.aggregateAggregateSets(globalAggregation, totalLinearLocalSeedsData, world_size, linearAggregateSets.data());
       }
 
@@ -434,19 +446,19 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   spdlog::get("console")->info("Theta {}", theta);
 
   // Remove this secriont of code, redundant, run github test to verify output
-  // record.GenerateRRRSets = measure<>::exec_time([&]() {
-  //   if (localTheta > RR.size()) {
-  //     size_t final_delta = localTheta - RR.size();
-  //     RR.insert(RR.end(), final_delta, RRRset<GraphTy>(allocator));
+  record.GenerateRRRSets = measure<>::exec_time([&]() {
+    if (localTheta > RR.size()) {
+      size_t final_delta = localTheta - RR.size();
+      RR.insert(RR.end(), final_delta, RRRset<GraphTy>(allocator));
 
-  //     auto begin = RR.end() - final_delta;
-  //     timeAggregator.samplingTimer.startTimer();
-  //     GenerateTransposeRRRSets(tRRRSets, G, generator, begin, RR.end(), record,
-  //                     std::forward<diff_model_tag>(model_tag),
-  //                     std::forward<execution_tag>(ex_tag));
-  //     timeAggregator.samplingTimer.endTimer();
-  //   }
-  // });
+      auto begin = RR.end() - final_delta;
+      timeAggregator.samplingTimer.startTimer();
+      GenerateTransposeRRRSets(tRRRSets, RR.begin(), G, generator, begin, RR.end(), record,
+                      std::forward<diff_model_tag>(model_tag),
+                      std::forward<execution_tag>(ex_tag));
+      timeAggregator.samplingTimer.endTimer();
+    }
+  });
 
   // std::cout << "getting best seeds globally with theta = " << (int)theta << std::endl;
   std::pair<std::vector<unsigned int>, int> bestSeeds = MartigaleRound(

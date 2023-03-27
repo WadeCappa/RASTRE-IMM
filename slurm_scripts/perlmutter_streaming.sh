@@ -2,13 +2,13 @@
 
 #SBATCH -A m1641
 #SBATCH -C cpu
-#SBATCH -t 00:30:00 
+#SBATCH -t 01:30:00
 #SBATCH -q regular
-#SBATCH -N 4
+#SBATCH -N 129
 #SBATCH --ntasks-per-node=1
-#SBATCH -J Github4
-#SBATCH -o output/github/Github4.o
-#SBATCH -e output/github/Github4.e
+#SBATCH -J OrkutBig129_streaming
+#SBATCH -o /global/cfs/cdirs/m1641/network-results/orkut_big/OrkutBig129_streaming.o
+#SBATCH -e /global/cfs/cdirs/m1641/network-results/orkut_big/OrkutBig129_streaming.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 4 ./build/release/tools/mpi-greedi-im -i test-data/githubSmall.txt -w -k 100 -p -d IC -e 0.13 -o Github4.json --run-streaming=false
+srun -n 129 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/orkut_big_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/orkut_big/OrkutBig129_streaming.json --run-streaming=true --epsilon-2=0.08 --reload-binary

@@ -2,13 +2,13 @@
 
 #SBATCH -A m1641
 #SBATCH -C cpu
-#SBATCH -t 3:00:00 
+#SBATCH -t 01:30:00
 #SBATCH -q regular
-#SBATCH -N 33
+#SBATCH -N 128
 #SBATCH --ntasks-per-node=1
-#SBATCH -J Orkut33_lazy_lazy
-#SBATCH -o /global/homes/w/wadecap/ripples/output/orkut/Orkut33_lazy_lazy.o
-#SBATCH -e /global/homes/w/wadecap/ripples/output/orkut/Orkut33_lazy_lazy.e
+#SBATCH -J OrkutSmall128
+#SBATCH -o /global/cfs/cdirs/m1641/network-results/orkut_small/OrkutSmall128.o
+#SBATCH -e /global/cfs/cdirs/m1641/network-results/orkut_small/OrkutSmall128.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 33 ./build/release/tools/mpi-greedi-im -i test-data/orkut_small.txt -w -k 100 -p -d IC -e 0.13 -o Orkut33_lazy_lazy.json --run-streaming=false
+srun -n 128 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/orkut_small_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/orkut_small/OrkutSmall128.json --run-streaming=false --reload-binary
