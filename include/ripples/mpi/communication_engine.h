@@ -188,10 +188,10 @@ class CommunicationEngine
         int receivedDataRank = 0;
 
         // cycle over data
-        int vertexID = *data;   
+        int vertexID = *data; // TODO: Fix all these datatypes, need to be vector_type, will not scale with int as number of nodes increases
         aggregateSets.insert({ vertexID, std::vector<int>() });
         for (size_t rankDataProcessed = 1, i = 1; i < totalData - 1; i++, rankDataProcessed++) {
-            if (*(data + i) == -1 && *(data + i-1) != -1) {
+            if (*(data + i) == -1 && *(data + i + 1) != -1) {
                 vertexID = *(data + ++i);
                 rankDataProcessed++;
                 aggregateSets.insert({ vertexID, std::vector<int>() });

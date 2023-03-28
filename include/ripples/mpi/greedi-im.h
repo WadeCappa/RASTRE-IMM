@@ -478,7 +478,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   });
 
   // std::cout << "getting best seeds globally with theta = " << (int)theta << std::endl;
-  std::pair<std::vector<unsigned int>, int> bestSeeds = MartigaleRound(
+  std::pair<std::vector<vertex_type>, int> bestSeeds = MartigaleRound(
     timeAggregator,
     theta, tRRRSets, RR, allocator, G, 
     CFG, generator, record,
@@ -579,7 +579,7 @@ auto GREEDI(const GraphTy &G, TransposeRRRSets<GraphTy>& tRRRSets, const ConfTy 
   
   // get local tRRRSets
   // std::cout << "entering transposeSampling" << std::endl;
-  std::pair<std::vector<unsigned int>, int> seeds = mpi::TransposeSampling(
+  std::pair<std::vector<vertex_type>, int> seeds = mpi::TransposeSampling(
     tRRRSets,
     G, CFG, l, gen, record,
     std::forward<diff_model_tag>(model_tag),
