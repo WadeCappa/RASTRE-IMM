@@ -84,7 +84,7 @@ class CommunicationEngine
 
     
 
-    size_t linearizeLocalSeeds(std::vector<unsigned int>& linearAggregateSets, const std::map<int, std::vector<int>> &aggregateSets, const std::vector<unsigned int>& localSeeds, const size_t total_utility) 
+    size_t linearizeLocalSeeds(unsigned int* linearAggregateSets, const std::map<int, std::vector<int>> &aggregateSets, const std::vector<unsigned int>& localSeeds, const size_t total_utility, const int block_size) 
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
         size_t runningSum = 0;
@@ -96,7 +96,15 @@ class CommunicationEngine
         }
 
         size_t totalData = runningSum + 1;
-        linearAggregateSets.resize(totalData);
+
+        size_t total_block_data = totalData + (block_size - (totalData % block_size));
+
+        if (total_block_data % block_size != 0)
+        {
+            std::cout << "DATA LINEARIZATION ERROR" << std::endl;
+        }
+
+        linearAggregateSets = new unsigned int[total_block_data];
 
         #pragma omp parallel for
         for (int setIndex = 0; setIndex < setsPrefixSum.size(); setIndex++) {
@@ -114,7 +122,13 @@ class CommunicationEngine
         // mark total utility of local process
         linearAggregateSets[totalData - 1] = total_utility;
 
-        return totalData;
+        for (size_t backwards = total_block_data - 1; *(linearAggregateSets + backwards) != total_utility; backwards--) {
+            *(linearAggregateSets + backwards) = -3;
+        }
+
+        std::cout << "sending " << total_block_data << " ints in " << total_block_data / block_size << " blocks" << std::endl;
+
+        return total_block_data;
     }
 
     std::pair<int, int*> LinearizeSingleSeed(const int vertexID, const std::vector<int>& set) 
@@ -224,7 +238,10 @@ class CommunicationEngine
         bestMKSeeds.insert({ vertexID, std::vector<int>() });
 
         for (size_t rankDataProcessed = 1, i = 1; i < totalData - 1; i++) {
-            if (*(data + i) == -2) {
+            if (*(data + i) == -3) {
+                continue;
+            }
+            else if (*(data + i) == -2) {
                 local_seeds->push_back(std::make_pair(*(data+i+1), current_seeds));
                 current_seeds = new std::vector<unsigned int>();
                 i++;
@@ -255,7 +272,8 @@ class CommunicationEngine
         int p,
         ssize_t RRRIDsPerProcess,
         MPI_Datatype& batch_int,
-        int block_size
+        int block_size,
+        int rank
     ) {
         unsigned int* receiveSizes = new unsigned int[p];
 
@@ -290,45 +308,65 @@ class CommunicationEngine
             receiveSizes[i] *= block_size;
         }
 
-        aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, p, RRRIDsPerProcess);
+        // TODO: make this not terrible
+        if (rank == 0)
+        {
+            aggregateSets.insert({0, std::vector<int>()});
+        }   
+        else 
+        {
+            aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, p, RRRIDsPerProcess);
+        }
         
         delete receiveSizes;
         delete linearizedLocalData;
     }
 
-    size_t aggregateAggregateSets(std::vector<unsigned int>& aggregatedSeeds, size_t totalGatherData, int world_size, unsigned int* localLinearAggregateSets)
+    size_t aggregateAggregateSets(unsigned int* aggregatedSeeds, size_t numberOfInts, int world_size, unsigned int* localLinearAggregateSets, int block_size, MPI_Datatype& batch_int)
     {
         unsigned int* gatherSizes = new unsigned int[world_size];
+
+        unsigned int numberOfBlocks = (unsigned int)numberOfInts / block_size;
+
         MPI_Allgather(
-            &totalGatherData, 1, MPI_INT,
-            gatherSizes, 1, MPI_INT, MPI_COMM_WORLD
+            &numberOfBlocks, 1, MPI_UNSIGNED,
+            gatherSizes, 1, MPI_UNSIGNED, MPI_COMM_WORLD
         );
+
+        for (int i = 0; i < world_size; i++)
+        {
+            std::cout << "gathering " << gatherSizes[i] << " from rank " << i << std::endl;
+        }
         
         // mpi_gatherv for all buffers of linearized aggregateSets. 
-        size_t totalData = 0;
+        size_t number_of_receiving_blocks = 0;
         for (int i = 0; i < world_size; i++) {
-            totalData += (unsigned int)gatherSizes[i];
+            number_of_receiving_blocks += (unsigned int)gatherSizes[i];
         }  
 
         std::vector<unsigned int> displacements;
         buildPrefixSum(displacements, gatherSizes, world_size);
 
-        aggregatedSeeds.resize(totalData);
+        aggregatedSeeds = new unsigned int[number_of_receiving_blocks * block_size];
+
+        std::cout << "total data: " << number_of_receiving_blocks * block_size << " or " << number_of_receiving_blocks << " blocks" << std::endl;
 
         MPI_Gatherv(
-            localLinearAggregateSets,
-            totalGatherData,
-            MPI_UNSIGNED,
-            (int*)aggregatedSeeds.data(),
+            (int*)localLinearAggregateSets,
+            numberOfBlocks,
+            batch_int,
+            (int*)aggregatedSeeds,
             (int*)gatherSizes,
-            (int*)displacements.data(),
-            MPI_UNSIGNED,
+            (int*)(displacements.data()),
+            batch_int,
             0,
             MPI_COMM_WORLD
         );
 
+        std::cout << "cleanup" << std::endl;
+
         delete gatherSizes;
-        return totalData;
+        return number_of_receiving_blocks * block_size;
     }
 
     void distributeF(double* f)
