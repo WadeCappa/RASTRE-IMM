@@ -163,7 +163,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   // figure out how to exacly generate this number (remove rounding error)
   ssize_t localThetaPrime = (thetaPrime / world_size) + 1;
 
-  std::pair<std::vector<unsigned int>, ssize_t> globalSeeds;
+  std::pair<std::vector<unsigned int>, size_t> globalSeeds;
 
   auto timeRRRSets = measure<>::exec_time([&]() {
     if (localThetaPrime > RR.size()) {
@@ -196,13 +196,19 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     std::map<int, std::vector<int>> aggregateSets;  
     
     {
+      int block_size = (32768 / sizeof(unsigned int)); // blocks of size 32KB
+
       std::vector<unsigned int> countPerProcess;
-      unsigned long long totalCount = cEngine.count(countPerProcess, tRRRSets, vertexToProcess, world_size);
+      size_t totalCount = cEngine.countPerProcessForBatchSend(countPerProcess, tRRRSets, vertexToProcess, world_size, block_size);
+
+      MPI_Datatype batch_int;
+      MPI_Type_contiguous( block_size, MPI_INT, &batch_int );
+      MPI_Type_commit(&batch_int);
 
       std::vector<unsigned int> psum;
       cEngine.buildPrefixSum(psum, countPerProcess.data(), world_size);
 
-      std::vector<unsigned int> data(totalCount);
+      unsigned int* data = new unsigned int[totalCount];
 
       spdlog::get("console")->info("Linearizing data for AllToAll...");
 
@@ -212,14 +218,22 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         vertexToProcess, 
         psum, 
         totalCount, 
-        world_size
+        world_size,
+        block_size
       );
 
       // std::cout << "linearizing data, rank = " << world_rank << std::endl;
 
+      for (auto & processCount : countPerProcess) {
+        processCount = processCount / block_size;
+      }
+
       spdlog::get("console")->info("distributing samples, AllToAll operation...");
 
-      cEngine.getProcessSpecificVertexRRRSets(aggregateSets, data.data(), countPerProcess.data(), world_size, localThetaPrime);
+      cEngine.getProcessSpecificVertexRRRSets(aggregateSets, data, countPerProcess.data(), world_size, localThetaPrime, batch_int, block_size);
+
+      MPI_Type_free(&batch_int);
+      delete data;
     }
     // auto end = std::chrono::high_resolution_clock::now();
     // std::cout << " ------- time for single all to all = " << (end - start).count() << " ------- " << std::endl;
@@ -268,12 +282,12 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       timeAggregator.allGatherTimer.startTimer();
 
       std::vector<unsigned int> globalAggregation;
-      unsigned long long totalData = 0;
+      size_t totalData = 0;
 
       {
         std::vector<unsigned int> linearAggregateSets;
 
-        unsigned long long totalLinearLocalSeedsData = cEngine.linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second);
+        size_t totalLinearLocalSeedsData = cEngine.linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second);
         totalData = cEngine.aggregateAggregateSets(globalAggregation, totalLinearLocalSeedsData, world_size, linearAggregateSets.data());
       }
 
