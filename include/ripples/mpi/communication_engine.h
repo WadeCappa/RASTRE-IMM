@@ -286,6 +286,10 @@ class CommunicationEngine
             MPI_COMM_WORLD
         );
 
+        for (int i = 0; i < p; i++) {
+            receiveSizes[i] *= block_size;
+        }
+
         aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, p, RRRIDsPerProcess);
         
         delete receiveSizes;
