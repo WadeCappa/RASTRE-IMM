@@ -282,26 +282,25 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       spdlog::get("console")->info("all gather...");
       timeAggregator.allGatherTimer.startTimer();
 
-      unsigned int* globalAggregation = new unsigned int[1];
+      std::vector<unsigned int> globalAggregation;
       size_t totalData = 0;
 
       {
-        unsigned int* linearAggregateSets;
+        std::vector<unsigned int> linearAggregateSets;
 
         MPI_Datatype batch_int;
         MPI_Type_contiguous( block_size, MPI_INT, &batch_int );
         MPI_Type_commit(&batch_int);
 
-        size_t number_of_ints = cEngine.linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second, block_size);
+        size_t totalLinearLocalSeedsData = cEngine.linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second, block_size);
 
         spdlog::get("console")->info("successfully linearized...");
 
-        totalData = cEngine.aggregateAggregateSets(globalAggregation, number_of_ints, world_size, linearAggregateSets, block_size, batch_int);
+        totalData = cEngine.aggregateAggregateSets(globalAggregation, totalLinearLocalSeedsData, world_size, linearAggregateSets.data(), block_size, batch_int);
 
         spdlog::get("console")->info("successfully aggregated...");
 
         MPI_Type_free(&batch_int);
-        delete linearAggregateSets;
       }
 
       timeAggregator.allGatherTimer.endTimer();
@@ -312,8 +311,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         spdlog::get("console")->info("unpacking local seeds in global process...");
 
         timeAggregator.allGatherTimer.startTimer();
-        std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* local_seeds = cEngine.aggregateLocalKSeeds(bestKMSeeds, globalAggregation, totalData);
-        delete globalAggregation;
+        std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* local_seeds = cEngine.aggregateLocalKSeeds(bestKMSeeds, globalAggregation.data(), totalData);
 
         timeAggregator.allGatherTimer.endTimer();
 
@@ -346,7 +344,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         delete local_seeds;
       }
       else {
-        delete globalAggregation;
+        // delete globalAggregation;
       }
 
       spdlog::get("console")->info("end of martingale round, cleaning up...");

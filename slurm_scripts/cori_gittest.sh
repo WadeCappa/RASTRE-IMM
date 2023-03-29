@@ -2,15 +2,15 @@
 
 #SBATCH --qos=debug
 #SBATCH --time=00:30:00 
-#SBATCH --nodes=4
+#SBATCH --nodes=5
 #SBATCH --ntasks-per-node=1
 #SBATCH --constraint=haswell
 
 #SBATCH -A m1641
 #SBATCH --ntasks-per-node=1
-#SBATCH -J Github4
-#SBATCH -o output/github/Github4.o
-#SBATCH -e output/github/Github4.e
+#SBATCH -J Github5
+#SBATCH -o output/github/Github5.o
+#SBATCH -e output/github/Github5.e
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
 # # module use /global/common/software/m3169/perlmutter/modulefiles
@@ -21,4 +21,4 @@ export OMP_NUM_THREADS=32
 export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
-mpirun -n 4 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/githubSmall_binary.txt -w -k 100 -p -d IC -e 0.13 -o Github4.json --run-streaming=false --reload-binary
+mpirun -n 5 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/githubSmall_binary.txt -w -k 100 -p -d IC -e 0.13 -o Github5.json --run-streaming=true --reload-binary

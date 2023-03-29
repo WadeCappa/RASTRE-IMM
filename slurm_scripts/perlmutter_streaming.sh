@@ -1,4 +1,4 @@
-#!/bin/bashmodulefiles
+#!/bin/bash
 
 #SBATCH -A m1641
 #SBATCH -C cpu
@@ -6,9 +6,9 @@
 #SBATCH -q regular
 #SBATCH -N 9
 #SBATCH --ntasks-per-node=1
-#SBATCH -J k128_livejournal9
-#SBATCH -o /global/cfs/cdirs/m1641/network-results/livejournal/k128_livejournal9.o
-#SBATCH -e /global/cfs/cdirs/m1641/network-results/livejournal/k128_livejournal9.e
+#SBATCH -J k128_HepPh9
+#SBATCH -o /global/cfs/cdirs/m1641/network-results/HepPh/k128_HepPh9.o
+#SBATCH -e /global/cfs/cdirs/m1641/network-results/HepPh/k128_HepPh9.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 9 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/livejournal_binary.txt -w -k 128 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/livejournal/k128_livejournal9.json --run-streaming=true --epsilon-2=0.0111 --reload-binary
+srun -n 9 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/HepPh_binary.txt -w -k 128 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/HepPh/k128_HepPh9.json --run-streaming=true --epsilon-2=0.0111 --reload-binary
