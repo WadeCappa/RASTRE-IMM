@@ -15,6 +15,8 @@
 #include <thread>
 #include <future>
 
+#include <cmath>
+
 using ElementList = std::vector<std::pair<int, std::vector<int>*>>;
 
 class ThresholdBucket 
@@ -158,7 +160,7 @@ class BucketController
             seeds.push_back(p.first);
         }
 
-        std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets->at(max_covered_index)->getSeeds().size();
+        std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets->at(max_covered_index)->getSeeds().size() << std::endl;
 
         return std::make_pair(seeds, max_covered);
     }
@@ -386,7 +388,7 @@ class StreamingRandGreedIEngine
 
                 // build mapping of each thread to number of buckets
                 auto buckets = this->buckets.GetBuckets();
-                int buckets_per_thread = (int)((double)buckets->size() / ((double)threads - (double)1) + (double)1);
+                int buckets_per_thread = std::ceil((double)buckets->size() / ((double)threads - (double)1));
                 std::cout << "number of buckets; " << buckets->size() << ", threads; " << threads-1 << ", buckets per thread; " << buckets_per_thread << std::endl;
                 std::vector<std::vector<ThresholdBucket*>> bucketMap(threads-1, std::vector<ThresholdBucket*>());
 

@@ -160,7 +160,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 {
   double f ;
 
-  int block_size = (32768 / sizeof(unsigned int)); // blocks of size 32KB
+  int block_size = (1024 / sizeof(unsigned int)); // 256 ints per block
 
   // figure out how to exacly generate this number (remove rounding error)
   ssize_t localThetaPrime = (thetaPrime / world_size) + 1;

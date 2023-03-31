@@ -62,8 +62,10 @@ class CommunicationEngine
         size_t block_tax = 0;
         for (auto & processCount : countPerProcess)
         {
-            block_tax += (processCount % block_size);
-            processCount += (processCount % block_size);
+            size_t blocks_to_add = block_size - (processCount % block_size);
+            // size_t blocks_to_add = processCount % block_size;
+            block_tax += blocks_to_add;
+            processCount += blocks_to_add;
         }
 
         return count + block_tax;
