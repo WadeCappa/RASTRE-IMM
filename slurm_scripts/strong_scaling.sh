@@ -2,13 +2,13 @@
 
 #SBATCH -A m1641
 #SBATCH -C cpu
-#SBATCH -t 01:00:00
+#SBATCH -t 03:00:00
 #SBATCH -q regular
-#SBATCH -N 513
+#SBATCH -N 65
 #SBATCH --ntasks-per-node=1
-#SBATCH -J m513_wikipedia
-#SBATCH -o /global/cfs/cdirs/m1641/network-results/strong_scaling/wikipedia/m513_wikipedia.o
-#SBATCH -e /global/cfs/cdirs/m1641/network-results/strong_scaling/wikipedia/m513_wikipedia.e
+#SBATCH -J m65_wikipedia
+#SBATCH -o /global/cfs/cdirs/m1641/network-results/strong_scaling/wikipedia/m65_wikipedia.o
+#SBATCH -e /global/cfs/cdirs/m1641/network-results/strong_scaling/wikipedia/m65_wikipedia.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 513 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/wikipedia_binary.txt  -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/strong_scaling/wikipedia/m513_wikipedia.json --run-streaming=true --epsilon-2=0.077 --reload-binary -u
+srun -n 65 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/wikipedia_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/strong_scaling/wikipedia/m65_wikipedia.json --run-streaming=true --epsilon-2=0.077 --reload-binary

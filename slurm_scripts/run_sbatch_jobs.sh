@@ -1,0 +1,1 @@
+sbatch strong_scaling.sh 3
