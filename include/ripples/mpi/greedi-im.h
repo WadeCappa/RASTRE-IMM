@@ -69,6 +69,7 @@
 
 #include <time.h>
 #include <cstdlib>
+#include <numeric>
 #include <random>
 
 #include "ripples/mpi/streaming_engine.h"
@@ -164,6 +165,9 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
   // figure out how to exacly generate this number (remove rounding error)
   ssize_t localThetaPrime = (thetaPrime / world_size) + 1;
+  // int TOTAL_THETA = 442266;
+  // int TOTAL_THETA = 670065;
+  // ssize_t localThetaPrime = TOTAL_THETA / world_size;
 
   std::pair<std::vector<unsigned int>, size_t> globalSeeds;
 
@@ -190,6 +194,45 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
       timeAggregator.samplingTimer.endTimer();
     }
+
+    // // do communication to get all set sizes
+    // std::vector<unsigned int> set_sizes(localThetaPrime, 0);
+    // tRRRSets.GetSetSizes(set_sizes);
+
+    // std::vector<unsigned int> received_sizes(TOTAL_THETA, 0);
+    // MPI_Gather(
+    //   set_sizes.data(), localThetaPrime, MPI_INT,
+    //   received_sizes.data(), localThetaPrime, MPI_INT, 0, MPI_COMM_WORLD
+    // );
+
+    // if (world_rank == 0)
+    // {
+    //   // calculate results
+    //   double mean = 0;
+    //   size_t sum = 0;
+
+    //   for (const auto & val : received_sizes)
+    //   {
+    //     sum+=val;
+    //   }
+
+    //   mean = double(sum) / double(TOTAL_THETA);
+    //   spdlog::get("console")->info("mean = {}", mean);
+
+    //   double sum_x_minux_mean_squared = 0;
+
+    //   for (const auto & val : received_sizes)
+    //   {
+    //     sum_x_minux_mean_squared += (val - mean) * (val - mean);
+    //   }
+
+    //   double standard_deviation = std::sqrt(sum_x_minux_mean_squared / TOTAL_THETA);
+
+    //   spdlog::get("console")->info("sd   = {}", standard_deviation);
+    // }
+
+    // return std::make_pair(std::vector<unsigned int>(), 0); // exit
+
 
     spdlog::get("console")->info("AlltoAll...");
 
@@ -241,8 +284,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     // std::cout << "COUNTING ELEMENTS: process " << world_rank << " has " << aggregateSets->size() << " vertices" << std::endl;
 
-    // int kprime = int(CFG.alpha * (double)CFG.k);
-    int kprime = int(CFG.k);
+    int kprime = int(CFG.alpha * (double)CFG.k);
+    // int kprime = int(CFG.k);
 
     if (CFG.use_streaming == true) 
     {
@@ -250,15 +293,15 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       {
         spdlog::get("console")->info("streaming...");
 
-        StreamingRandGreedIEngine streamingEngine((int)CFG.k, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
-        globalSeeds = streamingEngine.Stream(&timeAggregator, (int)CFG.k);
+        StreamingRandGreedIEngine streamingEngine((int)CFG.k, kprime, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
+        globalSeeds = streamingEngine.Stream(&timeAggregator);
       }
       else 
       {
         spdlog::get("console")->info("local max-k-cover...");
         timeAggregator.totalSendTimer.startTimer();
         
-        MaxKCoverEngine<GraphTy> localKCoverEngine(kprime);
+        MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k, kprime);
         localKCoverEngine.useLazyGreedy(aggregateSets)->setSendPartialSolutions(&cEngine, &timeAggregator);
         localKCoverEngine.run_max_k_cover(aggregateSets, thetaPrime*2);
 
@@ -273,7 +316,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       std::pair<std::vector<unsigned int>, ssize_t> localSeeds;
 
       {
-        MaxKCoverEngine<GraphTy> localKCoverEngine(kprime);
+        MaxKCoverEngine<GraphTy> localKCoverEngine((int)CFG.k, kprime);
         localSeeds = localKCoverEngine.useLazyGreedy(aggregateSets)->run_max_k_cover(aggregateSets, thetaPrime*2);
       }
 
@@ -319,7 +362,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         timeAggregator.max_k_globalTimer.startTimer();
 
         {
-          MaxKCoverEngine<GraphTy> globalKCoverEngine((int)CFG.k);
+          MaxKCoverEngine<GraphTy> globalKCoverEngine((int)CFG.k, (int)CFG.k);
           globalSeeds = globalKCoverEngine.useLazyGreedy(bestKMSeeds)->run_max_k_cover(bestKMSeeds, thetaPrime * 2);
         }
 

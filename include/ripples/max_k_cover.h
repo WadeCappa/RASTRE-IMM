@@ -330,6 +330,7 @@ private:
     };
 
     int k;
+    int kprime;
     double epsilon;
     bool usingStochastic = false;
     bool sendPartialSolutions;
@@ -381,10 +382,45 @@ private:
         this->send_buffers[current_seed].first = sendData.first;
     }
 
+    void InsertLastSeed(
+        const unsigned int current_seed, 
+        const std::vector<unsigned int>& local_seed_set, 
+        const std::vector<int>& RRRSetIDs 
+    )
+    {
+        this->InsertNextSeedIntoSendBuffer(
+            current_seed, 
+            local_seed_set[current_seed], 
+            RRRSetIDs
+        );
+
+        int* newBuffer = new int[this->send_buffers[current_seed].first + local_seed_set.size() + 1];
+
+        int start = 0;
+        for (; this->send_buffers[current_seed].second[start] != -1; start++)
+        {
+            newBuffer[start] = this->send_buffers[current_seed].second[start];
+        }
+
+        newBuffer[start] = -1;
+
+        start++;
+
+        for (const auto & seed : local_seed_set)
+        {
+            newBuffer[start++] = seed;
+        }
+
+        newBuffer[start] = -1;
+
+        delete this->send_buffers[current_seed].second;
+        this->send_buffers[current_seed].second = newBuffer;
+
+        this->send_buffers[current_seed].first = this->send_buffers[current_seed].first + local_seed_set.size() + 1;
+    }
+
     void SendNextSeed(const unsigned int current_send_index, const unsigned int tag)
     {
-        this->timer->sendTimer.startTimer();
-
         MPI_Isend (
             this->send_buffers[current_send_index].second,
             this->send_buffers[current_send_index].first,
@@ -393,8 +429,6 @@ private:
             MPI_COMM_WORLD,
             this->request
         );
-
-        this->timer->sendTimer.endTimer();
     }
 
     unsigned int GetUtility(ripples::Bitmask<int>& covered)
@@ -403,10 +437,86 @@ private:
         return this->utility;
     }
 
+    void SendSeed(
+        unsigned int currentSeed, 
+        bool waitingOnSends, 
+        unsigned int& current_send_index, 
+        std::vector<unsigned int>& res,
+        std::map<int, std::vector<int>>& data,
+        ripples::Bitmask<int>& covered
+    )
+    {
+        if (waitingOnSends)
+        {
+            MPI_Status status;
+
+            MPI_Wait(this->request, &status);
+
+            delete this->send_buffers[current_send_index++].second;
+
+            for (; current_send_index < this->kprime; current_send_index++)
+            {
+                if (current_send_index != this->kprime - 1)
+                {
+                    this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
+                    MPI_Send (
+                        this->send_buffers[current_send_index].second,
+                        this->send_buffers[current_send_index].first,
+                        MPI_INT, 0,
+                        current_send_index,
+                        MPI_COMM_WORLD
+                    );
+                }
+                else 
+                {
+                    this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index]));
+                    MPI_Send (
+                        this->send_buffers[current_send_index].second,
+                        this->send_buffers[current_send_index].first,
+                        MPI_INT, 0,
+                        this->GetUtility(covered),
+                        MPI_COMM_WORLD
+                    );
+                }
+
+                delete this->send_buffers[current_send_index].second;
+            }
+        }
+        else 
+        {
+            if (currentSeed > 0)
+            {
+                MPI_Status status;
+                int flag;
+                if (current_send_index < this->kprime - 2)
+                {
+
+                    MPI_Test(this->request, &flag, &status);
+                    if (flag == 1)
+                    {
+                        delete this->send_buffers[current_send_index++].second;
+
+                        if (current_send_index < this->kprime - 1)
+                        {
+                            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
+                            this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
+                        }
+                    }
+                }
+            }
+            else 
+            {
+                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
+                this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
+            }
+        }
+    }
+
 public:
-    MaxKCoverEngine(int k) 
+    MaxKCoverEngine(int k, int kprime) 
     {
         this->k = k;
+        this->kprime = kprime;
         this->sendPartialSolutions = false;
     };
 
@@ -470,13 +580,13 @@ public:
 
         if (this->sendPartialSolutions)
         {
-            for (int i = 0; i < this->k; i++)
+            for (int i = 0; i < this->kprime; i++)
             {
                 this->send_buffers.push_back(std::make_pair(0, (int*)0));
             }
         }
 
-        for (unsigned int currentSeed = 0; currentSeed < k; currentSeed++)
+        for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
         {
             if (this->usingStochastic)
             {
@@ -502,59 +612,16 @@ public:
             //  streaming setting has been selected. 
             if (this->sendPartialSolutions) 
             {
-                if (currentSeed > 0)
-                {
-                    MPI_Status status;
-                    int flag;
-                    MPI_Test(this->request, &flag, &status);
-                    if (flag == 1)
-                    {
-                        delete this->send_buffers[current_send_index++].second;
-
-                        if (current_send_index != k)
-                        {
-                            timer->sendTimer.startTimer();
-                            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                            this->SendNextSeed(current_send_index, current_send_index == k - 1 ? this->GetUtility(covered) : current_send_index);
-                            timer->sendTimer.endTimer();
-                        }
-                    }
-                }
-                else 
-                {
-                    timer->sendTimer.startTimer();
-                    this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                    this->SendNextSeed(current_send_index, current_send_index == k - 1 ? this->GetUtility(covered) : current_send_index);
-                    timer->sendTimer.endTimer();
-                }
+                this->timer->sendTimer.startTimer();
+                this->SendSeed(currentSeed, false, current_send_index, res, data, covered);
+                this->timer->sendTimer.endTimer();
             }
         }
 
         if (this->sendPartialSolutions)
         {
-            MPI_Status status;
-
             this->timer->sendTimer.startTimer();
-            MPI_Wait(this->request, &status);
-
-            delete this->send_buffers[current_send_index].second;
-            current_send_index++;
-
-            timer->sendTimer.startTimer();
-            for (; current_send_index < k; current_send_index++)
-            {
-                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                MPI_Send (
-                    this->send_buffers[current_send_index].second,
-                    this->send_buffers[current_send_index].first,
-                    MPI_INT, 0,
-                    current_send_index == k - 1 ? this->GetUtility(covered) : current_send_index,
-                    MPI_COMM_WORLD
-                );
-
-                delete this->send_buffers[current_send_index].second;
-            }
-
+            this->SendSeed((unsigned int)0, true, current_send_index, res, data, covered);
             this->timer->sendTimer.endTimer();
         }
         

@@ -202,7 +202,7 @@ void AddTransposeRRRSet(TransposeRRRSets<GraphTy> &tRRRSets, const GraphTy &G, t
         }
       }
     } else if (std::is_same<diff_model_tag,
-                            ripples::linear_threshold_tag>::value) {
+                            ripples::linear_threshold_tag>::value) { 
       float threshold = value(generator);
       for (auto u : G.neighbors(v)) {
         threshold -= u.weight;

@@ -191,6 +191,7 @@ class StreamingRandGreedIEngine
     BucketController buckets;
 
     int k;
+    int kprime;
     int active_senders;
     int first_values_from_senders;
     int world_size;
@@ -198,6 +199,24 @@ class StreamingRandGreedIEngine
     double epsilon;
 
     ElementList* elements;
+
+    static void GetSeedSet(int* data, std::vector<unsigned int>& seed_set)
+    {
+        int negatives = 0;
+        int* e = data;
+        for (; negatives != 2; e++)
+        {
+            if (negatives == 1 && *e != -1)
+            {
+                seed_set.push_back(*e);
+            }
+
+            if (*e == -1)
+            {
+                negatives++;
+            }
+        }
+    }
 
     static std::pair<int, std::vector<int>*> ExtractElement(int* data)
     {
@@ -247,11 +266,12 @@ class StreamingRandGreedIEngine
     }
 
     public:
-    StreamingRandGreedIEngine(int k, ssize_t theta, double epsilon, int world_size) 
+    StreamingRandGreedIEngine(int k, int kprime, ssize_t theta, double epsilon, int world_size) 
         : buckets(k, theta, epsilon)
     {
         this->active_senders = world_size - 1;
         this->k = k;
+        this->kprime = kprime;
         this->epsilon = epsilon;
         this->world_size = world_size;
         this->first_values_from_senders = 0;
@@ -273,7 +293,7 @@ class StreamingRandGreedIEngine
         delete this->request;
     }
 
-    std::pair<std::vector<unsigned int>, int> Stream(TimerAggregator* timer, int kprime)
+    std::pair<std::vector<unsigned int>, int> Stream(TimerAggregator* timer)
     {
         MPI_Status status;
         int buckets_initialized = 0;
@@ -286,13 +306,15 @@ class StreamingRandGreedIEngine
         std::vector<std::vector<std::pair<int, std::vector<int>*>>> element_matrix(
             this->world_size, 
             std::vector<std::pair<int, std::vector<int>*>>(
-                kprime,
+                this->kprime,
                 std::make_pair(-1, (std::vector<int>*)0)
             )
         );
 
+        std::vector<std::vector<unsigned int>> local_seed_sets(this->world_size);
+
         std::vector<std::pair<int, std::pair<int,int>>> availability_index(
-            this->world_size * kprime, 
+            this->world_size * this->kprime, 
             std::make_pair(0, std::make_pair(-1,-1))
         );
 
@@ -310,7 +332,7 @@ class StreamingRandGreedIEngine
 
                 // std::cout << "RECEIVING WITH THREAD ID " << omp_get_thread_num() << std::endl;
 
-                for (int i = 0; i < (this->world_size * kprime); i++)
+                for (int i = 0; i < (this->world_size * this->kprime); i++)
                 {
                     // TODO: Add all stop conidtions
 
@@ -323,13 +345,20 @@ class StreamingRandGreedIEngine
 
                     timer->processingReceiveTimer.startTimer();
 
-                    int tag = status.MPI_TAG > this-> k - 1 ? kprime - 1 : status.MPI_TAG;
+                    int tag = status.MPI_TAG > this-> k - 1 ? this->kprime - 1 : status.MPI_TAG;
                     int source = status.MPI_SOURCE - 1;
 
-                    if (status.MPI_TAG > kprime - 1)
+                    if (status.MPI_TAG > this->kprime - 1)
                     {
                         local_utilities[source] = status.MPI_TAG;
-                        // std::cout << "received utility of " << status.MPI_TAG << " from " << source << std::endl;
+                        this->GetSeedSet(this->buffer, local_seed_sets[source]);
+                        // std::cout << "got seed set from " << source << std::endl;
+                        
+                        // for (const auto & seed : local_seed_sets[source])
+                        // {
+                        //     std::cout << seed << ", ";
+                        // }
+                        // std::cout << std::endl;
                     }
 
                     auto new_element = this->ExtractElement(this->buffer);
@@ -338,7 +367,7 @@ class StreamingRandGreedIEngine
 
                     maxVal = std::max(maxVal, new_element.second->size());
 
-                    if (this->HandleStatus(status, kprime))
+                    if (this->HandleStatus(status, this->kprime))
                     {
                         timer->initBucketTimer.startTimer();
                         this->buckets.CreateBuckets(maxVal);
@@ -361,7 +390,7 @@ class StreamingRandGreedIEngine
                     timer->atomicUpdateTimer.endTimer();
 
 
-                    if (i != this->world_size * kprime - 1)
+                    if (i != this->world_size * this->kprime - 1)
                     {
                         this->ResetBuffer();
                     }
@@ -449,13 +478,7 @@ class StreamingRandGreedIEngine
             if (local_utilities[i] > bestSeeds.second)
             {
                 bestSeeds.second = local_utilities[i];
-                std::vector<unsigned int> new_best_seeds;
-                for (const auto & s : element_matrix[i])
-                {
-                    new_best_seeds.push_back(s.first);
-                }
-
-                bestSeeds.first = new_best_seeds;
+                bestSeeds.first = local_seed_sets[i];
             }
         }
 

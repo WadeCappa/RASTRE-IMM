@@ -37,6 +37,14 @@ class TransposeRRRSets
         return sets.end();
     }
 
+    void GetSetSizes(std::vector<unsigned int>& setSizes)
+    {
+        for (int i = 0; i < setSizes.size() && i < this->sets.size(); i++)
+        {
+            setSizes[i] = (unsigned(this->sets[i].second.size()));
+        }
+    }
+
     void RemoveDuplicates()
     {
         #pragma omp parallel for
