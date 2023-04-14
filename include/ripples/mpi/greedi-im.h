@@ -618,9 +618,6 @@ auto GREEDI(const GraphTy &G, TransposeRRRSets<GraphTy>& tRRRSets, const ConfTy 
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-  // TOOD: randomize the bucketing of vertices to processes, use a coinflip algorithm
-  //  that chooses a process for each vertex as a loop linearly scans through the 
-  //  verticesPerProcess vector.
   std::vector<int> vertexToProcess(G.num_nodes(), -1);
 
   unsigned int seed = (unsigned int)time(0);
