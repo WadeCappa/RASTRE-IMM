@@ -80,4 +80,7 @@ local.properties
 
 .sts4-cache/
 
+# vscode
+.vscode
+
 # End of https://www.gitignore.io/api/eclipse
