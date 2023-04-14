@@ -1,0 +1,37 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/DBLP_binary.txt",
+    "K": 4,
+    "Seeds": [
+      13076,
+      3420,
+      38868,
+      2962
+    ],
+    "Simulations": [
+      [
+        219,
+        7
+      ],
+      [
+        219,
+        8
+      ],
+      [
+        145,
+        7
+      ],
+      [
+        165,
+        5
+      ],
+      [
+        228,
+        7
+      ]
+    ]
+  }
+]

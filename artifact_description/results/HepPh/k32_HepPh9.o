@@ -1,0 +1,1969 @@
+[2023-03-28 20:12:23.983] [console] [info] Loading...
+[2023-03-28 20:12:23.983] [console] [info] Loading...
+[2023-03-28 20:12:23.983] [console] [info] Loading...
+[2023-03-28 20:12:23.984] [console] [info] Loading...
+[2023-03-28 20:12:23.983] [console] [info] Loading...
+[2023-03-28 20:12:23.983] [console] [info] Loading...
+[2023-03-28 20:12:23.983] [console] [info] Loading...
+[2023-03-28 20:12:23.984] [console] [info] Loading...
+[2023-03-28 20:12:23.988] [console] [info] Loading...
+[2023-03-28 20:12:24.000] [console] [info] Loading Done!
+[2023-03-28 20:12:24.000] [console] [info] Number of Nodes : 34546
+[2023-03-28 20:12:24.000] [console] [info] Number of Edges : 421578
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] CPU Workers 64
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] GPU Workers 0
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=0	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 0
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=1	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 1
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=2	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 2
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=3	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 3
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=4	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 4
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=5	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 5
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=6	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 6
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=7	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 7
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=8	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 8
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=9	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 9
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=10	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 10
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=11	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 11
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=12	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 12
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=13	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 13
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=14	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 14
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=15	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 15
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=16	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 16
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=17	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 17
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=18	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 18
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=19	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 19
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=20	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 20
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=21	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 21
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=22	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 22
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=23	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 23
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=24	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 24
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=25	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 25
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=26	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 26
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=27	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 27
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=28	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 28
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=29	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 29
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=30	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 30
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=31	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 31
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=32	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 32
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=33	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 33
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=34	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 34
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=35	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 35
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=36	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 36
+[2023-03-28 20:12:24.007] [console] [info] Loading Done!
+[2023-03-28 20:12:24.007] [console] [info] Number of Nodes : 34546
+[2023-03-28 20:12:24.007] [console] [info] Number of Edges : 421578
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] CPU Workers 64
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] GPU Workers 0
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=0	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 0
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=1	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 1
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=2	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 2
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=3	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 3
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=4	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 4
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=5	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 5
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=6	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 6
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=7	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 7
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=8	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 8
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=9	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 9
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=10	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 10
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=11	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 11
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=12	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 12
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=13	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 13
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=14	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 14
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=15	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 15
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=16	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 16
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=17	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 17
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=18	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 18
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=19	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 19
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=20	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 20
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=21	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 21
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=22	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 22
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=23	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 23
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=24	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 24
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=25	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 25
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=26	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 26
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=27	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 27
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=28	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 28
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=29	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 29
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=30	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 30
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=31	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 31
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=32	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 32
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=33	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 33
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=34	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 34
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=35	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 35
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=36	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 36
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=37	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 37
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=38	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 38
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=39	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 39
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=40	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 40
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=41	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 41
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=42	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 42
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=43	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 43
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=44	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 44
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=45	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 45
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=46	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 46
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=47	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 47
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=48	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 48
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] > mapping: omp=49	->	CPU
+[2023-03-28 20:12:24.009] [Streaming Generator] [info] cpu_worker_id = 49
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=50	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 50
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=51	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 51
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=52	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 52
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=53	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 53
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=54	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 54
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=55	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 55
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=56	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 56
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=57	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 57
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=58	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 58
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=59	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 59
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=60	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 60
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=61	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 61
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=62	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 62
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] > mapping: omp=63	->	CPU
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] cpu_worker_id = 63
+[2023-03-28 20:12:24.010] [Streaming Generator] [info] Configured
+[2023-03-28 20:12:24.010] [console] [info] finished initializing graph
+[2023-03-28 20:12:24.011] [console] [info] Loading Done!
+[2023-03-28 20:12:24.011] [console] [info] Number of Nodes : 34546
+[2023-03-28 20:12:24.011] [console] [info] Number of Edges : 421578
+[2023-03-28 20:12:24.011] [console] [info] Loading Done!
+[2023-03-28 20:12:24.012] [console] [info] Number of Nodes : 34546
+[2023-03-28 20:12:24.012] [console] [info] Number of Edges : 421578
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] CPU Workers 64
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] GPU Workers 0
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=0	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 0
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=1	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 1
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=2	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 2
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=3	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 3
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=4	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 4
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=5	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 5
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=6	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 6
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=7	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 7
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=8	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 8
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=9	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 9
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=10	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 10
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=11	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 11
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=12	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 12
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=13	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 13
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=14	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 14
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=15	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 15
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=16	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 16
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=17	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 17
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=18	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 18
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=19	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 19
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=20	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 20
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=21	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 21
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=22	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 22
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=23	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 23
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=24	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 24
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=25	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 25
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=26	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 26
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=27	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 27
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=28	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 28
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=29	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 29
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=30	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 30
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=31	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 31
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=32	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 32
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=33	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 33
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=34	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 34
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=35	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 35
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] CPU Workers 64
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] GPU Workers 0
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=0	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 0
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=36	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 36
+[2023-03-28 20:12:24.013] [console] [info] sampling...
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=37	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 37
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=1	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 1
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=38	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 38
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=2	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 2
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=39	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 39
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=3	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 3
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=4	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 4
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=5	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 5
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=6	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 6
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=7	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 7
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=8	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 8
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=9	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 9
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=10	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 10
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=11	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 11
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=12	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 12
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=13	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 13
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=14	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 14
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=15	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 15
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=16	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 16
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=17	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 17
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=18	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 18
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=19	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 19
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=20	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 20
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=21	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 21
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=22	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 22
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=23	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 23
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=24	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 24
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=25	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 25
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=26	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 26
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=27	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 27
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=28	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 28
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=29	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 29
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=30	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 30
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=31	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 31
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=32	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 32
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=33	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 33
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=34	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 34
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=35	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 35
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=36	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 36
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=37	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 37
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=38	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 38
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=39	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 39
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=40	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 40
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=41	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 41
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=42	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 42
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=43	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 43
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=44	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 44
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=45	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 45
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=46	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 46
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=47	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 47
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=48	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 48
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=49	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 49
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=50	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 50
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=51	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 51
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=52	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 52
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=53	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 53
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=54	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 54
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=55	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 55
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=56	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 56
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=57	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 57
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=58	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 58
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=59	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 59
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=60	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 60
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=61	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 61
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=62	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 62
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=63	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 63
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] Configured
+[2023-03-28 20:12:24.014] [console] [info] finished initializing graph
+[2023-03-28 20:12:24.017] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.025] [console] [info] Loading Done!
+[2023-03-28 20:12:24.025] [console] [info] Number of Nodes : 34546
+[2023-03-28 20:12:24.025] [console] [info] Number of Edges : 421578
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] CPU Workers 64
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] GPU Workers 0
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=0	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 0
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=1	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 1
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=2	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 2
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=3	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 3
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=4	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 4
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=5	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 5
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=6	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 6
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=7	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 7
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=8	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 8
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=9	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 9
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=10	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 10
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=11	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 11
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=12	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 12
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=13	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 13
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=14	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 14
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=15	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 15
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=16	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 16
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=17	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 17
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=18	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 18
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=19	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 19
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=20	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 20
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=21	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 21
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=22	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 22
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=23	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 23
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=24	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 24
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=25	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 25
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=26	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 26
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=27	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 27
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=28	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 28
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=29	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 29
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=30	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 30
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=31	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 31
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=32	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 32
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=33	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 33
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=34	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 34
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=35	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 35
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=36	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 36
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=37	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 37
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=38	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 38
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=39	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 39
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=40	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 40
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=41	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 41
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=42	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 42
+[2023-03-28 20:12:24.028] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.029] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=37	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 37
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=38	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 38
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=39	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 39
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=40	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 40
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=41	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 41
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=42	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 42
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=43	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 43
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=44	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 44
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=45	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 45
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=46	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 46
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=47	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 47
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=48	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 48
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=49	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 49
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=50	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 50
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=51	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 51
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=52	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 52
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=53	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 53
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=54	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 54
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=55	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 55
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=56	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 56
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=57	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 57
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=58	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 58
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=59	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 59
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=60	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 60
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=61	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 61
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=62	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 62
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] > mapping: omp=63	->	CPU
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] cpu_worker_id = 63
+[2023-03-28 20:12:24.002] [Streaming Generator] [info] Configured
+[2023-03-28 20:12:24.002] [console] [info] finished initializing graph
+[2023-03-28 20:12:24.006] [console] [info] sampling...
+[2023-03-28 20:12:24.010] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.021] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.022] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=40	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 40
+[2023-03-28 20:12:24.018] [console] [info] sampling...
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=41	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 41
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=42	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 42
+[2023-03-28 20:12:24.022] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=43	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 43
+[2023-03-28 20:12:24.032] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=44	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 44
+[2023-03-28 20:12:24.033] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=45	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 45
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=46	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 46
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=47	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 47
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=48	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 48
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=49	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 49
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=50	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 50
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=51	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 51
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=52	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 52
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=53	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 53
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] > mapping: omp=54	->	CPU
+[2023-03-28 20:12:24.013] [Streaming Generator] [info] cpu_worker_id = 54
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=55	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 55
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=56	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 56
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=57	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 57
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=58	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 58
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=59	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 59
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=60	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 60
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=61	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 61
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=62	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 62
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] > mapping: omp=63	->	CPU
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] cpu_worker_id = 63
+[2023-03-28 20:12:24.014] [Streaming Generator] [info] Configured
+[2023-03-28 20:12:24.014] [console] [info] finished initializing graph
+[2023-03-28 20:12:24.017] [console] [info] sampling...
+[2023-03-28 20:12:24.021] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.032] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.033] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=43	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 43
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=44	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 44
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=45	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 45
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=46	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 46
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=47	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 47
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=48	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 48
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=49	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 49
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=50	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 50
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=51	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 51
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=52	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 52
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=53	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 53
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=54	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 54
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=55	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 55
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=56	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 56
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=57	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 57
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=58	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 58
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=59	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 59
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=60	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 60
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=61	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 61
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=62	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 62
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] > mapping: omp=63	->	CPU
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] cpu_worker_id = 63
+[2023-03-28 20:12:24.027] [Streaming Generator] [info] Configured
+[2023-03-28 20:12:24.027] [console] [info] finished initializing graph
+[2023-03-28 20:12:24.030] [console] [info] sampling...
+[2023-03-28 20:12:24.035] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.046] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.047] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.149] [console] [info] Loading Done!
+[2023-03-28 20:12:24.149] [console] [info] Number of Nodes : 34546
+[2023-03-28 20:12:24.149] [console] [info] Number of Edges : 421578
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] CPU Workers 64
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] GPU Workers 0
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=0	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 0
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=1	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 1
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=2	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 2
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=3	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 3
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=4	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 4
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=5	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 5
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=6	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 6
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=7	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 7
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=8	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 8
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=9	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 9
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=10	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 10
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=11	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 11
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=12	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 12
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=13	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 13
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=14	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 14
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=15	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 15
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=16	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 16
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=17	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 17
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=18	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 18
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=19	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 19
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=20	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 20
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=21	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 21
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=22	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 22
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=23	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 23
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=24	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 24
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=25	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 25
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=26	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 26
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=27	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 27
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=28	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 28
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=29	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 29
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=30	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 30
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=31	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 31
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=32	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 32
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=33	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 33
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=34	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 34
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=35	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 35
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=36	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 36
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=37	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 37
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=38	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 38
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=39	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 39
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=40	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 40
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=41	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 41
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=42	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 42
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=43	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 43
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=44	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 44
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=45	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 45
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=46	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 46
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=47	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 47
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=48	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 48
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=49	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 49
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=50	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 50
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=51	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 51
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=52	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 52
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=53	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 53
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=54	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 54
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=55	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 55
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=56	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 56
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=57	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 57
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=58	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 58
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=59	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 59
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=60	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 60
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=61	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 61
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=62	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 62
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] > mapping: omp=63	->	CPU
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] cpu_worker_id = 63
+[2023-03-28 20:12:24.151] [Streaming Generator] [info] Configured
+[2023-03-28 20:12:24.151] [console] [info] finished initializing graph
+[2023-03-28 20:12:24.153] [console] [info] Loading Done!
+[2023-03-28 20:12:24.153] [console] [info] Number of Nodes : 34546
+[2023-03-28 20:12:24.153] [console] [info] Number of Edges : 421578
+[2023-03-28 20:12:24.153] [console] [info] Loading Done!
+[2023-03-28 20:12:24.153] [console] [info] Number of Nodes : 34546
+[2023-03-28 20:12:24.153] [console] [info] Number of Edges : 421578
+[2023-03-28 20:12:24.153] [console] [info] Loading Done!
+[2023-03-28 20:12:24.153] [console] [info] Number of Nodes : 34546
+[2023-03-28 20:12:24.153] [console] [info] Number of Edges : 421578
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] CPU Workers 64
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] GPU Workers 0
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=0	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 0
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=1	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 1
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=2	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 2
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=3	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 3
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=4	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 4
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=5	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 5
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=6	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 6
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=7	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 7
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=8	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 8
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=9	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 9
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=10	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 10
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=11	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 11
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=12	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 12
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] CPU Workers 64
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] GPU Workers 0
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=0	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 0
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=1	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 1
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=13	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 13
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=14	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 14
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=2	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 2
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=15	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 15
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=3	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 3
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=4	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 4
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=5	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 5
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=16	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 16
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=6	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 6
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=17	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 17
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=7	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 7
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=18	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 18
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=8	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 8
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=19	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 19
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=9	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 9
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=10	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 10
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=20	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 20
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=11	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 11
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=21	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 21
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=22	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 22
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=12	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 12
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=23	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 23
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=13	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 13
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=24	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 24
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=14	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 14
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=25	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 25
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=15	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 15
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=26	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 26
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=27	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 27
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=28	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 28
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=16	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 16
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=29	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 29
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=30	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 30
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] CPU Workers 64
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] GPU Workers 0
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=0	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 0
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=1	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 1
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=17	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 17
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=18	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 18
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=31	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 31
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=2	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 2
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=19	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 19
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=32	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 32
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=3	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 3
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=4	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 4
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=5	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 5
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=20	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 20
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=33	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 33
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=6	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 6
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=21	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 21
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=22	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 22
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=34	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 34
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=7	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 7
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=8	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 8
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=23	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 23
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=35	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 35
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=9	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 9
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=24	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 24
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=36	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=10	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 10
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=25	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 25
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=26	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 26
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 36
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=11	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 11
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=27	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 27
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=37	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 37
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=12	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=28	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 28
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=38	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 38
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 12
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=29	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 29
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=39	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 39
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=13	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 13
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=14	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 14
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=30	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 30
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=31	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 31
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=40	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 40
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=15	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 15
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=32	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 32
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=41	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 41
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=16	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 16
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=33	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 33
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=34	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 34
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=17	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 17
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=35	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 35
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=18	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 18
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=36	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 36
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=42	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 42
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=19	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 19
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=20	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 20
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=37	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 37
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=38	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 38
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=43	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 43
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=21	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 21
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=39	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 39
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=44	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 44
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=22	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 22
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=23	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 23
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=40	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 40
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=45	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 45
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=24	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 24
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=41	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 41
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=42	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 42
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=46	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 46
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=25	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 25
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=43	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 43
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=47	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 47
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=26	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 26
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=44	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 44
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=48	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 48
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=27	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 27
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=45	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 45
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=46	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 46
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=49	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 49
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=28	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 28
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=47	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 47
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=50	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 50
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=29	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 29
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=48	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 48
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=51	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 51
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=30	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 30
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=31	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 31
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=49	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 49
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=50	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 50
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=52	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 52
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=32	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 32
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=51	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 51
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=53	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 53
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=33	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 33
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=34	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=54	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 54
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 34
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=55	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 55
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=35	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 35
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=56	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 56
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=57	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 57
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=58	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 58
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=59	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 59
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=36	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 36
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=37	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 37
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=60	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 60
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=38	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 38
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=61	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 61
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=39	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 39
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=62	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 62
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=40	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 40
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=63	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 63
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=41	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 41
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] Configured
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=42	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 42
+[2023-03-28 20:12:24.155] [console] [info] finished initializing graph
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=43	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 43
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=44	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 44
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=45	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 45
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=46	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 46
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=47	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 47
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=48	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 48
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=49	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 49
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=50	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 50
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=51	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 51
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=52	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 52
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=53	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 53
+[2023-03-28 20:12:24.175] [console] [info] streaming...
+[2023-03-28 20:12:24.176] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.176] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.177] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.177] [console] [info] local max-k-cover...
+deltazero: 83, number of buckets: 314
+deallocating base class in max_k_cover...
+rank 3 returning global seeds
+finished iteration 1 and aquired utility of 0
+thetaprime: 33827
+number of buckets; 315, threads; 63, buckets per thread; 6
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+rank 2 returning global seeds
+finished iteration 1 and aquired utility of 0
+thetaprime: 33827
+rank 1 returning global seeds
+finished iteration 1 and aquired utility of 0
+thetaprime: 33827
+deallocating base class in max_k_cover...
+rank 4 returning global seeds
+finished iteration 1 and aquired utility of 0
+thetaprime: 33827
+selected bucket 248 with size of 32rank 0 returning global seeds
+finished iteration 1 and aquired utility of 1048
+thetaprime: 33827
+[2023-03-28 20:12:24.186] [console] [info] sampling...
+[2023-03-28 20:12:24.186] [console] [info] sampling...
+[2023-03-28 20:12:24.186] [console] [info] sampling...
+[2023-03-28 20:12:24.186] [console] [info] sampling...
+[2023-03-28 20:12:24.186] [console] [info] sampling...
+[2023-03-28 20:12:24.187] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.187] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.187] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.187] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.188] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.155] [console] [info] sampling...
+[2023-03-28 20:12:24.159] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.169] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.169] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.177] [console] [info] local max-k-cover...
+deallocating base class in max_k_cover...
+rank 5 returning global seeds
+finished iteration 1 and aquired utility of 0
+thetaprime: 33827
+[2023-03-28 20:12:24.186] [console] [info] sampling...
+[2023-03-28 20:12:24.187] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.197] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.197] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.197] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.197] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.197] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.197] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.198] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.198] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.198] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.198] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.198] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.199] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.199] [console] [info] streaming...
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=54	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 54
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=55	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 55
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=52	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 52
+[2023-03-28 20:12:24.159] [console] [info] sampling...
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=56	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 56
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=53	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 53
+[2023-03-28 20:12:24.163] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=57	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 57
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=54	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 54
+[2023-03-28 20:12:24.174] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=58	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 58
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=55	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 55
+[2023-03-28 20:12:24.175] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=59	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 59
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=56	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 56
+[2023-03-28 20:12:24.177] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=60	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 60
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=57	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 57
+deallocating base class in max_k_cover...
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=61	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 61
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=58	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 58
+rank 8 returning global seeds
+finished iteration 1 and aquired utility of 0
+thetaprime: 33827
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=62	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 62
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=59	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 59
+[2023-03-28 20:12:24.186] [console] [info] sampling...
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] > mapping: omp=63	->	CPU
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] cpu_worker_id = 63
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=60	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 60
+[2023-03-28 20:12:24.187] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.156] [Streaming Generator] [info] Configured
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=61	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 61
+[2023-03-28 20:12:24.196] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.156] [console] [info] finished initializing graph
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=62	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 62
+[2023-03-28 20:12:24.196] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.159] [console] [info] sampling...
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] > mapping: omp=63	->	CPU
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] cpu_worker_id = 63
+[2023-03-28 20:12:24.163] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.155] [Streaming Generator] [info] Configured
+[2023-03-28 20:12:24.174] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.155] [console] [info] finished initializing graph
+[2023-03-28 20:12:24.174] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.159] [console] [info] sampling...
+[2023-03-28 20:12:24.177] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.162] [console] [info] AlltoAll...
+deallocating base class in max_k_cover...
+[2023-03-28 20:12:24.173] [console] [info] Linearizing data for AllToAll...
+rank 7 returning global seeds
+finished iteration 1 and aquired utility of 0
+thetaprime: 33827
+[2023-03-28 20:12:24.174] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.186] [console] [info] sampling...
+[2023-03-28 20:12:24.177] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.187] [console] [info] AlltoAll...
+deallocating base class in max_k_cover...
+[2023-03-28 20:12:24.197] [console] [info] Linearizing data for AllToAll...
+rank 6 returning global seeds
+finished iteration 1 and aquired utility of 0
+thetaprime: 33827
+[2023-03-28 20:12:24.197] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.186] [console] [info] sampling...
+[2023-03-28 20:12:24.187] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.197] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.198] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.200] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.200] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.200] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.201] [console] [info] local max-k-cover...
+deallocating base class in max_k_cover...
+[2023-03-28 20:12:24.201] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.201] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.201] [console] [info] local max-k-cover...
+rank 4 returning global seeds
+finished iteration 2 and aquired utility of 0
+thetaprime: 67655
+deallocating base class in max_k_cover...
+rank 7 returning global seeds
+finished iteration 2 and aquired utility of 0
+thetaprime: 67655
+deallocating base class in max_k_cover...
+deltazero: 128, number of buckets: 314
+rank 8 returning global seeds
+finished iteration 2 and aquired utility of 0
+thetaprime: 67655
+deallocating base class in max_k_cover...
+rank 2 returning global seeds
+finished iteration 2 and aquired utility of 0
+thetaprime: 67655
+deallocating base class in max_k_cover...
+number of buckets; 315, threads; 63, buckets per thread; 6
+deallocating base class in max_k_cover...
+rank 5 returning global seeds
+finished iteration 2 and aquired utility of 0
+thetaprime: 67655
+deallocating base class in max_k_cover...
+rank 1 returning global seeds
+finished iteration 2 and aquired utility of 0
+thetaprime: 67655
+rank 3 returning global seeds
+finished iteration 2 and aquired utility of 0
+thetaprime: 67655
+selected bucket 276 with size of 32rank 0 returning global seeds
+finished iteration 2 and aquired utility of 1807
+thetaprime: 67655
+[2023-03-28 20:12:24.212] [console] [info] sampling...
+[2023-03-28 20:12:24.212] [console] [info] sampling...
+[2023-03-28 20:12:24.212] [console] [info] sampling...
+[2023-03-28 20:12:24.212] [console] [info] sampling...
+[2023-03-28 20:12:24.212] [console] [info] sampling...
+[2023-03-28 20:12:24.212] [console] [info] sampling...
+[2023-03-28 20:12:24.212] [console] [info] sampling...
+[2023-03-28 20:12:24.212] [console] [info] sampling...
+[2023-03-28 20:12:24.213] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.213] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.213] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.213] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.213] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.213] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.213] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.215] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.223] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.223] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.223] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.223] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.223] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.223] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.223] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.224] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.224] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.224] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.224] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.224] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.224] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.224] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.225] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.225] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.226] [console] [info] streaming...
+[2023-03-28 20:12:24.229] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.229] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.229] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.229] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.230] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.230] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.230] [console] [info] local max-k-cover...
+deallocating base class in max_k_cover...
+rank 3 returning global seeds
+finished iteration 3 and aquired utility of 0
+thetaprime: 135311
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+rank 5 returning global seeds
+finished iteration 3 and aquired utility of 0
+thetaprime: 135311
+rank 4 returning global seeds
+finished iteration 3 and aquired utility of 0
+thetaprime: 135311
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deltazero: 319, number of buckets: 314
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+rank 8 returning global seeds
+finished iteration 3 and aquired utility of 0
+thetaprime: 135311
+rank 2 returning global seeds
+finished iteration 3 and aquired utility of 0
+thetaprime: 135311
+rank 7 returning global seeds
+finished iteration 3 and aquired utility of 0
+thetaprime: 135311
+rank 1 returning global seeds
+finished iteration 3 and aquired utility of 0
+thetaprime: 135311
+number of buckets; 315, threads; 63, buckets per thread; 6
+[2023-03-28 20:12:24.201] [console] [info] local max-k-cover...
+deallocating base class in max_k_cover...
+rank 6 returning global seeds
+finished iteration 2 and aquired utility of 0
+thetaprime: 67655
+[2023-03-28 20:12:24.212] [console] [info] sampling...
+[2023-03-28 20:12:24.213] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.224] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.224] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.229] [console] [info] local max-k-cover...
+deallocating base class in max_k_cover...
+rank 6 returning global seeds
+finished iteration 3 and aquired utility of 0
+thetaprime: 135311
+selected bucket 257 with size of 32rank 0 returning global seeds
+finished iteration 3 and aquired utility of 3901
+thetaprime: 135311
+[2023-03-28 20:12:24.248] [console] [info] sampling...
+[2023-03-28 20:12:24.248] [console] [info] sampling...
+[2023-03-28 20:12:24.248] [console] [info] sampling...
+[2023-03-28 20:12:24.248] [console] [info] sampling...
+[2023-03-28 20:12:24.248] [console] [info] sampling...
+[2023-03-28 20:12:24.248] [console] [info] sampling...
+[2023-03-28 20:12:24.248] [console] [info] sampling...
+[2023-03-28 20:12:24.248] [console] [info] sampling...
+[2023-03-28 20:12:24.248] [console] [info] sampling...
+[2023-03-28 20:12:24.250] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.250] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.250] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.251] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.251] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.251] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.251] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.251] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.251] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.259] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.260] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.260] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.261] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.261] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.262] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.262] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.262] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.262] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.262] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.262] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.262] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.262] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.262] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.262] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.262] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.263] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.263] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.263] [console] [info] streaming...
+[2023-03-28 20:12:24.267] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.267] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.267] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.267] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.267] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.267] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.267] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.267] [console] [info] local max-k-cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+rank 3 returning global seeds
+finished iteration 4 and aquired utility of 0
+thetaprime: 270622
+rank 2 returning global seeds
+finished iteration 4 and aquired utility of 0
+thetaprime: 270622
+deltazero: 637, number of buckets: 314
+deallocating base class in max_k_cover...
+rank 7 returning global seeds
+finished iteration 4 and aquired utility of 0
+thetaprime: 270622
+rank 6 returning global seeds
+finished iteration 4 and aquired utility of 0
+thetaprime: 270622
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+rank 4 returning global seeds
+finished iteration 4 and aquired utility of 0
+thetaprime: 270622
+rank 5 returning global seeds
+finished iteration 4 and aquired utility of 0
+thetaprime: 270622
+rank 1 returning global seeds
+finished iteration 4 and aquired utility of 0
+thetaprime: 270622
+rank 8 returning global seeds
+finished iteration 4 and aquired utility of 0
+thetaprime: 270622
+number of buckets; 315, threads; 63, buckets per thread; 6
+selected bucket 251 with size of 32rank 0 returning global seeds
+finished iteration 4 and aquired utility of 7665
+thetaprime: 270622
+[2023-03-28 20:12:24.295] [console] [info] sampling...
+[2023-03-28 20:12:24.296] [console] [info] sampling...
+[2023-03-28 20:12:24.296] [console] [info] sampling...
+[2023-03-28 20:12:24.296] [console] [info] sampling...
+[2023-03-28 20:12:24.296] [console] [info] sampling...
+[2023-03-28 20:12:24.296] [console] [info] sampling...
+[2023-03-28 20:12:24.296] [console] [info] sampling...
+[2023-03-28 20:12:24.296] [console] [info] sampling...
+[2023-03-28 20:12:24.296] [console] [info] sampling...
+[2023-03-28 20:12:24.299] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.299] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.299] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.299] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.299] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.299] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.299] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.300] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.300] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.307] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.308] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.309] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.310] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.310] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.310] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.310] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.311] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.311] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.311] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.311] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.311] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.311] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.311] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.311] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.312] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.312] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.312] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.312] [console] [info] streaming...
+[2023-03-28 20:12:24.318] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.319] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.319] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.319] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.319] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.319] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.319] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.320] [console] [info] local max-k-cover...
+deallocating base class in max_k_cover...
+rank 3 returning global seeds
+finished iteration 5 and aquired utility of 0
+thetaprime: 541245
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deltazero: 1405, number of buckets: 314
+deallocating base class in max_k_cover...
+rank 6 returning global seeds
+finished iteration 5 and aquired utility of 0
+thetaprime: 541245
+rank 2 returning global seeds
+finished iteration 5 and aquired utility of 0
+thetaprime: 541245
+rank 1 returning global seeds
+finished iteration 5 and aquired utility of 0
+thetaprime: 541245
+rank 8 returning global seeds
+finished iteration 5 and aquired utility of 0
+thetaprime: 541245
+rank 5 returning global seeds
+finished iteration 5 and aquired utility of 0
+thetaprime: 541245
+rank 7 returning global seeds
+finished iteration 5 and aquired utility of 0
+thetaprime: 541245
+rank 4 returning global seeds
+finished iteration 5 and aquired utility of 0
+thetaprime: 541245
+number of buckets; 315, threads; 63, buckets per thread; 6
+selected bucket 242 with size of 32rank 0 returning global seeds
+finished iteration 5 and aquired utility of 16153
+thetaprime: 541245
+[2023-03-28 20:12:24.376] [console] [info] sampling...
+[2023-03-28 20:12:24.376] [console] [info] sampling...
+[2023-03-28 20:12:24.376] [console] [info] sampling...
+[2023-03-28 20:12:24.376] [console] [info] sampling...
+[2023-03-28 20:12:24.376] [console] [info] sampling...
+[2023-03-28 20:12:24.376] [console] [info] sampling...
+[2023-03-28 20:12:24.376] [console] [info] sampling...
+[2023-03-28 20:12:24.376] [console] [info] sampling...
+[2023-03-28 20:12:24.376] [console] [info] sampling...
+[2023-03-28 20:12:24.381] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.381] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.381] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.381] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.381] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.381] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.381] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.381] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.383] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.389] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.389] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.389] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.389] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.389] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.389] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.389] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.390] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.390] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.390] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.390] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.390] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.390] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.390] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.390] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.391] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.392] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.392] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.393] [console] [info] streaming...
+[2023-03-28 20:12:24.403] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.403] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.403] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.403] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.403] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.403] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.403] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.404] [console] [info] local max-k-cover...
+deallocating base class in max_k_cover...
+deltazero: 2808, number of buckets: 314
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+rank 3 returning global seeds
+finished iteration 6 and aquired utility of 0
+thetaprime: 1082490
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+rank 1 returning global seeds
+finished iteration 6 and aquired utility of 0
+thetaprime: 1082490
+rank 6 returning global seeds
+finished iteration 6 and aquired utility of 0
+thetaprime: 1082490
+rank 4 returning global seeds
+finished iteration 6 and aquired utility of 0
+thetaprime: 1082490
+rank 5 returning global seeds
+finished iteration 6 and aquired utility of 0
+thetaprime: 1082490
+rank 7 returning global seeds
+finished iteration 6 and aquired utility of 0
+thetaprime: 1082490
+rank 2 returning global seeds
+finished iteration 6 and aquired utility of 0
+thetaprime: 1082490
+rank 8 returning global seeds
+finished iteration 6 and aquired utility of 0
+thetaprime: 1082490
+number of buckets; 315, threads; 63, buckets per thread; 6
+selected bucket 240 with size of 32rank 0 returning global seeds
+finished iteration 6 and aquired utility of 31974
+thetaprime: 1082490
+[2023-03-28 20:12:24.516] [console] [info] Lower Bound 861.9359371910299
+[2023-03-28 20:12:24.516] [console] [info] Theta 1092096
+[2023-03-28 20:12:24.516] [console] [info] Lower Bound 861.9359371910299
+[2023-03-28 20:12:24.516] [console] [info] Theta 1092096
+[2023-03-28 20:12:24.516] [console] [info] Lower Bound 861.9359371910299
+[2023-03-28 20:12:24.516] [console] [info] Theta 1092096
+[2023-03-28 20:12:24.516] [console] [info] Lower Bound 861.9359371910299
+[2023-03-28 20:12:24.516] [console] [info] Theta 1092096
+[2023-03-28 20:12:24.516] [console] [info] Lower Bound 861.9359371910299
+[2023-03-28 20:12:24.516] [console] [info] Theta 1092096
+[2023-03-28 20:12:24.516] [console] [info] Lower Bound 861.9359371910299
+[2023-03-28 20:12:24.516] [console] [info] Theta 1092096
+[2023-03-28 20:12:24.516] [console] [info] Lower Bound 861.9359371910299
+[2023-03-28 20:12:24.516] [console] [info] Theta 1092096
+[2023-03-28 20:12:24.516] [console] [info] Lower Bound 861.9359371910299
+[2023-03-28 20:12:24.516] [console] [info] Theta 1092096
+[2023-03-28 20:12:24.516] [console] [info] Lower Bound 861.9359371910299
+[2023-03-28 20:12:24.516] [console] [info] Theta 1092096
+[2023-03-28 20:12:24.517] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.517] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.517] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.517] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.517] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.517] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.517] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.517] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.518] [console] [info] AlltoAll...
+[2023-03-28 20:12:24.526] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.527] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.527] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.527] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.527] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.527] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.527] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.527] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.527] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.527] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.528] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.528] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.528] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.528] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.528] [console] [info] Linearizing data for AllToAll...
+[2023-03-28 20:12:24.528] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.528] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.528] [console] [info] distributing samples, AllToAll operation...
+[2023-03-28 20:12:24.529] [console] [info] streaming...
+[2023-03-28 20:12:24.538] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.539] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.539] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.539] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.539] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.539] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.539] [console] [info] local max-k-cover...
+[2023-03-28 20:12:24.540] [console] [info] local max-k-cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deallocating base class in max_k_cover...
+deltazero: 2832, number of buckets: 314
+rank 3 returning global seeds
+finished final iteration, aquired utility of 0
+ --- SHARED --- 
+Samping time: 18.4801
+AlltoAll time: 249.795
+Receive Broadcast: 223.523
+ --- SENDER --- 
+Select Next Seed: 1.67982
+deallocating base class in max_k_cover...
+Send Next Seed: 5.40701
+Total Send Time: 12.9642
+ --- RECEIVER --- 
+Initialize Buckets: 0
+Receive Next Seed: 0
+Insert Into Buckets: 0
+Handling received data (inserting into matrix and copying from buffer): 0
+Atomic Update (receiver side): 0
+Total Global Streaming Time: 0
+rank 1 returning global seeds
+finished final iteration, aquired utility of 0
+ --- SHARED --- 
+Samping time: 17.9499
+AlltoAll time: 270.71
+Receive Broadcast: 219.227
+ --- SENDER --- 
+Select Next Seed: 1.75495
+Send Next Seed: 5.89531
+Total Send Time: 13.842
+ --- RECEIVER --- 
+Initialize Buckets: 0
+Receive Next Seed: 0
+Insert Into Buckets: 0
+Handling received data (inserting into matrix and copying from buffer): 0
+Atomic Update (receiver side): 0
+Total Global Streaming Time: 0
+rank 6 returning global seeds
+finished final iteration, aquired utility of 0
+ --- SHARED --- 
+exited
+Samping time: 17.151
+AlltoAll time: 123.584
+Receive Broadcast: 221.199
+ --- SENDER --- 
+[2023-03-28 20:12:24.541] [console] [info] IMM MPI+OpenMP+CUDA : 514.134076ms
+Select Next Seed: 1.94987
+Send Next Seed: 5.62644
+Total Send Time: 14.3847
+exited
+ --- RECEIVER --- 
+Initialize Buckets: 0
+Receive Next Seed: 0
+Insert Into Buckets: 0
+Handling received data (inserting into matrix and copying from buffer): 0
+Atomic Update (receiver side): 0
+Total Global Streaming Time: 0
+[2023-03-28 20:12:24.541] [console] [info] IMM World Size : 9
+[2023-03-28 20:12:24.541] [console] [info] IMM Rank : 3
+deallocating base class in max_k_cover...
+rank 4 returning global seeds
+finished final iteration, aquired utility of 0
+ --- SHARED --- 
+[2023-03-28 20:12:24.541] [console] [info] IMM MPI+OpenMP+CUDA : 531.814335ms
+rank 5 returning global seeds
+finished final iteration, aquired utility of 0
+ --- SHARED --- 
+Samping time: 17.372
+AlltoAll time: 265.321
+Receive Broadcast: 219.832
+ --- SENDER --- 
+[2023-03-28 20:12:24.542] [console] [info] IMM World Size : 9
+[2023-03-28 20:12:24.542] [console] [info] IMM Rank : 1
+rank 7 returning global seeds
+finished final iteration, aquired utility of 0
+ --- SHARED --- 
+Samping time: 17.2971
+AlltoAll time: 128.89
+Receive Broadcast: 220.133
+ --- SENDER --- 
+Select Next Seed: 1.56418
+Select Next Seed: 1.72088
+Send Next Seed: 5.94186
+Total Send Time: 14.2985
+ --- RECEIVER --- 
+Send Next Seed: 5.66733
+Total Send Time: 14.1326
+ --- RECEIVER --- 
+Initialize Buckets: 0
+Receive Next Seed: 0
+Initialize Buckets: 0
+Receive Next Seed: 0
+Insert Into Buckets: 0
+Handling received data (inserting into matrix and copying from buffer): 0
+Atomic Update (receiver side): 0
+Total Global Streaming Time: 0
+exited
+Insert Into Buckets: 0
+Handling received data (inserting into matrix and copying from buffer): 0
+Atomic Update (receiver side): 0
+Total Global Streaming Time: 0
+Samping time: 17.3116
+AlltoAll time: 125.205
+Receive Broadcast: 220.152
+ --- SENDER --- 
+Select Next Seed: 1.3723
+Send Next Seed: 5.35055
+Total Send Time: 13.4916
+ --- RECEIVER --- 
+Initialize Buckets: 0
+Receive Next Seed: 0
+Insert Into Buckets: 0
+Handling received data (inserting into matrix and copying from buffer): 0
+Atomic Update (receiver side): 0
+Total Global Streaming Time: 0
+[2023-03-28 20:12:24.542] [console] [info] IMM MPI+OpenMP+CUDA : 386.250425ms
+[2023-03-28 20:12:24.542] [console] [info] IMM World Size : 9
+[2023-03-28 20:12:24.542] [console] [info] IMM Rank : 6
+exited
+exited
+[2023-03-28 20:12:24.542] [console] [info] IMM MPI+OpenMP+CUDA : 527.694404ms
+exited
+[2023-03-28 20:12:24.542] [console] [info] IMM MPI+OpenMP+CUDA : 390.530492ms
+[2023-03-28 20:12:24.542] [console] [info] IMM World Size : 9
+[2023-03-28 20:12:24.542] [console] [info] IMM Rank : 4
+[2023-03-28 20:12:24.542] [console] [info] IMM MPI+OpenMP+CUDA : 386.14818ms
+[2023-03-28 20:12:24.542] [console] [info] IMM World Size : 9
+[2023-03-28 20:12:24.542] [console] [info] IMM Rank : 5
+[2023-03-28 20:12:24.542] [console] [info] IMM World Size : 9
+[2023-03-28 20:12:24.542] [console] [info] IMM Rank : 7
+rank 8 returning global seeds
+finished final iteration, aquired utility of 0
+ --- SHARED --- 
+Samping time: 16.8263
+AlltoAll time: 126.219
+Receive Broadcast: 217.993
+ --- SENDER --- 
+Select Next Seed: 1.58438
+Send Next Seed: 6.25186
+Total Send Time: 14.8642
+ --- RECEIVER --- 
+Initialize Buckets: 0
+Receive Next Seed: 0
+Insert Into Buckets: 0
+Handling received data (inserting into matrix and copying from buffer): 0
+Atomic Update (receiver side): 0
+Total Global Streaming Time: 0
+exited
+[2023-03-28 20:12:24.542] [console] [info] IMM MPI+OpenMP+CUDA : 387.00571ms
+rank 2 returning global seeds
+[2023-03-28 20:12:24.542] [console] [info] IMM World Size : 9
+[2023-03-28 20:12:24.542] [console] [info] IMM Rank : 8
+finished final iteration, aquired utility of 0
+ --- SHARED --- 
+Samping time: 17.4185
+AlltoAll time: 267.249
+Receive Broadcast: 220.445
+ --- SENDER --- 
+Select Next Seed: 1.69016
+Send Next Seed: 5.90101
+Total Send Time: 13.6039
+ --- RECEIVER --- 
+Initialize Buckets: 0
+Receive Next Seed: 0
+Insert Into Buckets: 0
+Handling received data (inserting into matrix and copying from buffer): 0
+Atomic Update (receiver side): 0
+Total Global Streaming Time: 0
+exited
+[2023-03-28 20:12:24.542] [console] [info] IMM MPI+OpenMP+CUDA : 528.901125ms
+[2023-03-28 20:12:24.543] [console] [info] IMM World Size : 9
+[2023-03-28 20:12:24.543] [console] [info] IMM Rank : 2
+number of buckets; 315, threads; 63, buckets per thread; 6
+selected bucket 241 with size of 32rank 0 returning global seeds
+finished final iteration, aquired utility of 32587
+ --- SHARED --- 
+Samping time: 23.7064
+AlltoAll time: 234.379
+Receive Broadcast: 0.048151
+ --- SENDER --- 
+Select Next Seed: 0
+Send Next Seed: 0
+Total Send Time: 0
+ --- RECEIVER --- 
+Initialize Buckets: 58.7563
+Receive Next Seed: 46.0919
+Insert Into Buckets: 54.9508
+Handling received data (inserting into matrix and copying from buffer): 62.0624
+Atomic Update (receiver side): 0.11149
+Total Global Streaming Time: 160.25
+exited
+[2023-03-28 20:12:24.658] [console] [info] IMM MPI+OpenMP+CUDA : 656.336488ms
+[2023-03-28 20:12:24.659] [console] [info] IMM World Size : 9
+[2023-03-28 20:12:24.659] [console] [info] IMM Rank : 0

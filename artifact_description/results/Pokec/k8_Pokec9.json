@@ -1,0 +1,45 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "FindMostInfluentialSet": 1.15213651211623e-310,
+    "GenerateRRRSets": 30245.384582,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/Pokec_binary.txt",
+    "K": 8,
+    "L": 1,
+    "NumGPUWalkWorkers": 0,
+    "NumThreads": 64,
+    "NumWalkWorkers": 64,
+    "Output": "/global/cfs/cdirs/m1641/network-results/Pokec/k8_Pokec9.json",
+    "Rank": 0,
+    "Seeds": [
+      180635,
+      534636,
+      430906,
+      5054,
+      836893,
+      878120,
+      232645,
+      489982
+    ],
+    "Theta": 62562,
+    "ThetaEstimation": 54009.079945,
+    "ThetaEstimationGenerateRRR": [
+      23711.753196,
+      30296.964578,
+      24443.774575
+    ],
+    "ThetaEstimationMostInfluential": [
+      2e-05,
+      3e-05,
+      2e-05
+    ],
+    "ThetaPrimeDeltas": [
+      1729,
+      1728
+    ],
+    "Total": 108709.960547,
+    "WorldSize": 9
+  }
+]

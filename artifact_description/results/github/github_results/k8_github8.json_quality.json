@@ -1,0 +1,41 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/githubSmall_binary.txt",
+    "K": 8,
+    "Seeds": [
+      25,
+      36,
+      50,
+      53,
+      7,
+      8,
+      68,
+      121
+    ],
+    "Simulations": [
+      [
+        4698,
+        10
+      ],
+      [
+        5053,
+        10
+      ],
+      [
+        4541,
+        9
+      ],
+      [
+        4218,
+        11
+      ],
+      [
+        4877,
+        8
+      ]
+    ]
+  }
+]

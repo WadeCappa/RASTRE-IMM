@@ -1,0 +1,56 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "FindMostInfluentialSet": 1.14119866921307e-310,
+    "GenerateRRRSets": 1.256528,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/githubSmall_binary.txt",
+    "K": 16,
+    "L": 1,
+    "NumGPUWalkWorkers": 0,
+    "NumThreads": 64,
+    "NumWalkWorkers": 64,
+    "Output": "/global/cfs/cdirs/m1641/network-results/github/k16_github8.json",
+    "Rank": 0,
+    "Seeds": [
+      25,
+      29,
+      36,
+      83,
+      53,
+      50,
+      40,
+      110,
+      8,
+      31,
+      137,
+      118,
+      66,
+      135,
+      117,
+      166
+    ],
+    "Theta": 136004,
+    "ThetaEstimation": 91.096157,
+    "ThetaEstimationGenerateRRR": [
+      54.766322,
+      16.609448,
+      19.601468,
+      21.89574
+    ],
+    "ThetaEstimationMostInfluential": [
+      3e-05,
+      2e-05,
+      3e-05,
+      3e-05
+    ],
+    "ThetaPrimeDeltas": [
+      2421,
+      2421,
+      4841
+    ],
+    "Total": 117.545494,
+    "WorldSize": 8
+  }
+]

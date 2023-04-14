@@ -1,0 +1,72 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "FindMostInfluentialSet": 6.95324160681154e-310,
+    "GenerateRRRSets": 72392.640977,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/livejournal_binary.txt",
+    "K": 32,
+    "L": 1,
+    "NumGPUWalkWorkers": 0,
+    "NumThreads": 64,
+    "NumWalkWorkers": 64,
+    "Output": "/global/cfs/cdirs/m1641/network-results/livejournal/k32_livejournal9.json",
+    "Rank": 0,
+    "Seeds": [
+      129443,
+      4030402,
+      424142,
+      4254946,
+      2022708,
+      2125905,
+      3868604,
+      3539416,
+      3292765,
+      4002090,
+      4847203,
+      4210500,
+      3948680,
+      1692934,
+      2488191,
+      1647092,
+      3547129,
+      3886413,
+      4366852,
+      3420506,
+      4138214,
+      2655678,
+      4499612,
+      1681450,
+      4841825,
+      1467065,
+      4387838,
+      2311067,
+      4176080,
+      3792600,
+      3630151,
+      4271279
+    ],
+    "Theta": 268755,
+    "ThetaEstimation": 498667.655411,
+    "ThetaEstimationGenerateRRR": [
+      110067.035896,
+      133967.219606,
+      254632.917968,
+      134279.047811
+    ],
+    "ThetaEstimationMostInfluential": [
+      2e-05,
+      2e-05,
+      3e-05,
+      3e-05
+    ],
+    "ThetaPrimeDeltas": [
+      6042,
+      6041,
+      12082
+    ],
+    "Total": 705368.542907,
+    "WorldSize": 9
+  }
+]

@@ -1,0 +1,41 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/livejournal_binary.txt",
+    "K": 8,
+    "Seeds": [
+      12401,
+      1811701,
+      4030417,
+      1376641,
+      3550111,
+      2022401,
+      2020970,
+      1194387
+    ],
+    "Simulations": [
+      [
+        915784,
+        33
+      ],
+      [
+        915170,
+        32
+      ],
+      [
+        916848,
+        35
+      ],
+      [
+        915333,
+        34
+      ],
+      [
+        911980,
+        34
+      ]
+    ]
+  }
+]

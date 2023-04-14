@@ -1,0 +1,35 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/HepPh_binary.txt",
+    "K": 2,
+    "Seeds": [
+      101336,
+      206077
+    ],
+    "Simulations": [
+      [
+        93,
+        7
+      ],
+      [
+        206,
+        9
+      ],
+      [
+        82,
+        5
+      ],
+      [
+        297,
+        10
+      ],
+      [
+        210,
+        7
+      ]
+    ]
+  }
+]

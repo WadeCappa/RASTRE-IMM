@@ -1,0 +1,60 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "FindMostInfluentialSet": 1.1385823149985e-310,
+    "GenerateRRRSets": 7.468866,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/HepPh_binary.txt",
+    "K": 8,
+    "L": 1,
+    "NumGPUWalkWorkers": 0,
+    "NumThreads": 64,
+    "NumWalkWorkers": 64,
+    "Output": "/global/cfs/cdirs/m1641/network-results/HepPh/k8_HepPh9.json",
+    "Rank": 0,
+    "Seeds": [
+      101336,
+      207108,
+      3154,
+      204316,
+      112312,
+      206077,
+      204031,
+      209244
+    ],
+    "Theta": 1136187,
+    "ThetaEstimation": 302.169024,
+    "ThetaEstimationGenerateRRR": [
+      83.320697,
+      18.911862,
+      21.954741,
+      29.09672,
+      34.410693,
+      43.954789,
+      70.214245,
+      89.994035
+    ],
+    "ThetaEstimationMostInfluential": [
+      2e-05,
+      3e-05,
+      3e-05,
+      2e-05,
+      3e-05,
+      3e-05,
+      3.1e-05,
+      3e-05
+    ],
+    "ThetaPrimeDeltas": [
+      1240,
+      1239,
+      2479,
+      4958,
+      9916,
+      19832,
+      39664
+    ],
+    "Total": 403.721147,
+    "WorldSize": 9
+  }
+]

@@ -1,0 +1,68 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "FindMostInfluentialSet": 6.95306467819352e-310,
+    "GenerateRRRSets": 20613.106745,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/friendster_binary.txt",
+    "K": 100,
+    "L": 1,
+    "NumGPUWalkWorkers": 0,
+    "NumThreads": 64,
+    "NumWalkWorkers": 64,
+    "Output": "/global/cfs/cdirs/m1641/network-results/strong_scaling/friendster/m2049_friendster.json",
+    "Rank": 0,
+    "Seeds": [
+      1983842,
+      174880,
+      629706,
+      177399,
+      153739,
+      1871686,
+      126333,
+      13853,
+      153540,
+      68486,
+      12471,
+      96722,
+      34440,
+      13792,
+      794018,
+      2080,
+      3067,
+      14513,
+      28284,
+      2831,
+      22732,
+      62112,
+      1203,
+      41074,
+      3146,
+      54702,
+      15493,
+      13044,
+      74662,
+      142610,
+      84721,
+      16767,
+      154624,
+      12540
+    ],
+    "Theta": 288400,
+    "ThetaEstimation": 124205.494393,
+    "ThetaEstimationGenerateRRR": [
+      124205.11087,
+      82310.22151
+    ],
+    "ThetaEstimationMostInfluential": [
+      3e-05,
+      2e-05
+    ],
+    "ThetaPrimeDeltas": [
+      90
+    ],
+    "Total": 227456.630697,
+    "WorldSize": 2049
+  }
+]

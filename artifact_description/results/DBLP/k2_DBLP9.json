@@ -1,0 +1,69 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "FindMostInfluentialSet": 2.3719617e-317,
+    "GenerateRRRSets": 31.272338,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/DBLP_binary.txt",
+    "K": 2,
+    "L": 1,
+    "NumGPUWalkWorkers": 0,
+    "NumThreads": 64,
+    "NumWalkWorkers": 64,
+    "Output": "/global/cfs/cdirs/m1641/network-results/DBLP/k2_DBLP9.json",
+    "Rank": 0,
+    "Seeds": [
+      3420,
+      38868
+    ],
+    "Theta": 16207763,
+    "ThetaEstimation": 2710.834936,
+    "ThetaEstimationGenerateRRR": [
+      747.098846,
+      129.219143,
+      129.210877,
+      130.45117,
+      134.559145,
+      136.765221,
+      144.101102,
+      157.656442,
+      159.873521,
+      195.309331,
+      261.700129,
+      384.436896,
+      455.12303000000003
+    ],
+    "ThetaEstimationMostInfluential": [
+      3e-05,
+      3e-05,
+      3.1e-05,
+      3.1e-05,
+      2e-05,
+      3.1e-05,
+      2.9e-05,
+      0.00019,
+      2e-05,
+      2e-05,
+      3.1e-05,
+      2e-05,
+      3e-05
+    ],
+    "ThetaPrimeDeltas": [
+      590,
+      589,
+      1178,
+      2356,
+      4713,
+      9425,
+      18851,
+      37702,
+      75403,
+      150806,
+      301612,
+      603224
+    ],
+    "Total": 3204.380269,
+    "WorldSize": 9
+  }
+]
