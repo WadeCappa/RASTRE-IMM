@@ -1,7 +1,7 @@
 #!/bin/bash
 
-wget https://snap.stanford.edu/data/soc-LiveJournal1.txt.gz
-gunzip soc-LiveJournal1.txt.gz
+wget https://snap.stanford.edu/data/git_web_ml.zip
+unzip git_web_ml.zip
 
 wget https://snap.stanford.edu/data/cit-HepPh.txt.gz
 gunzip cit-HepPh.txt.gz

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-../../build/release/tools/dump-graph -i soc-LiveJournal1.txt --distribution uniform -d IC -o livejournal_binary.txt --scale-factor 0.1 --dump-binary
+../../build/release/tools/dump-graph -i git_web_ml/musae_git_edges.csv --distribution uniform -d IC -o github_binary.txt --scale-factor 0.1 --dump-binary
 
 ../../build/release/tools/dump-graph -i cit-HepPh.txt --distribution uniform -d IC -o HepPh_binary.txt --scale-factor 0.1 --dump-binary
 
