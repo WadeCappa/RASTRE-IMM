@@ -11,7 +11,7 @@ def main():
     strong_scalilng.build_strong_scaling("../../results/strong_scaling/", sys.argv[1] + "/strong_scaling.csv")
 
     comparison = imm_comparison.IMMComparison()
-    comparison.build_comparison("../../results/strong_scaling/", sys.argv[1] + "/strong_scaling.csv")
+    comparison.build_comparison("../../results/imm/", "../../results/strong_scaling/", sys.argv[1])
 
 if __name__ == '__main__':
     main()
