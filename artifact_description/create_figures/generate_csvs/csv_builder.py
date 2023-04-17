@@ -12,8 +12,20 @@ class CSVBuilder:
 
     def get_all_files(self, directory, filter_func):
         return list(filter(filter_func, list(map(lambda x: directory + "/" + x, os.listdir(directory)))))
+    
+    def output_csv(self, outfile: str, header: list, rows: dict[str, dict]):
+        with open(outfile, "w") as out:
+            out.write(', ' + ', '.join(list(map(lambda x: str(x), header))) + '\n')
+            for network, row in rows.items():
+                new_row = []       
 
-    def build_strong_scaling(self, parent_directory, output_file):
+                for val in header:
+                    new_row.append(str(row[val]) if val in row else "")  
+                      
+                out.write(network + ', '.join(new_row) + '\n')
+
+
+    def build_strong_scaling(self, parent_directory: str, output_file: str):
         self.minimum_machines = sys.maxsize
         self.maximum_machines = 0
 
@@ -30,7 +42,7 @@ class CSVBuilder:
                 input_stream.close()
 
                 network =  data[0]["Input"].split("/")[-1]
-                world_size = data[0]["WorldSize"] if "WorldSize" in data[0] and data[0]["WorldSize"] % 2 == 1 else None
+                world_size = data[0]["WorldSize"] - 1 if "WorldSize" in data[0] and data[0]["WorldSize"] % 2 == 1 else None
                 runtime = data[0]["Total"] if "Total" in data[0] else None
 
                 if world_size != None and runtime != None and network != None and "DiffusionModel" in data[0] and data[0]["DiffusionModel"] == "IC":
@@ -47,18 +59,6 @@ class CSVBuilder:
 
         min_scale = int(math.log(self.minimum_machines - 1, 2))
         m_range = int(math.log(self.maximum_machines - 1, 2) - min_scale) + 1
-        num_networks = len(experimental_map)
-        print(m_range, num_networks, self.maximum_machines, self.minimum_machines, int(math.log(self.maximum_machines - 1, 2)), min_scale)
 
-        with open(output_file, "w") as out:
-            out.write(", " + ', '.join([str(int(math.pow(2, min_scale + x))) for x in range(m_range)]) + '\n')
-            for network, results in experimental_map.items():
-                row = [None for _ in range(int(m_range))]
-                for world_size, time in results.items():
-                    row[int(math.log(world_size-1, 2) - min_scale)] = time
-
-                out.write(network.replace("_binary.txt", "") + ', ' + ', '.join(list(map(lambda x: str(x) if x != None else "", row))) + "\n")
-
-if __name__ == '__main__':
-    builder = CSVBuilder()
-    builder.build_strong_scaling(sys.argv[1], sys.argv[2])
+        header = [int(math.pow(2, min_scale + x)) for x in range(m_range + 1)]
+        self.output_csv(output_file, header, experimental_map)
