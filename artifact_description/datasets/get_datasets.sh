@@ -14,3 +14,4 @@ wget https://snap.stanford.edu/data/bigdata/communities/com-dblp.ungraph.txt.gz
 gunzip com-dblp.ungraph.txt
 ../../build/release/tools/dump-graph -i com-dblp.ungraph.txt --distribution uniform -d IC -o DBLP_binary.txt --scale-factor 0.1 --dump-binary -u
 rm com-dblp.ungraph.txt
+
