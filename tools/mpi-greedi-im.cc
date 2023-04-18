@@ -71,7 +71,7 @@ auto GetExperimentRecord(const ToolConfiguration<IMMConfiguration> &CFG,
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
   nlohmann::json experiment{
-      {"Algorithm", "MPI-IMM"},
+      {"Algorithm", CFG.use_streaming ? "GreeDIMM" : "GreeDIMM_Lazy_lazy"},
       {"Input", CFG.IFileName},
       {"Output", CFG.OutputFile},
       {"DiffusionModel", CFG.diffusionModel},
