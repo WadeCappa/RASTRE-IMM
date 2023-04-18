@@ -56,7 +56,7 @@ def main(data, output):
                  var_name='phase', value_name='time')
     df['Component'] = df.apply(lambda row: set_component(row), axis=1)
 
-    print(df)
+    df['m'] = df['m'].astype(str).astype(int)
 
     p = stackedbars(df)
     factor = 1.2
