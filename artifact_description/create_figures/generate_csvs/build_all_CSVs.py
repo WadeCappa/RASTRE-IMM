@@ -1,4 +1,4 @@
-import strong_scaling, imm_comparison
+import strong_scaling, imm_comparison, quality_drop_off
 import sys
 
 # need a function to output data in CSV format 
@@ -12,6 +12,9 @@ def main():
 
     comparison = imm_comparison.IMMComparison()
     comparison.build_comparison("../../results/imm/", "../../results/strong_scaling/", sys.argv[1])
+
+    quality = quality_drop_off.QualityDropoff()
+    quality.build_quality_csv("../../results/strong_scaling/", sys.argv[1] + "/streaming_quality_dropoff.csv")
 
 if __name__ == '__main__':
     main()

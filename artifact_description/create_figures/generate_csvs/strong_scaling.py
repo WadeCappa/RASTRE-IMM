@@ -37,10 +37,9 @@ class StrongScaling:
         experimental_map = get_strong_scaling(parent_directory)
 
         min_scale = int(math.log(self.minimum_machines - 1, 2))
-        m_range = int(math.log(self.maximum_machines - 1, 2) - min_scale) + 1
+        # m_range = int(math.log(self.maximum_machines - 1, 2) - min_scale) + 1
 
-        header = [int(math.pow(2, min_scale + x)) for x in range(min_scale + 1, m_range + 1)]
-        print(header)
+        header = [int(math.pow(2, min_scale + x)) for x in range(math.log(8, 2), math.log(1024, 2) + 1)]
         builder.output_csv(output_file, header, experimental_map)
 
 def main():
