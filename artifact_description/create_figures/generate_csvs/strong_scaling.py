@@ -8,9 +8,10 @@ class StrongScaling:
         self.minimum_machines = sys.maxsize
         self.maximum_machines = 0
 
+        networks = ["Pokec", "livejournal", "orkut_small", "orkut_big", "wikipedia", "friendster"]
+
         def get_strong_scaling(parent_directory):
-            experimental_map = dict() # maps datasets to a map of machines to runtime
-            print(f"looking at {parent_directory}")
+            experimental_map = {key: dict() for key in networks} # maps datasets to a map of machines to runtime
 
             key_directories = builder.get_all_files(parent_directory, lambda x: os.path.isdir(x))
             outputs = list(chain.from_iterable([builder.get_all_files(directory, lambda x: x.endswith(".json") and os.path.isfile(x)) for directory in key_directories]))
@@ -25,12 +26,11 @@ class StrongScaling:
                 runtime = data[0]["Total"] if "Total" in data[0] else None
 
                 if world_size != None and runtime != None and network != None and "DiffusionModel" in data[0] and data[0]["DiffusionModel"] == "IC":
-                    print(network, world_size, runtime)
                     self.minimum_machines = min(self.minimum_machines, world_size)
                     self.maximum_machines = max(self.maximum_machines, world_size)
-                    if network not in experimental_map:
-                        experimental_map[network] = dict()
-                    experimental_map[network][world_size] = runtime
+                    network_name = builder.get_network(data[0]["Input"])
+                    if network_name in experimental_map:
+                        experimental_map[network_name][world_size] = runtime
 
             return experimental_map
 
@@ -39,7 +39,7 @@ class StrongScaling:
         min_scale = int(math.log(self.minimum_machines - 1, 2))
         # m_range = int(math.log(self.maximum_machines - 1, 2) - min_scale) + 1
 
-        header = [int(math.pow(2, min_scale + x)) for x in range(math.log(8, 2), math.log(1024, 2) + 1)]
+        header = [int(math.pow(2, min_scale + x)) for x in range(int(math.log(8, 2)), int(math.log(1024, 2)) + 1)]
         builder.output_csv(output_file, header, experimental_map)
 
 def main():

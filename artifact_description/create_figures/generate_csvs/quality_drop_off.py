@@ -21,9 +21,19 @@ class QualityDropoff:
 
         for experiment in quality_data:
             network = builder.get_network(experiment['Input'])
+            if network == "githubSmall":
+                network = "github"
             if network in rows and experiment['WorldSize'] in headers:
                 rows[network][experiment['WorldSize']] = builder.get_quality(experiment["Simulations"])
 
+        for key, row in rows.items():
+            first = None
+            for header in headers:
+                if first == None:
+                    first = row[header]
+                row[header] = str((row[header] / first) * 100) + '%'
+                
+        
         builder.output_csv(output_file, headers, rows)
 
 def main():
