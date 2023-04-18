@@ -1,0 +1,2 @@
+# ./build/release/tools/simulator -i test-data/githubSmall.txt -w -e test.json --replicas 5 -o q.json
+./build/release/tools/simulator -i test-data/orkut_small.txt -w -e output/orkut/Orkut32_result.json --replicas 5 -o q.json
