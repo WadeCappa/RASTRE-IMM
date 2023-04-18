@@ -7,6 +7,17 @@ class CSVBuilder:
     def get_network(self, input_path):
         return input_path.split("/")[-1].replace("_binary.txt", '')
     
+    def get_alpha(self, file_path):
+        return file_path.split('/')[-1].split('_')[0].replace('a', '')
+    
+    def get_machines(self, file_path):
+        return file_path.split("/")[-1].split("_")[0].replace('m', '')
+    
+    def strip_first_element(self, file_path):
+        path = file_path.split('/')
+        path[-1] = '_'.join(path[-1].split('_')[1:])
+        return '/'.join(path)
+    
     def get_quality(self, simulations):
         simulations = json.loads('{ "data":' + simulations + '}')['data']
         # print(simulations)
