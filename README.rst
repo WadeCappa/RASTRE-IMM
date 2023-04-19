@@ -1,46 +1,5 @@
-Ripples
+GreeDIMM
 *******
-
-.. image:: https://zenodo.org/badge/191654750.svg
-   :target: https://zenodo.org/badge/latestdoi/191654750
-
-Ripples is a software framework to study the Influence Maximization problem.
-The problem of Influence Maximization was introduced in 2001 by Domingos and
-Richardson [DR01]_ and later formulated as an optimization problem under the
-framework of submodular functions by Kempe et al. [KTR03]_.
-
-Given a graph :math:`G`, a network diffusion model :math:`M`, and positive
-integer :math:`k`, the influence maximization problem is the problem of
-selecting a set of seeds :math:`S` of cardinality :math:`k` such that
-:math:`\mathop{\mathbb{E}}[I(S)]` is maximized, where :math:`I(S)` is the
-influence function.
-
-Our goal with Ripples is to provide tools implementing fast and scalable
-state-of-the-art approximation algorithms to solve the influence maximization
-problem.
-
-.. [DR01] Pedro M. Domingos and Matthew Richardson. 2001. Mining the network
-          value of customers. In Proceedings of the seventh ACM SIGKDD
-          international conference on Knowledge discovery and data mining, San
-          Francisco, CA, USA, August 26-29, 2001. ACM, 57–66.
-
-.. [KTR03] Kempe, D., Kleinberg, J., & Tardos, É. (2003, August). Maximizing the
-           spread of influence through a social network. In Proceedings of the
-           ninth ACM SIGKDD international conference on Knowledge discovery and
-           data mining (pp. 137-146). ACM.
-
-
-Publications
-============
-
-.. [Cluster19] Marco Minutoli, Mahantesh Halappanavar, Ananth Kalyanaraman, Arun
-               Sathanur, Ryan Mcclure, Jason McDermott. 2019. Fast and Scalable
-               Implementations of Influence Maximization Algorithms. In
-               Proceedings of the IEEE Cluster 2019.
-.. [ICS2020] Minutoli, Marco, Maurizio Drocco, Mahantesh Halappanavar, Antonino
-               Tumeo, and Ananth Kalyanaraman. "cuRipples: influence
-               maximization on multi-CPU systems." In Proceedings of the 34th
-               ACM International Conference on Supercomputing.
 
 Quickstart with Conan
 =====================
@@ -72,39 +31,17 @@ To enable Memkind or Metall please replace the conan install command with one of
    $ conan install --install-folder build . -o metall=True
 
 
-Now we are ready to configure and build ripples:
+Now we are ready to configure and build GreeDIMM:
 
 .. code-block:: shell
 
    $ ./waf configure --enable-mpi build_release
-   # or without MPI support
-   $ ./waf configure build_release
-
-To enable Memkind or Metal configure and build ripples with:
-
-.. code-block:: shell
-
-   $ ./waf configure --enable-mpi --enable-metall build_release
-   # or without MPI support
-   $ ./waf configure --enable-metall build_release
-
-For Memkind just replace :code:`--enable-metall` with :code:`--enable-memkind`.
-
-In the case you are a Mac OS user, you will need to install the LLVM toolchain
-through brew that comes with OpenMP support.  Compiling Ripples than is as
-simple as:
-
-.. code-block:: shell
-
-   $ ./waf configure --openmp-root=/usr/local/opt/llvm --enable-mpi build_release
-   # or without MPI support
-   $ ./waf configure --openmp-root=/usr/local/opt/llvm build_release
 
 
 Build Instructions
 ==================
 
-This project uses `WAF <https://waf.io>`_ as its build system.  Building Ripples
+This project uses `WAF <https://waf.io>`_ as its build system.  Building GreeDIMM
 is a two-step process: configure the project and build the tools.  Before
 attempting to build, be sure to have the following dependencies installed:
 
@@ -112,19 +49,13 @@ attempting to build, be sure to have the following dependencies installed:
 - `Spdlog <https://github.com/gabime/spdlog>`_
 - `JSON <https://github.com/nlohmann/json>`_
 - `TRNG4 <https://github.com/rabauke/trng4>`_
-- An MPI library (optional)
+- An MPI library
 
 The configure step can be invoked with:
 
 .. code-block:: shell
 
-   $ ./waf configure
-
-or optionally to enable the MPI implementations:
-
-.. code-block:: shell
-
-   $ ./waf configure --enable-mpi
+   $ ./waf configure --enable-mpi build_release
 
 The build system offers options that can be used to help the configuration step
 locate dependencies (e.g., they are installed in unconventional paths).  A
@@ -133,14 +64,6 @@ complete list of the options can be obtained with:
 .. code-block:: shell
 
    $ ./waf configure --help
-
-
-After the configuration step succeeds, the build step can be executed by
-running:
-
-.. code-block:: shell
-
-   $ ./waf build_release
 
 For more detailed instruction, please read :ref:`build:Step By Step Build
 Instructions`.
@@ -152,14 +75,70 @@ command line options can be obtained through:
 
    $ ./build/release/tools/<tool_name> --help
 
+Running GreeDIMM
+================
 
-Ripples Team
+GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/release/tools/mpi-greedi-im -h`` will provide the following information; 
+
+.. code-block:: shell
+   
+   Usage: ./build/release/tools/mpi-greedi-im [OPTIONS]
+
+   Options:
+      -h,--help                   Print this help message and exit
+
+
+   Input Options:
+      -i,--input-graph TEXT REQUIRED
+                                    The input file with the edge-list.
+      --reload-binary             Reload a graph from binary input
+      -u,--undirected             The input graph is undirected
+      -w,--weighted               The input graph is weighted
+      --distribution TEXT         The distribution to be used (uniform|normal) to generate weights
+      --mean FLOAT                The mean for the normal distribution
+      --variance FLOAT            The variance for the normal distribution
+      --scale-factor FLOAT        Scaling Factor for the generated weights
+      --disable-renumbering       Load the graph as is from the input.
+
+
+   Algorithm Options:
+      -k,--seed-set-size UINT REQUIRED
+                                    The size of the seed set.
+      -p,--parallel               Trigger the parallel implementation
+      -d,--diffusion-model TEXT REQUIRED
+                                    The diffusion model to use (LT|IC)
+      -e,--epsilon FLOAT REQUIRED The size of the seed set.
+
+
+   Streaming-Engine Options:
+      --streaming-gpu-workers UINT
+                                    The number of GPU workers for the CPU+GPU streaming engine.
+      --streaming-gpu-mapping TEXT
+                                    A comma-separated set of OpenMP numbers for GPU workers.
+      --seed-select-max-workers UINT
+                                    The max number of workers for seed selection.
+      --seed-select-max-gpu-workers UINT
+                                    The max number of GPU workers for seed selection.
+      --dump-sampling-data BOOLEAN
+                                    Output all sampling data to your output file
+      --run-streaming BOOLEAN     Run max-k-cover within a streaming algorithm. False by default.
+      --epsilon-2 FLOAT           Set the error parameter for the streaming step. Default of 0.13 to acheive approximation garuntee of 21%
+      --alpha FLOAT               Set the fraction of local seeds to send to the final selection step, defaults to 1
+
+
+   Output Options:
+      -o,--output TEXT            The file name of the log.
+
+
+GreeDIMM Team
 ============
 
+- `Reet Barik <reet.barik@wsu.edu>`_
+- `Wade Cappa <wade.cappa@wsu.edu>`_
+- `S M Ferdous <sm.ferdous@pnnl.gov>`_
 - `Marco Mintutoli <marco.minutoli@pnnl.gov>`_
 - `Mahantesh Halappanavar <mahantesh.halappanavar@pnnl.gov>`_
 - `Ananth Kalyanaraman <ananth@wsu.edu>`_
-- `Maurizio Drocco <maurizio.drocco@ibm.com>`_
 
 Disclamer Notice
 ================
