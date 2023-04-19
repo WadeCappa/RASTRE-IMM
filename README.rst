@@ -79,7 +79,9 @@ Running GreeDIMM
 ================
 
 GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/release/tools/mpi-greedi-im -h`` will provide the following information; 
-.. code-block::
+
+.. code-block:: shell
+   
    Usage: ./build/release/tools/mpi-greedi-im [OPTIONS]
 
    Options:
