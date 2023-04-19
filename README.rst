@@ -79,54 +79,53 @@ Running GreeDIMM
 ================
 
 GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/release/tools/mpi-greedi-im -h`` will provide the following information; 
-$$$
-Usage: ./build/release/tools/mpi-greedi-im [OPTIONS]
+.. code-block::
+   Usage: ./build/release/tools/mpi-greedi-im [OPTIONS]
 
-Options:
-  -h,--help                   Print this help message and exit
-
-
-Input Options:
-  -i,--input-graph TEXT REQUIRED
-                              The input file with the edge-list.
-  --reload-binary             Reload a graph from binary input
-  -u,--undirected             The input graph is undirected
-  -w,--weighted               The input graph is weighted
-  --distribution TEXT         The distribution to be used (uniform|normal) to generate weights
-  --mean FLOAT                The mean for the normal distribution
-  --variance FLOAT            The variance for the normal distribution
-  --scale-factor FLOAT        Scaling Factor for the generated weights
-  --disable-renumbering       Load the graph as is from the input.
+   Options:
+      -h,--help                   Print this help message and exit
 
 
-Algorithm Options:
-  -k,--seed-set-size UINT REQUIRED
-                              The size of the seed set.
-  -p,--parallel               Trigger the parallel implementation
-  -d,--diffusion-model TEXT REQUIRED
-                              The diffusion model to use (LT|IC)
-  -e,--epsilon FLOAT REQUIRED The size of the seed set.
+   Input Options:
+      -i,--input-graph TEXT REQUIRED
+                                    The input file with the edge-list.
+      --reload-binary             Reload a graph from binary input
+      -u,--undirected             The input graph is undirected
+      -w,--weighted               The input graph is weighted
+      --distribution TEXT         The distribution to be used (uniform|normal) to generate weights
+      --mean FLOAT                The mean for the normal distribution
+      --variance FLOAT            The variance for the normal distribution
+      --scale-factor FLOAT        Scaling Factor for the generated weights
+      --disable-renumbering       Load the graph as is from the input.
 
 
-Streaming-Engine Options:
-  --streaming-gpu-workers UINT
-                              The number of GPU workers for the CPU+GPU streaming engine.
-  --streaming-gpu-mapping TEXT
-                              A comma-separated set of OpenMP numbers for GPU workers.
-  --seed-select-max-workers UINT
-                              The max number of workers for seed selection.
-  --seed-select-max-gpu-workers UINT
-                              The max number of GPU workers for seed selection.
-  --dump-sampling-data BOOLEAN
-                              Output all sampling data to your output file
-  --run-streaming BOOLEAN     Run max-k-cover within a streaming algorithm. False by default.
-  --epsilon-2 FLOAT           Set the error parameter for the streaming step. Default of 0.13 to acheive approximation garuntee of 21%
-  --alpha FLOAT               Set the fraction of local seeds to send to the final selection step, defaults to 1
+   Algorithm Options:
+      -k,--seed-set-size UINT REQUIRED
+                                    The size of the seed set.
+      -p,--parallel               Trigger the parallel implementation
+      -d,--diffusion-model TEXT REQUIRED
+                                    The diffusion model to use (LT|IC)
+      -e,--epsilon FLOAT REQUIRED The size of the seed set.
 
 
-Output Options:
-  -o,--output TEXT            The file name of the log.
-$$$
+   Streaming-Engine Options:
+      --streaming-gpu-workers UINT
+                                    The number of GPU workers for the CPU+GPU streaming engine.
+      --streaming-gpu-mapping TEXT
+                                    A comma-separated set of OpenMP numbers for GPU workers.
+      --seed-select-max-workers UINT
+                                    The max number of workers for seed selection.
+      --seed-select-max-gpu-workers UINT
+                                    The max number of GPU workers for seed selection.
+      --dump-sampling-data BOOLEAN
+                                    Output all sampling data to your output file
+      --run-streaming BOOLEAN     Run max-k-cover within a streaming algorithm. False by default.
+      --epsilon-2 FLOAT           Set the error parameter for the streaming step. Default of 0.13 to acheive approximation garuntee of 21%
+      --alpha FLOAT               Set the fraction of local seeds to send to the final selection step, defaults to 1
+
+
+   Output Options:
+      -o,--output TEXT            The file name of the log.
 
 
 GreeDIMM Team
