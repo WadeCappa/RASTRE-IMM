@@ -1,9 +1,9 @@
-for file in $1/*
+for file in $2/*
 do
 	if [[ $file == *.json ]]
 	then
 		echo "processing $file..."
-		/global/homes/w/wadecap/ripples/build/release/tools/simulator -i $2 -w -e $file --replicas 5 -o "$1"/"$1"_results/"${file##*/}"_quality.json --reload-binary
+		{$1}/build/release/tools/simulator -i $3 -w -e $file --replicas 5 -o "$2"/"$2"_results/"${file##*/}"_quality.json --reload-binary
 	fi
 done
 
