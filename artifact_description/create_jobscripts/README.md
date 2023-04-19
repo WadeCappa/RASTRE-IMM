@@ -1,10 +1,10 @@
 # Create jobscripts
 
-The python scripts in this directory each generate a series of jobscripts. These scripts run individual jobs and are designed for use on the NERSC Perlmutter supercomputer. The job scripts generated exhaustively match the experimetns in Section 4 of the article. 
+The python scripts in this directory each generate a series of jobscripts. These scripts run individual jobs and are designed for use on the NERSC Perlmutter supercomputer. The job scripts generated, exhaustively match the experiments in Section 4 of the article. 
 
 ## Generating job scripts for different categories of experiments
 
-For every table in section 4 the following python commands can be used to generate all the job scripts required to populate that table. These commands *do not nessessarly produce unique job scripts*, as there is overlap in the experiments accross the tables.
+For every table in section 4 the following python commands can be used to generate all the job scripts required to populate that table. These commands *do not nessessarly produce unique job scripts*, as there is overlap in the experiments across the tables.
 * Table 4: Strong scaling performance of GreeDIMM for different inputs, varying $m$ up to $1024$ nodes. 
 Command: `python3 strong_scaling_master.py <Account>`
 * Table 5: Comparison of GreeDIMM with Ripples and IMM-mt. 
