@@ -40,7 +40,7 @@ class StrongScaling:
         # m_range = int(math.log(self.maximum_machines - 1, 2) - min_scale) + 1
 
         header = [int(math.pow(2, min_scale + x)) for x in range(int(math.log(8, 2)), int(math.log(1024, 2)) + 1)]
-        builder.output_csv(output_file, header, experimental_map)
+        builder.output_csv(output_file, header, [builder.convert_row_to_seconds((key, val)) for key, val in experimental_map.items()])
 
 def main():
     strong_scalilng = StrongScaling()

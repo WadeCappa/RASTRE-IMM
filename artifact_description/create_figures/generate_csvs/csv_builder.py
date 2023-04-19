@@ -46,13 +46,16 @@ class CSVBuilder:
     def get_all_files(self, directory, filter_func):
         return list(filter(filter_func, list(map(lambda x: directory + "/" + x, os.listdir(directory)))))
     
-    def output_csv(self, outfile: str, header: list, rows: dict[str, dict]):
+    def convert_row_to_seconds(self, row: tuple[str, dict[str, float]]):
+        return (row[0], {key: float(val) / 1000 for key, val in row[1].items()})
+    
+    def output_csv(self, outfile: str, header: list, rows: list[list[str, dict]]):
         with open(outfile, "w") as out:
-            out.write(', ' + ', '.join(list(map(lambda x: str(x), header))) + '\n')
-            for network, row in rows.items():
+            out.write('\t' + '\t'.join(list(map(lambda x: str(x), header))) + '\n')
+            for network, row in rows:
                 new_row = []       
 
                 for val in header:
                     new_row.append(str(row[val]) if val in row else "")  
                       
-                out.write(network + ', ' + ', '.join(new_row) + '\n')
+                out.write(network + '\t' + '\t'.join(new_row) + '\n')

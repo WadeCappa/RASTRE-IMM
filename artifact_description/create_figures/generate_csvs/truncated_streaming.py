@@ -28,13 +28,16 @@ class TruncatedStreaming:
             if q["Alpha"] in headers:
                 output_rows["Quality"][q["Alpha"]] = builder.get_quality(q['Simulations'])
 
-        print(output_rows)
-
         first = None
         for header in headers:
             if first == None:
                 first = output_rows["Quality"][header]
             output_rows["Quality"][header] = str((output_rows["Quality"][header] / first) * 100) + '%'
+
+        output_rows = [(key, val) for key, val in output_rows.items()]
+        for i, row in enumerate(output_rows):
+            if row[0] == "Time (in millisec)":
+                output_rows[i] = builder.convert_row_to_seconds(row)
 
         builder.output_csv(output, headers, output_rows)
 

@@ -55,8 +55,8 @@ class IMMComparison:
                         quality_rows[network] = dict()
                     quality_rows[network][get_header(data)] = builder.get_quality(data["Simulations"])
 
-            builder.output_csv(output + f"/{diffusion_model}_comparison_runtime.csv", headers, runtime_rows)
-            builder.output_csv(output + f"/{diffusion_model}_comparison_quality.csv", headers, quality_rows)
+            builder.output_csv(output + f"/{diffusion_model}_comparison_runtime.csv", headers, [builder.convert_row_to_seconds((key, val)) for key, val in runtime_rows.items()])
+            builder.output_csv(output + f"/{diffusion_model}_comparison_quality.csv", headers, [(key, val) for key, val in quality_rows.items()])
 
 def main():
     imm_comparison = IMMComparison()

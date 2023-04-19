@@ -34,7 +34,7 @@ class QualityDropoff:
                 row[header] = str((row[header] / first) * 100) + '%'
                 
         
-        builder.output_csv(output_file, headers, rows)
+        builder.output_csv(output_file, headers, [(key, val) for key, val in rows.items()])
 
 def main():
     quality_dropoff = QualityDropoff()

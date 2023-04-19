@@ -144,7 +144,7 @@ class ScalingBreakdown:
         trials = [{**self.deconstruct_ouput_file(self.load_output_file(output_file)), **{'WorldSize': str(int(builder.get_machines(output_file))-1)}} for output_file in output_files]
         # print(trials)
 
-        rows = {trial['WorldSize']: {
+        rows = [builder.convert_row_to_seconds((trial['WorldSize'], {
             headers[0]: trial[self.SHARED][self.TOTAL], 
             headers[1]: trial[self.SENDER][self.SAMP], 
             headers[2]: trial[self.SENDER][self.ALL2ALL], 
@@ -152,7 +152,7 @@ class ScalingBreakdown:
             headers[4]: trial[self.RECEIVER][self.SAMP],
             headers[5]: trial[self.RECEIVER][self.ALL2ALL], 
             headers[6]: trial[self.RECEIVER][self.RECV_SEED], 
-        } for trial in trials}
+        })) for trial in trials]
 
         builder.output_csv(output, headers, rows)
 
@@ -166,12 +166,12 @@ class ScalingBreakdown:
         trials = [{**self.deconstruct_ouput_file(self.load_output_file(output_file)), **{'WorldSize': str(int(builder.get_machines(output_file))-1)}} for output_file in output_files]
         # print(trials)
 
-        rows = {trial['WorldSize']: {
+        rows = [builder.convert_row_to_seconds((trial['WorldSize'], {
             headers[0]: trial[self.RECEIVER][self.TOTAL_RECV], 
             headers[1]: trial[self.RECEIVER][self.INSERT], 
             headers[2]: trial[self.RECEIVER][self.RECV_SEED], 
             headers[3]: trial[self.RECEIVER][self.HANDLE]
-        } for trial in trials}
+        })) for trial in trials]
 
         builder.output_csv(output, headers, rows)
 
