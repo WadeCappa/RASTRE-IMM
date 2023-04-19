@@ -79,7 +79,7 @@ Running GreeDIMM
 ================
 
 GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/release/tools/mpi-greedi-im -h`` will provide the following information; 
-```
+$$$
 Usage: ./build/release/tools/mpi-greedi-im [OPTIONS]
 
 Options:
@@ -126,7 +126,7 @@ Streaming-Engine Options:
 
 Output Options:
   -o,--output TEXT            The file name of the log.
-```
+$$$
 
 
 GreeDIMM Team
