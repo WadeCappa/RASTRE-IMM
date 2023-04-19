@@ -15,7 +15,10 @@ def main():
     truncated.build_truncated_csv("../../results/truncated/orkut_small/", sys.argv[1] + "/truncated_results.csv")
 
     breakdown = scaling_breakdown.ScalingBreakdown()
-    breakdown.build_breakdown_csv("../../results/strong_scaling/wikipedia", [int(math.pow(2, x)) for x in range(6, 10 + 1)], sys.argv[1] + "/wikipedia_breakdown.csv")
+    breakdown.build_breakdown_csv("../../results/strong_scaling/wikipedia", [str(int(math.pow(2, x))) for x in range(6, 10 + 1)], sys.argv[1] + "/wikipedia_breakdown.csv")
+    breakdown.build_breakdown_csv("../../results/strong_scaling/livejournal", [str(int(math.pow(2, x))) for x in range(4, 10 + 1)], sys.argv[1] + "/livejournal_breakdown.csv")
+    breakdown.build_receiver_breakdown_csv("../../results/strong_scaling/wikipedia", [str(int(math.pow(2, x))) for x in range(6, 10 + 1)], sys.argv[1] + "/wikipedia_receiver_breakdown.csv")
+    breakdown.build_receiver_breakdown_csv("../../results/strong_scaling/livejournal", [str(int(math.pow(2, x))) for x in range(4, 10 + 1)], sys.argv[1] + "/livejournal_receiver_breakdown.csv")
 
 if __name__ == '__main__':
     main()
