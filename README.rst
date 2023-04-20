@@ -82,7 +82,7 @@ Running GreeDIMM
 
 GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/release/tools/mpi-greedi-im -h`` will provide the following information; 
 
-.. code-block:: shell
+.. code-block::
    
    Usage: ./build/release/tools/mpi-greedi-im [OPTIONS]
 
@@ -113,14 +113,6 @@ GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/
 
 
    Streaming-Engine Options:
-      --streaming-gpu-workers UINT
-                                    The number of GPU workers for the CPU+GPU streaming engine.
-      --streaming-gpu-mapping TEXT
-                                    A comma-separated set of OpenMP numbers for GPU workers.
-      --seed-select-max-workers UINT
-                                    The max number of workers for seed selection.
-      --seed-select-max-gpu-workers UINT
-                                    The max number of GPU workers for seed selection.
       --dump-sampling-data BOOLEAN
                                     Output all sampling data to your output file
       --run-streaming BOOLEAN     Run max-k-cover within a streaming algorithm. False by default.
