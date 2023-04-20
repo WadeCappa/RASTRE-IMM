@@ -1,0 +1,37 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/Pokec_binary.txt",
+    "K": 100,
+    "Seeds": [
+      369952,
+      389,
+      757,
+      4
+    ],
+    "Simulations": [
+      [
+        461537,
+        30
+      ],
+      [
+        459802,
+        27
+      ],
+      [
+        461078,
+        28
+      ],
+      [
+        462360,
+        26
+      ],
+      [
+        460464,
+        28
+      ]
+    ]
+  }
+]

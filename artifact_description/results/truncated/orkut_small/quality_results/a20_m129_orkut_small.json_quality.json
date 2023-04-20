@@ -1,0 +1,44 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/orkut_small_binary.txt",
+    "K": 100,
+    "Seeds": [
+      297,
+      4625,
+      412,
+      4622,
+      1904,
+      678,
+      1839,
+      42192,
+      28,
+      34,
+      692
+    ],
+    "Simulations": [
+      [
+        1434793,
+        22
+      ],
+      [
+        1426841,
+        22
+      ],
+      [
+        1433470,
+        24
+      ],
+      [
+        1440376,
+        23
+      ],
+      [
+        1432529,
+        24
+      ]
+    ]
+  }
+]

@@ -1,0 +1,48 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "FindMostInfluentialSet": 2.376009e-317,
+    "GenerateRRRSets": 2e-05,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/orkut_small_binary.txt",
+    "K": 100,
+    "L": 1,
+    "NumGPUWalkWorkers": 0,
+    "NumThreads": 64,
+    "NumWalkWorkers": 64,
+    "Output": "/global/cfs/cdirs/m1641/network-results/strong_scaling/orkut_big/m129_orkut_small.json",
+    "Rank": 0,
+    "Seeds": [
+      4227,
+      12877,
+      616,
+      34,
+      1160,
+      42155,
+      55,
+      308,
+      274,
+      42248,
+      28
+    ],
+    "Theta": 260038,
+    "ThetaEstimation": 19558.940737,
+    "ThetaEstimationGenerateRRR": [
+      14147.420763,
+      5411.263278,
+      3223.699164
+    ],
+    "ThetaEstimationMostInfluential": [
+      4e-05,
+      4e-05,
+      3e-05
+    ],
+    "ThetaPrimeDeltas": [
+      1122,
+      1122
+    ],
+    "Total": 22807.325484,
+    "WorldSize": 129
+  }
+]

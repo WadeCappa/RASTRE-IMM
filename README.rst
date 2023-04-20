@@ -88,7 +88,7 @@ GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/
 
    Options:
       -h,--help                   Print this help message and exit
-
+      
 
    Input Options:
       -i,--input-graph TEXT REQUIRED

@@ -1,0 +1,59 @@
+[
+  {
+    "Algorithm": "MPI-IMM",
+    "DiffusionModel": "IC",
+    "Epsilon": 0.13,
+    "FindMostInfluentialSet": 2.3719617e-317,
+    "GenerateRRRSets": 27950.013166,
+    "Input": "/global/cfs/cdirs/m1641/network-data/Binaries/wikipedia_binary.txt",
+    "K": 100,
+    "L": 1,
+    "NumGPUWalkWorkers": 0,
+    "NumThreads": 64,
+    "NumWalkWorkers": 64,
+    "Output": "/global/cfs/cdirs/m1641/network-results/strong_scaling/wikipedia/m513_wikipedia.json",
+    "Rank": 0,
+    "Seeds": [
+      2416573,
+      939,
+      3137,
+      1808,
+      532,
+      338,
+      358,
+      314,
+      55,
+      1769,
+      1152,
+      1157,
+      671,
+      461,
+      190,
+      965,
+      251,
+      52,
+      397,
+      1794,
+      1268,
+      54
+    ],
+    "Theta": 471288,
+    "ThetaEstimation": 147651.38036,
+    "ThetaEstimationGenerateRRR": [
+      74607.158198,
+      73043.830566,
+      50727.785437
+    ],
+    "ThetaEstimationMostInfluential": [
+      4.1e-05,
+      2.9e-05,
+      3e-05
+    ],
+    "ThetaPrimeDeltas": [
+      319,
+      319
+    ],
+    "Total": 226438.220018,
+    "WorldSize": 513
+  }
+]
