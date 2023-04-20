@@ -1,6 +1,8 @@
 GreeDIMM
 *******
 
+The algorithm as described in *Scalable Influence Maximization using Distributed Streaming Maximum Cover*
+
 Quickstart with Conan
 =====================
 
@@ -133,12 +135,14 @@ GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/
 GreeDIMM Team
 ============
 
-- `Reet Barik <reet.barik@wsu.edu>`_
-- `Wade Cappa <wade.cappa@wsu.edu>`_
-- `S M Ferdous <sm.ferdous@pnnl.gov>`_
-- `Marco Mintutoli <marco.minutoli@pnnl.gov>`_
-- `Mahantesh Halappanavar <mahantesh.halappanavar@pnnl.gov>`_
-- `Ananth Kalyanaraman <ananth@wsu.edu>`_
+- `Reet Barik | WSU <reet.barik@wsu.edu>`_
+- `Wade Cappa | WSU <wade.cappa@wsu.edu>`_
+- `S M Ferdous | PNNL <sm.ferdous@pnnl.gov>`_
+- `Marco Mintutoli | PNNL <marco.minutoli@pnnl.gov>`_
+- `Mahantesh Halappanavar | PNNL, WSU <mahantesh.halappanavar@pnnl.gov>`_
+- `Ananth Kalyanaraman | WSU, PNNL <ananth@wsu.edu>`_
+
+This software was produced in collaboration between authors from Washington State University Pullman, and Pacific Northwest National Laboratory Richland. 
 
 Disclamer Notice
 ================
