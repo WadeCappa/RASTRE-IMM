@@ -1,6 +1,8 @@
 GreeDIMM
 *******
 
+The algorithm as described in *Scalable Influence Maximization using Distributed Streaming Maximum Cover*
+
 Quickstart with Conan
 =====================
 
@@ -80,13 +82,13 @@ Running GreeDIMM
 
 GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/release/tools/mpi-greedi-im -h`` will provide the following information; 
 
-.. code-block:: shell
+.. code-block::
    
    Usage: ./build/release/tools/mpi-greedi-im [OPTIONS]
 
    Options:
       -h,--help                   Print this help message and exit
-
+      
 
    Input Options:
       -i,--input-graph TEXT REQUIRED
@@ -111,14 +113,6 @@ GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/
 
 
    Streaming-Engine Options:
-      --streaming-gpu-workers UINT
-                                    The number of GPU workers for the CPU+GPU streaming engine.
-      --streaming-gpu-mapping TEXT
-                                    A comma-separated set of OpenMP numbers for GPU workers.
-      --seed-select-max-workers UINT
-                                    The max number of workers for seed selection.
-      --seed-select-max-gpu-workers UINT
-                                    The max number of GPU workers for seed selection.
       --dump-sampling-data BOOLEAN
                                     Output all sampling data to your output file
       --run-streaming BOOLEAN     Run max-k-cover within a streaming algorithm. False by default.
@@ -133,12 +127,14 @@ GreeDIMM can be run with ``build/release/tools/mpi-greedi-im``. Running ``build/
 GreeDIMM Team
 ============
 
-- `Reet Barik <reet.barik@wsu.edu>`_
-- `Wade Cappa <wade.cappa@wsu.edu>`_
-- `S M Ferdous <sm.ferdous@pnnl.gov>`_
-- `Marco Mintutoli <marco.minutoli@pnnl.gov>`_
-- `Mahantesh Halappanavar <mahantesh.halappanavar@pnnl.gov>`_
-- `Ananth Kalyanaraman <ananth@wsu.edu>`_
+- `Reet Barik | WSU <reet.barik@wsu.edu>`_
+- `Wade Cappa | WSU <wade.cappa@wsu.edu>`_
+- `S M Ferdous | PNNL <sm.ferdous@pnnl.gov>`_
+- `Marco Mintutoli | PNNL <marco.minutoli@pnnl.gov>`_
+- `Mahantesh Halappanavar | PNNL, WSU <mahantesh.halappanavar@pnnl.gov>`_
+- `Ananth Kalyanaraman | WSU, PNNL <ananth@wsu.edu>`_
+
+This software was produced in collaboration between authors from Washington State University Pullman, and Pacific Northwest National Laboratory Richland. 
 
 Disclamer Notice
 ================
