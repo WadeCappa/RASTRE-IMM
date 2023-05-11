@@ -397,7 +397,7 @@ private:
         const std::vector<int>& RRRSetIDs 
     )
     {
-        std::cout << "inserting last seed" << std::endl;
+        // std::cout << "inserting last seed" << std::endl;
 
         this->InsertNextSeedIntoSendBuffer(
             current_seed, 
@@ -460,7 +460,7 @@ private:
     {
         if (waitingOnSends)
         {
-            std::cout << "WAITING ON SENDS" << std::endl;
+            // std::cout << "WAITING ON SENDS" << std::endl;
             MPI_Status status;
 
             MPI_Wait(this->request, &status);
@@ -503,13 +503,13 @@ private:
             {
                 MPI_Status status;
                 int flag = 0;
-                std::cout << "going to test? " << (current_send_index < this->kprime - 2) << std::endl;
+                // std::cout << "going to test? " << (current_send_index < this->kprime - 2) << std::endl;
                 if (current_send_index < this->kprime - 2)
                 {
                     MPI_Test(this->request, &flag, &status);
                     if (flag == 1)
                     {
-                        std::cout << "sent " << current_send_index << std::endl;
+                        // std::cout << "sent " << current_send_index << std::endl;
                         // delete this->send_buffers[current_send_index++].second;
                         current_send_index++;
 

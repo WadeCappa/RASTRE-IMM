@@ -362,19 +362,19 @@ class StreamingRandGreedIEngine
                     int tag = status.MPI_TAG > this->kprime - 1 ? this->kprime - 1 : status.MPI_TAG;
                     int source = status.MPI_SOURCE - 1;
 
-                    std::cout << "tag: " << tag << ", source: " << source << std::endl;
+                    // std::cout << "tag: " << tag << ", source: " << source << std::endl;
 
                     if (status.MPI_TAG > this->kprime - 1)
                     {
                         local_utilities[source] = status.MPI_TAG;
                         this->GetSeedSet(this->buffer, local_seed_sets[source]);
-                        std::cout << "got seed set from " << source << std::endl;
+                        // std::cout << "got seed set from " << source << std::endl;
                         
-                        for (const auto & seed : local_seed_sets[source])
-                        {
-                            std::cout << seed << ", ";
-                        }
-                        std::cout << std::endl;
+                        // for (const auto & seed : local_seed_sets[source])
+                        // {
+                        //     std::cout << seed << ", ";
+                        // }
+                        // std::cout << std::endl;
                     }
 
                     auto new_element = this->ExtractElement(this->buffer);
