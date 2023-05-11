@@ -338,8 +338,8 @@ private:
     CommunicationEngine<GraphTy>* cEngine;
     NextMostInfluentialFinder* finder = 0;
     TimerAggregator* timer = 0;
-    MPI_Request *request = new MPI_Request();
-    std::vector<std::pair<int, int*>> send_buffers;
+    MPI_Request *request;
+    std::vector<std::vector<unsigned int>> send_buffers;
 
     void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int>& seedSet)
     {
@@ -378,8 +378,17 @@ private:
     {
         auto sendData = this->cEngine->LinearizeSingleSeed(vertex_id, RRRSetIDs);
 
-        this->send_buffers[current_seed].second = sendData.second;
-        this->send_buffers[current_seed].first = sendData.first;
+        this->send_buffers[current_seed].resize(sendData.first);
+        
+        for (size_t i = 0; i < sendData.first; i++)
+        {
+            this->send_buffers[current_seed][i] = sendData.second[i];
+        }
+
+        delete sendData.second;
+
+        // this->send_buffers[current_seed].second = sendData.second;
+        // this->send_buffers[current_seed].first = sendData.first;
     }
 
     void InsertLastSeed(
@@ -388,18 +397,20 @@ private:
         const std::vector<int>& RRRSetIDs 
     )
     {
+        // std::cout << "inserting last seed" << std::endl;
+
         this->InsertNextSeedIntoSendBuffer(
             current_seed, 
             local_seed_set[current_seed], 
             RRRSetIDs
         );
 
-        int* newBuffer = new int[this->send_buffers[current_seed].first + local_seed_set.size() + 1];
+        std::vector<unsigned int> newBuffer = std::vector<unsigned int>(this->send_buffers[current_seed].size() + local_seed_set.size() + 1);
 
         int start = 0;
-        for (; this->send_buffers[current_seed].second[start] != -1; start++)
+        for (; this->send_buffers[current_seed][start] != -1; start++)
         {
-            newBuffer[start] = this->send_buffers[current_seed].second[start];
+            newBuffer[start] = this->send_buffers[current_seed][start];
         }
 
         newBuffer[start] = -1;
@@ -413,17 +424,18 @@ private:
 
         newBuffer[start] = -1;
 
-        delete this->send_buffers[current_seed].second;
-        this->send_buffers[current_seed].second = newBuffer;
+        // delete this->send_buffers[current_seed].second;
+        this->send_buffers[current_seed] = newBuffer;
+        // this->send_buffers[current_seed].second = newBuffer;
 
-        this->send_buffers[current_seed].first = this->send_buffers[current_seed].first + local_seed_set.size() + 1;
+        // this->send_buffers[current_seed].first = this->send_buffers[current_seed].size() + local_seed_set.size() + 1;
     }
 
     void SendNextSeed(const unsigned int current_send_index, const unsigned int tag)
     {
         MPI_Isend (
-            this->send_buffers[current_send_index].second,
-            this->send_buffers[current_send_index].first,
+            this->send_buffers[current_send_index].data(),
+            this->send_buffers[current_send_index].size(),
             MPI_INT, 0,
             tag,
             MPI_COMM_WORLD,
@@ -448,11 +460,13 @@ private:
     {
         if (waitingOnSends)
         {
+            // std::cout << "WAITING ON SENDS" << std::endl;
             MPI_Status status;
 
             MPI_Wait(this->request, &status);
 
-            delete this->send_buffers[current_send_index++].second;
+            // delete this->send_buffers[current_send_index++].second;
+            current_send_index++;
 
             for (; current_send_index < this->kprime; current_send_index++)
             {
@@ -460,8 +474,8 @@ private:
                 {
                     this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
                     MPI_Send (
-                        this->send_buffers[current_send_index].second,
-                        this->send_buffers[current_send_index].first,
+                        this->send_buffers[current_send_index].data(),
+                        this->send_buffers[current_send_index].size(),
                         MPI_INT, 0,
                         current_send_index,
                         MPI_COMM_WORLD
@@ -471,30 +485,33 @@ private:
                 {
                     this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index]));
                     MPI_Send (
-                        this->send_buffers[current_send_index].second,
-                        this->send_buffers[current_send_index].first,
+                        this->send_buffers[current_send_index].data(),
+                        this->send_buffers[current_send_index].size(),
                         MPI_INT, 0,
                         this->GetUtility(covered),
                         MPI_COMM_WORLD
                     );
                 }
 
-                delete this->send_buffers[current_send_index].second;
+                // delete this->send_buffers[current_send_index].second;
             }
         }
         else 
         {
+            // std::cout << "Sending " << current_send_index << std::endl;
             if (currentSeed > 0)
             {
                 MPI_Status status;
-                int flag;
+                int flag = 0;
+                // std::cout << "going to test? " << (current_send_index < this->kprime - 2) << std::endl;
                 if (current_send_index < this->kprime - 2)
                 {
-
                     MPI_Test(this->request, &flag, &status);
                     if (flag == 1)
                     {
-                        delete this->send_buffers[current_send_index++].second;
+                        // std::cout << "sent " << current_send_index << std::endl;
+                        // delete this->send_buffers[current_send_index++].second;
+                        current_send_index++;
 
                         if (current_send_index < this->kprime - 1)
                         {
@@ -506,8 +523,10 @@ private:
             }
             else 
             {
+                // std::cout << "inserting first seed into buffer" << std::endl;
                 this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
                 this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
+                // current_send_index++;
             }
         }
     }
@@ -564,6 +583,8 @@ public:
 
     std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta)
     {
+        this->request = new MPI_Request();
+
         std::vector<unsigned int> res(this->k, -1);
         ripples::Bitmask<int> covered(theta);
 
@@ -575,14 +596,13 @@ public:
 
         unsigned int current_send_index = 0;
 
-        MPI_Request request;
         std::pair<int, int*> sendData;
 
         if (this->sendPartialSolutions)
         {
             for (int i = 0; i < this->kprime; i++)
             {
-                this->send_buffers.push_back(std::make_pair(0, (int*)0));
+                this->send_buffers.push_back(std::vector<unsigned int>());
             }
         }
 

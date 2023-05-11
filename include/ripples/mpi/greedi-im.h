@@ -156,7 +156,9 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   std::vector<int>& vertexToProcess,
   int world_size, 
   int world_rank,
-  CommunicationEngine<GraphTy>& cEngine
+  CommunicationEngine<GraphTy>& cEngine,
+  std::map<int, std::vector<int>>& aggregateSets,
+  std::vector<size_t>& old_sampling_sizes
 ) 
 {
   double f ;
@@ -170,6 +172,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   // ssize_t localThetaPrime = TOTAL_THETA / world_size;
 
   std::pair<std::vector<unsigned int>, size_t> globalSeeds;
+
+  size_t number_of_old_RRRSets = RR.size();
 
   auto timeRRRSets = measure<>::exec_time([&]() {
     if (localThetaPrime > RR.size()) {
@@ -236,13 +240,11 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     spdlog::get("console")->info("AlltoAll...");
 
-    timeAggregator.allToAllTimer.startTimer();
-
-    std::map<int, std::vector<int>> aggregateSets;  
+    timeAggregator.allToAllTimer.startTimer();  
     
     {
       std::vector<unsigned int> countPerProcess;
-      size_t totalCount = cEngine.countPerProcessForBatchSend(countPerProcess, tRRRSets, vertexToProcess, world_size, block_size);
+      size_t totalCount = cEngine.countPerProcessForBatchSend(countPerProcess, tRRRSets, vertexToProcess, world_size, block_size, old_sampling_sizes);
 
       MPI_Datatype batch_int;
       MPI_Type_contiguous( block_size, MPI_INT, &batch_int );
@@ -262,8 +264,14 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         psum, 
         totalCount, 
         world_size,
-        block_size
+        block_size,
+        old_sampling_sizes
       );
+
+      for (size_t i = 0; i < old_sampling_sizes.size(); i++)
+      {
+        old_sampling_sizes[i] = tRRRSets.sets[i].second.size();
+      }
 
       // std::cout << "linearizing data, rank = " << world_rank << std::endl;
 
@@ -426,7 +434,7 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   const GraphTy &G, const ConfTy &CFG, double l,
   RRRGeneratorTy &generator, IMMExecutionRecord &record,
   diff_model_tag &&model_tag, execution_tag &&ex_tag, 
-  std::vector<int> vertexToProcess,
+  std::vector<int>& vertexToProcess,
   int world_size, int world_rank
 ) {
   using vertex_type = typename GraphTy::vertex_type;
@@ -459,6 +467,17 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
   TimerAggregator timeAggregator;
 
   CommunicationEngine<GraphTy> cEngine;
+  
+  std::map<int, std::vector<int>> aggregateSets;
+  std::vector<size_t> old_sampling_sizes(vertexToProcess.size(), 0);
+
+  for (size_t i = 0; i < vertexToProcess.size(); i++)
+  {
+    if (vertexToProcess[i] == world_rank)
+    {
+      aggregateSets.insert({i, std::vector<int>()});
+    }
+  }
 
   // martingale loop
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
@@ -476,7 +495,9 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
       std::forward<diff_model_tag>(model_tag),
       std::forward<execution_tag>(ex_tag),
       vertexToProcess, world_size, world_rank,
-      cEngine
+      cEngine,
+      aggregateSets,
+      old_sampling_sizes
     );
 
     std::cout << "finished iteration " << x << " and aquired utility of " << seeds.second << std::endl;
@@ -543,7 +564,9 @@ std::pair<std::vector<unsigned int>, int> TransposeSampling(
     std::forward<diff_model_tag>(model_tag),
     std::forward<execution_tag>(ex_tag),
     vertexToProcess, world_size, world_rank,
-    cEngine
+    cEngine,
+    aggregateSets,
+    old_sampling_sizes
   );
 
   std::cout << "finished final iteration, aquired utility of " << bestSeeds.second << std::endl;

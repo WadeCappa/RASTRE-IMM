@@ -43,19 +43,30 @@ class CommunicationEngine
         return count;
     }
 
-    size_t countPerProcessForBatchSend(std::vector<unsigned int>& countPerProcess, TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, int p, size_t block_size) 
+    size_t countPerProcessForBatchSend(
+        std::vector<unsigned int>& countPerProcess, 
+        TransposeRRRSets<GraphTy> &tRRRSets, 
+        std::vector<int> vertexToProcessor, 
+        int p, 
+        size_t block_size,
+        const std::vector<size_t>& old_sizes
+    ) 
     {
         std::vector<std::mutex> locksPerProcess(p);
         countPerProcess.resize(p, 0);
 
         size_t count = 0;
+
         #pragma omp parallel for reduction(+:count)
         for (size_t i = 0; i < vertexToProcessor.size(); i++) 
         {
-            count += tRRRSets.sets[i].second.size() + 2;
+            size_t old_count = old_sizes[i];
+            size_t new_size = tRRRSets.sets[i].second.size();
+            count += new_size - old_count + 2;
+            // count += tRRRSets.sets[i].second.size() + 2;
 
             locksPerProcess[vertexToProcessor[i]].lock();
-            countPerProcess[vertexToProcessor[i]] += tRRRSets.sets[i].second.size() + 2;
+            countPerProcess[vertexToProcessor[i]] += new_size - old_count + 2;
             locksPerProcess[vertexToProcessor[i]].unlock();
         }   
 
@@ -144,24 +155,50 @@ class CommunicationEngine
 
         *(linearAggregateSets + offset) = -1;
 
+        std::cout << "sending element " << vertexID << " of size " << set.size()+2 << std::endl;
+
+        // for (int* itr = linearAggregateSets; *itr != -1; itr++)
+        // {
+        //     std::cout << *itr << ", ";
+        // }
+        // std::cout << -1 << std::endl;
+
         return std::make_pair(set.size()+2, linearAggregateSets);
     }
 
-    void linearize(unsigned int* linearTRRRSets, TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, std::vector<unsigned int> dataStartPartialSum, size_t totalData, int p, size_t block_size) 
+    void linearize(
+        unsigned int* linearTRRRSets, 
+        TransposeRRRSets<GraphTy> &tRRRSets, 
+        std::vector<int> vertexToProcessor, 
+        std::vector<unsigned int> dataStartPartialSum, 
+        size_t totalData, 
+        int p, 
+        size_t block_size,
+        std::vector<size_t>& old_sizes
+    ) 
     {
         #pragma omp parallel for
         for (int rank = 0; rank < p; rank++) {
-            linearizeRank(tRRRSets, linearTRRRSets, vertexToProcessor, dataStartPartialSum, rank, totalData);
+            linearizeRank(tRRRSets, linearTRRRSets, vertexToProcessor, dataStartPartialSum, rank, totalData, old_sizes);
         }
     }
 
-    void linearizeRank(TransposeRRRSets<GraphTy> &tRRRSets, unsigned int* linearTRRRSets, std::vector<int> vertexToProcessor, std::vector<unsigned int> dataStartPartialSum, int rank, size_t totalData) 
+    void linearizeRank(
+        TransposeRRRSets<GraphTy> &tRRRSets, 
+        unsigned int* linearTRRRSets, 
+        std::vector<int> vertexToProcessor, 
+        std::vector<unsigned int> dataStartPartialSum, 
+        int rank, 
+        size_t totalData,
+        std::vector<size_t>& old_sizes
+    ) 
     {
         size_t index = dataStartPartialSum[rank];
         for (size_t i = 0; i < tRRRSets.sets.size(); i++) {
             if (vertexToProcessor[i] == rank) {
                 linearTRRRSets[index++] = i;
-                for (const auto& RRRid: tRRRSets.sets[i].second) {
+                for (auto itr = tRRRSets.sets[i].second.begin() + old_sizes[i]; itr != tRRRSets.sets[i].second.end(); itr++) {
+                    const auto & RRRid = *itr;
                     linearTRRRSets[index++] = RRRid;
                 }
                 linearTRRRSets[index++] = -1;
@@ -192,7 +229,13 @@ class CommunicationEngine
     /// @param receivedDataSizes is the data collected from MPI_alltoall
     /// @param p number of processes
     /// @param RRRIDsPerProcess the upper bound of the maximum number of RRRIDs that each process is responsible for generating
-    void aggregateTRRRSets(std::map<int, std::vector<int>> &aggregateSets, unsigned int* data, unsigned int* receivedDataSizes, int p, ssize_t RRRIDsPerProcess)
+    void aggregateTRRRSets(
+        std::map<int, std::vector<int>> &aggregateSets, 
+        unsigned int* data, 
+        unsigned int* receivedDataSizes, 
+        int p, 
+        ssize_t RRRIDsPerProcess
+    )
     {
         size_t totalData = 0;
         for (int i = 0; i < p; i++) {
@@ -203,12 +246,12 @@ class CommunicationEngine
 
         // cycle over data
         int vertexID = *data; // TODO: Fix all these datatypes, need to be vector_type, will not scale with int as number of nodes increases
-        aggregateSets.insert({ vertexID, std::vector<int>() });
+        // aggregateSets.insert({ vertexID, std::vector<int>() });
         for (size_t rankDataProcessed = 1, i = 1; i < totalData - 1; i++, rankDataProcessed++) {
             if (*(data + i) == -1 && *(data + i + 1) != -1) {
                 vertexID = *(data + ++i);
                 rankDataProcessed++;
-                aggregateSets.insert({ vertexID, std::vector<int>() });
+                // aggregateSets.insert({ vertexID, std::vector<int>() });
             }
 
             else if (*(data + i) != -1) {

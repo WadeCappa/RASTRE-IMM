@@ -17,6 +17,11 @@
 
 #include <cmath>
 
+typedef struct origin {
+    int source;
+    int seed;
+} Origin;
+
 using ElementList = std::vector<std::pair<int, std::vector<int>*>>;
 
 class ThresholdBucket 
@@ -227,6 +232,14 @@ class StreamingRandGreedIEngine
             received_data->push_back(*e);
         }
 
+        std::cout << "found element " << *data << " of size " << received_data->size() << std::endl;
+        // for (const auto & e : *received_data)
+        // {
+        //     std::cout << e << ", ";
+        // }
+        // std::cout << std::endl;
+
+
         return std::make_pair(*data, received_data);
     }
 
@@ -256,7 +269,7 @@ class StreamingRandGreedIEngine
             }
         }
 
-        if (status.MPI_TAG >= kprime - 1)
+        if (status.MPI_TAG > kprime - 1)
         {
             // this means that last element from a process has been sent
             this->active_senders--;
@@ -313,9 +326,9 @@ class StreamingRandGreedIEngine
 
         std::vector<std::vector<unsigned int>> local_seed_sets(this->world_size);
 
-        std::vector<std::pair<int, std::pair<int,int>>> availability_index(
+        std::vector<std::pair<int, Origin>> availability_index(
             this->world_size * this->kprime, 
-            std::make_pair(0, std::make_pair(-1,-1))
+            std::make_pair(0, (Origin){-1,-1})
         );
 
         std::vector<int> local_utilities(this->world_size);
@@ -345,8 +358,11 @@ class StreamingRandGreedIEngine
 
                     timer->processingReceiveTimer.startTimer();
 
-                    int tag = status.MPI_TAG > this-> k - 1 ? this->kprime - 1 : status.MPI_TAG;
+                    // TODO: logic is not garunteed, in practice works. Local utiltiy does not nessessarly have to be greater than k.
+                    int tag = status.MPI_TAG > this->kprime - 1 ? this->kprime - 1 : status.MPI_TAG;
                     int source = status.MPI_SOURCE - 1;
+
+                    // std::cout << "tag: " << tag << ", source: " << source << std::endl;
 
                     if (status.MPI_TAG > this->kprime - 1)
                     {
@@ -377,8 +393,8 @@ class StreamingRandGreedIEngine
                         buckets_initialized++;
                     }
 
-                    availability_index[i].second.first = source;
-                    availability_index[i].second.second = tag;
+                    availability_index[i].second.source = source;
+                    availability_index[i].second.seed = tag;
 
                     timer->processingReceiveTimer.endTimer();
 
@@ -396,7 +412,7 @@ class StreamingRandGreedIEngine
                     }
                 }
 
-                // std::cout << "killing processors, waiting for them to exit..." << std::endl;
+                std::cout << "killing processors, waiting for them to exit..." << std::endl;
 
                 streaming_finished = true;
             }
@@ -413,7 +429,7 @@ class StreamingRandGreedIEngine
                     }
                 }
 
-                // std::cout << "exited waiting loop..." << std::endl;
+                std::cout << "exited waiting loop..." << std::endl;
 
                 // build mapping of each thread to number of buckets
                 auto buckets = this->buckets.GetBuckets();
@@ -433,7 +449,7 @@ class StreamingRandGreedIEngine
                     }
                 }
 
-                // std::cout << "starting to process elements..." << std::endl;
+                std::cout << "starting to process elements..." << std::endl;
 
                 timer->max_k_globalTimer.startTimer();
 
@@ -456,10 +472,12 @@ class StreamingRandGreedIEngine
                             local_dummy_value++;
                         }
 
+                        // std::cout << "inserting seed " << local_received_index << std::endl;
+
                         for (auto & b : thread_buckets)
                         {
                             auto p = availability_index[local_received_index].second;
-                            b->attemptInsert(element_matrix[p.first][p.second]);
+                            b->attemptInsert(element_matrix[p.source][p.seed]);
                         }
                     }
                 }
@@ -473,8 +491,8 @@ class StreamingRandGreedIEngine
 
         for (int i = 0; i < local_utilities.size(); i++)
         {
-            // std::cout << "streaming utility is " << bestSeeds.second << std::endl;
-            // std::cout << "looking at " << local_utilities[i] << " from local process " << i+1 << std::endl;
+            std::cout << "streaming utility is " << bestSeeds.second << std::endl;
+            std::cout << "looking at " << local_utilities[i] << " from local process " << i+1 << std::endl;
             if (local_utilities[i] > bestSeeds.second)
             {
                 bestSeeds.second = local_utilities[i];
@@ -482,7 +500,7 @@ class StreamingRandGreedIEngine
             }
         }
 
-        // std::cout << "number of seeds: " << bestSeeds.first.size() << std::endl;
+        std::cout << "number of seeds: " << bestSeeds.first.size() << std::endl;
 
         for (auto & r : element_matrix)
         {

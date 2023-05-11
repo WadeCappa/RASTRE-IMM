@@ -4,11 +4,11 @@
 #SBATCH -C cpu
 #SBATCH -t 00:15:00
 #SBATCH -q regular
-#SBATCH -N 257
+#SBATCH -N 17
 #SBATCH --ntasks-per-node=1
-#SBATCH -J m257_streaming_wikipedia
-#SBATCH -o /global/cfs/cdirs/m1641/network-results/RRRSetAnalysis/m257_streaming_wikipedia.o
-#SBATCH -e /global/cfs/cdirs/m1641/network-results/RRRSetAnalysis/m257_streaming_wikipedia.e
+#SBATCH -J m17_streaming_orkut_big
+#SBATCH -o /global/cfs/cdirs/m1641/network-results/fixed_alltoall/orkut_big/m17_streaming_orkut_big.o
+#SBATCH -e /global/cfs/cdirs/m1641/network-results/fixed_alltoall/orkut_big/m17_streaming_orkut_big.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 257 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/wikipedia_binary.txt  -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/RRRSetAnalysis/m257_streaming_wikipedia.json --run-streaming=true --epsilon-2=0.077 --reload-binary 
+srun -n 17 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/orkut_big_binary.txt  -w -k 16 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/fixed_alltoall/orkut_big/m17_streaming_orkut_big.json --run-streaming=true --epsilon-2=0.077 --reload-binary -u 
