@@ -155,6 +155,14 @@ class CommunicationEngine
 
         *(linearAggregateSets + offset) = -1;
 
+        std::cout << "sending element " << vertexID << " of size " << set.size()+2 << std::endl;
+
+        // for (int* itr = linearAggregateSets; *itr != -1; itr++)
+        // {
+        //     std::cout << *itr << ", ";
+        // }
+        // std::cout << -1 << std::endl;
+
         return std::make_pair(set.size()+2, linearAggregateSets);
     }
 
