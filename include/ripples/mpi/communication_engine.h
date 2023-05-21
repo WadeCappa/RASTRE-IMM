@@ -18,6 +18,9 @@ template <typename GraphTy>
 class CommunicationEngine
 {
     private: 
+    const int block_size = (1024 / sizeof(unsigned int)); // 256 ints per block
+    MPI_Datatype batch_int;
+
     const unsigned int world_size;
     const unsigned int world_rank;
 
@@ -27,9 +30,76 @@ class CommunicationEngine
         const unsigned int world_size, 
         const unsigned int world_rank
     ) : world_size(world_size), world_rank(world_rank)
-    {}
+    {
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(this->batch_int) );
+        MPI_Type_commit(&(this->batch_int));
+    }
 
-    ~CommunicationEngine() {}
+    ~CommunicationEngine() 
+    {
+        MPI_Type_free(&(this->batch_int));
+    }
+
+    void AggregateThroughAllToAll(
+        const TransposeRRRSets<GraphTy> &tRRRSets,
+        const std::vector<int> &vertexToProcess,
+        std::vector<size_t> &old_sampling_sizes,
+        const size_t localThetaPrime,
+        std::map<int, std::vector<int>> &aggregateSets
+    ) const
+    {
+        std::vector<unsigned int> countPerProcess;
+        size_t totalCount = this->countPerProcessForBatchSend(countPerProcess, tRRRSets, vertexToProcess, old_sampling_sizes);
+
+        std::vector<unsigned int> psum;
+        this->buildPrefixSum(psum, countPerProcess.data(), this->world_size);
+
+        unsigned int* data = new unsigned int[totalCount];
+
+        std::string print_string = std::string("rank ") + std::to_string(this->world_rank) + " linearizing data for AllToAll...";
+
+        spdlog::get("console")->info(print_string);
+
+        this->linearize(
+            data,
+            tRRRSets, 
+            vertexToProcess, 
+            psum, 
+            totalCount, 
+            old_sampling_sizes
+        );
+
+        print_string = std::string("rank ") + std::to_string(this->world_rank) + " resetting sample sizes...";
+        spdlog::get("console")->info(print_string);
+
+        for (size_t i = 0; i < old_sampling_sizes.size(); i++)
+        {
+            old_sampling_sizes[i] = tRRRSets.sets[i].second.size();
+        }
+
+        // std::cout << "linearizing data, rank = " << world_rank << std::endl;
+
+        for (auto & processCount : countPerProcess) {
+            processCount = processCount / block_size;
+        }
+
+        spdlog::get("console")->info("distributing samples, AllToAll operation...");
+
+        this->getProcessSpecificVertexRRRSets(aggregateSets, data, countPerProcess.data(), localThetaPrime);
+
+        delete data;
+    }
+
+    size_t GatherPartialSolutions(
+        const std::pair<std::vector<unsigned int>, ssize_t> &localSeeds,
+        const std::map<int, std::vector<int>> &aggregateSets,
+        std::vector<unsigned int> &globalAggregation
+    ) const
+    {
+        std::vector<unsigned int> linearAggregateSets;
+        size_t totalLinearLocalSeedsData = this->linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second);
+        return this->aggregateAggregateSets(globalAggregation, totalLinearLocalSeedsData, linearAggregateSets.data());
+    }
 
     // Returns total count, modifies the countPerProcess vector;
     size_t count(std::vector<unsigned int>& countPerProcess, TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor) const
@@ -53,9 +123,8 @@ class CommunicationEngine
 
     size_t countPerProcessForBatchSend(
         std::vector<unsigned int>& countPerProcess, 
-        TransposeRRRSets<GraphTy> &tRRRSets, 
-        std::vector<int> vertexToProcessor, 
-        size_t block_size,
+        const TransposeRRRSets<GraphTy> &tRRRSets, 
+        const std::vector<int> vertexToProcessor, 
         const std::vector<size_t>& old_sizes
     ) const 
     {
@@ -80,7 +149,7 @@ class CommunicationEngine
         size_t block_tax = 0;
         for (auto & processCount : countPerProcess)
         {
-            size_t blocks_to_add = block_size - (processCount % block_size);
+            size_t blocks_to_add = this->block_size - (processCount % this->block_size);
             // size_t blocks_to_add = processCount % block_size;
             block_tax += blocks_to_add;
             processCount += blocks_to_add;
@@ -109,8 +178,7 @@ class CommunicationEngine
         std::vector<unsigned int>& linearAggregateSets, 
         const std::map<int, std::vector<int>> &aggregateSets, 
         const std::vector<unsigned int>& localSeeds, 
-        const size_t total_utility,
-        const int block_size
+        const size_t total_utility
     ) const
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
@@ -123,7 +191,7 @@ class CommunicationEngine
         }
 
         size_t totalData = runningSum + 1;
-        size_t total_block_data = totalData + (block_size - (totalData % block_size));
+        size_t total_block_data = totalData + (this->block_size - (totalData % this->block_size));
 
         linearAggregateSets.resize(total_block_data);
 
@@ -177,12 +245,11 @@ class CommunicationEngine
 
     void linearize(
         unsigned int* linearTRRRSets, 
-        TransposeRRRSets<GraphTy> &tRRRSets, 
-        std::vector<int> vertexToProcessor, 
-        std::vector<unsigned int> dataStartPartialSum, 
+        const TransposeRRRSets<GraphTy> &tRRRSets, 
+        const std::vector<int> &vertexToProcessor, 
+        const std::vector<unsigned int> &dataStartPartialSum, 
         size_t totalData, 
-        size_t block_size,
-        std::vector<size_t>& old_sizes
+        const std::vector<size_t>& old_sizes
     ) const
     {
         #pragma omp parallel for
@@ -192,13 +259,13 @@ class CommunicationEngine
     }
 
     void linearizeRank(
-        TransposeRRRSets<GraphTy> &tRRRSets, 
+        const TransposeRRRSets<GraphTy> &tRRRSets, 
         unsigned int* linearTRRRSets, 
-        std::vector<int> vertexToProcessor, 
-        std::vector<unsigned int> dataStartPartialSum, 
+        const std::vector<int> &vertexToProcessor, 
+        const std::vector<unsigned int> &dataStartPartialSum, 
         int rank, 
         size_t totalData,
-        std::vector<size_t>& old_sizes
+        const std::vector<size_t>& old_sizes
     ) const
     {
         size_t index = dataStartPartialSum[rank];
@@ -322,9 +389,7 @@ class CommunicationEngine
         std::map<int, std::vector<int>> &aggregateSets, 
         unsigned int* linearizedData,
         unsigned int* countPerProcess,
-        ssize_t RRRIDsPerProcess,
-        MPI_Datatype& batch_int,
-        int block_size
+        ssize_t RRRIDsPerProcess
     ) const {
         unsigned int* receiveSizes = new unsigned int[this->world_size];
 
@@ -335,7 +400,7 @@ class CommunicationEngine
             totalReceivingBlocks += (unsigned int)*(receiveSizes + i);
         }
         
-        unsigned int* linearizedLocalData = new unsigned int[totalReceivingBlocks * block_size];
+        unsigned int* linearizedLocalData = new unsigned int[totalReceivingBlocks * this->block_size];
 
         std::vector<unsigned int> sendPrefixSum;
         buildPrefixSum(sendPrefixSum, countPerProcess, this->world_size);
@@ -347,16 +412,16 @@ class CommunicationEngine
             linearizedData, 
             (int*)countPerProcess, 
             (int*)sendPrefixSum.data(), 
-            batch_int, 
+            this->batch_int, 
             linearizedLocalData, 
             (int*)receiveSizes, 
             (int*)receivePrefixSum.data(),
-            batch_int,
+            this->batch_int,
             MPI_COMM_WORLD
         );
 
         for (int i = 0; i < this->world_size; i++) {
-            receiveSizes[i] *= block_size;
+            receiveSizes[i] *= this->block_size;
         }
 
         // TODO: make this not terrible
@@ -376,16 +441,14 @@ class CommunicationEngine
     size_t aggregateAggregateSets(
         std::vector<unsigned int>& aggregatedSeeds, 
         size_t totalGatherData, 
-        unsigned int* localLinearAggregateSets,
-        int block_size,
-        MPI_Datatype& batch_int
+        unsigned int* localLinearAggregateSets
     ) const
     {
         unsigned int* gatherSizes = new unsigned int[this->world_size];
         gatherSizes[0] = -1;
 
-        std::cout << "remainder: " << totalGatherData % block_size << std::endl; 
-        size_t total_block_send = totalGatherData / block_size;
+        std::cout << "remainder: " << totalGatherData % this->block_size << std::endl; 
+        size_t total_block_send = totalGatherData / this->block_size;
 
         MPI_Gather(
             &total_block_send, 1, MPI_INT,
@@ -407,22 +470,22 @@ class CommunicationEngine
             buildPrefixSum(displacements, gatherSizes, this->world_size);
         }
 
-        aggregatedSeeds.resize(totalData * block_size);
+        aggregatedSeeds.resize(totalData * this->block_size);
 
         MPI_Gatherv(
             localLinearAggregateSets,
             total_block_send,
-            batch_int,
+            this->batch_int,
             (int*)aggregatedSeeds.data(),
             (int*)gatherSizes,
             (int*)displacements.data(),
-            batch_int,
+            this->batch_int,
             0,
             MPI_COMM_WORLD
         );
 
         delete gatherSizes;
-        return totalData * block_size;
+        return totalData * this->block_size;
     }
 
     void distributeF(double* f) const

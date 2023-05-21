@@ -165,122 +165,73 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   ssize_t thetaPrime
 ) 
 {
-  const int block_size = (1024 / sizeof(unsigned int)); // 256 ints per block
   const size_t localThetaPrime = (thetaPrime / world_size) + 1;
 
   std::pair<std::vector<unsigned int>, size_t> approximated_solution;
 
   auto timeRRRSets = measure<>::exec_time([&]() {
-    if (localThetaPrime > this->RR_sets) {
-      size_t delta = localThetaPrime - this->RR_sets;
-      record.ThetaPrimeDeltas.push_back(delta);
 
-      spdlog::get("console")->info("sampling...");
+    size_t delta = localThetaPrime - this->RR_sets;
+    record.ThetaPrimeDeltas.push_back(delta);
 
-      timeAggregator.samplingTimer.startTimer();
-      GenerateTransposeRRRSets(
-        tRRRSets, this->RR_sets, delta, G, this->gen, record,
-        std::forward<diff_model_tag>(model_tag),
-        std::forward<execution_tag>(ex_tag)
-      );
+    spdlog::get("console")->info("sampling...");
 
-      this->RR_sets += delta;
+    timeAggregator.samplingTimer.startTimer();
+    GenerateTransposeRRRSets(
+      tRRRSets, this->RR_sets, delta, G, this->gen, record,
+      std::forward<diff_model_tag>(model_tag),
+      std::forward<execution_tag>(ex_tag)
+    );
 
-      timeAggregator.samplingTimer.endTimer();
-    }
+    this->RR_sets += delta;
+
+    timeAggregator.samplingTimer.endTimer();    
 
     spdlog::get("console")->info("AlltoAll...");
 
     timeAggregator.allToAllTimer.startTimer();  
-    
-    {
-      std::vector<unsigned int> countPerProcess;
-      size_t totalCount = cEngine.countPerProcessForBatchSend(countPerProcess, tRRRSets, vertexToProcess, block_size, old_sampling_sizes);
 
-      MPI_Datatype batch_int;
-      MPI_Type_contiguous( block_size, MPI_INT, &batch_int );
-      MPI_Type_commit(&batch_int);
-
-      std::vector<unsigned int> psum;
-      cEngine.buildPrefixSum(psum, countPerProcess.data(), world_size);
-
-      unsigned int* data = new unsigned int[totalCount];
-
-      std::string print_string = std::string("rank ") + std::to_string(this->world_rank) + " linearizing data for AllToAll...";
-
-      spdlog::get("console")->info(print_string);
-
-      cEngine.linearize(
-        data,
-        tRRRSets, 
-        vertexToProcess, 
-        psum, 
-        totalCount, 
-        block_size,
-        old_sampling_sizes
-      );
-
-      print_string = std::string("rank ") + std::to_string(this->world_rank) + " resetting sample sizes...";
-      spdlog::get("console")->info(print_string);
-
-      for (size_t i = 0; i < old_sampling_sizes.size(); i++)
-      {
-        old_sampling_sizes[i] = tRRRSets.sets[i].second.size();
-      }
-
-      // std::cout << "linearizing data, rank = " << world_rank << std::endl;
-
-      for (auto & processCount : countPerProcess) {
-        processCount = processCount / block_size;
-      }
-
-      spdlog::get("console")->info("distributing samples, AllToAll operation...");
-
-      cEngine.getProcessSpecificVertexRRRSets(aggregateSets, data, countPerProcess.data(), localThetaPrime, batch_int, block_size);
-
-      MPI_Type_free(&batch_int);
-      delete data;
-    }
-    // auto end = std::chrono::high_resolution_clock::now();
-    // std::cout << " ------- time for single all to all = " << (end - start).count() << " ------- " << std::endl;
+    cEngine.AggregateThroughAllToAll(
+      this->tRRRSets,
+      this->vertexToProcess,
+      this->old_sampling_sizes,
+      localThetaPrime,
+      this->aggregateSets
+    );
+  
     timeAggregator.allToAllTimer.endTimer();
 
-    // std::cout << "COUNTING ELEMENTS: process " << world_rank << " has " << aggregateSets->size() << " vertices" << std::endl;
+    spdlog::get("console")->info("seed selection...");
 
     int kprime = int(CFG.alpha * (double)CFG.k);
-    // int kprime = int(CFG.k);
 
     if (CFG.use_streaming == true) 
     {
       if (world_rank == 0) 
       {
-        spdlog::get("console")->info("streaming...");
-
         StreamingRandGreedIEngine streamingEngine((int)CFG.k, kprime, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
         approximated_solution = streamingEngine.Stream(&timeAggregator);
       }
       else 
       {
-        spdlog::get("console")->info("local max-k-cover...");
         timeAggregator.totalSendTimer.startTimer();
         
         StreamingMaxKCover<GraphTy> localKCoverEngine((int)CFG.k, kprime, timeAggregator, this->cEngine);
-        localKCoverEngine.useLazyGreedy(aggregateSets);
-        localKCoverEngine.run_max_k_cover(aggregateSets, thetaPrime*2);
+        localKCoverEngine.useLazyGreedy(this->aggregateSets);
+        localKCoverEngine.run_max_k_cover(this->aggregateSets, thetaPrime*2);
 
         timeAggregator.totalSendTimer.endTimer();
       }
     }
     else 
     {
-      spdlog::get("console")->info("local max_k_cover...");
       timeAggregator.max_k_localTimer.startTimer();
 
       std::pair<std::vector<unsigned int>, ssize_t> localSeeds;
 
       {
         MaxKCover<GraphTy> localKCoverEngine((int)CFG.k, kprime, timeAggregator);
-        localSeeds = localKCoverEngine.useLazyGreedy(aggregateSets).run_max_k_cover(aggregateSets, thetaPrime*2);
+        localSeeds = localKCoverEngine.useLazyGreedy(this->aggregateSets).run_max_k_cover(this->aggregateSets, thetaPrime*2);
       }
 
       timeAggregator.max_k_localTimer.endTimer();
@@ -289,25 +240,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       timeAggregator.allGatherTimer.startTimer();
 
       std::vector<unsigned int> globalAggregation;
-      size_t totalData = 0;
-
-      {
-        std::vector<unsigned int> linearAggregateSets;
-
-        MPI_Datatype batch_int;
-        MPI_Type_contiguous( block_size, MPI_INT, &batch_int );
-        MPI_Type_commit(&batch_int);
-
-        size_t totalLinearLocalSeedsData = cEngine.linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second, block_size);
-
-        spdlog::get("console")->info("successfully linearized...");
-
-        totalData = cEngine.aggregateAggregateSets(globalAggregation, totalLinearLocalSeedsData, linearAggregateSets.data(), block_size, batch_int);
-
-        spdlog::get("console")->info("successfully aggregated...");
-
-        MPI_Type_free(&batch_int);
-      }
+      size_t totalData = this->cEngine.GatherPartialSolutions(localSeeds, this->aggregateSets, globalAggregation);
 
       timeAggregator.allGatherTimer.endTimer();
 
@@ -349,11 +282,6 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
         delete local_seeds;
       }
-      else {
-        // delete globalAggregation;
-      }
-
-      spdlog::get("console")->info("end of martingale round, cleaning up...");
     }    
 
   });

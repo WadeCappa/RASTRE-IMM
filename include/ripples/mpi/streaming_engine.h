@@ -232,7 +232,7 @@ class StreamingRandGreedIEngine
             received_data->push_back(*e);
         }
 
-        std::cout << "found element " << *data << " of size " << received_data->size() << std::endl;
+        // std::cout << "found element " << *data << " of size " << received_data->size() << std::endl;
         // for (const auto & e : *received_data)
         // {
         //     std::cout << e << ", ";
