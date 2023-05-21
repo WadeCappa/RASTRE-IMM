@@ -468,104 +468,28 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
 template <typename GraphTy>
 class StreamingMaxKCover : public MaxKCoverBase<GraphTy>
 {
-    private:
+private:
     const CommunicationEngine<GraphTy> &cEngine;
     MPI_Request request;
     std::vector<std::vector<unsigned int>> send_buffers;
 
-    void SendNextSeed(const unsigned int current_send_index, const unsigned int tag)
-    {
-        MPI_Isend (
-            this->send_buffers[current_send_index].data(),
-            this->send_buffers[current_send_index].size(),
-            MPI_INT, 0,
-            tag,
-            MPI_COMM_WORLD,
-            &(this->request)
-        );
-    }
-
-    void SendSeed
-    (
-        unsigned int currentSeed, 
-        bool waitingOnSends, 
-        unsigned int& current_send_index, 
-        std::vector<unsigned int>& res,
-        std::map<int, std::vector<int>>& data,
-        ripples::Bitmask<int>& covered
+    void QueueNextSeed(
+        const unsigned int current_send_index,
+        const std::vector<unsigned int>& res,
+        const std::map<int, std::vector<int>>& data
     )
     {
-        if (waitingOnSends)
-        {
-            // std::cout << "WAITING ON SENDS" << std::endl;
-            MPI_Status status;
-
-            MPI_Wait(&(this->request), &status);
-
-            // delete this->send_buffers[current_send_index++].second;
-            current_send_index++;
-
-            for (; current_send_index < this->kprime; current_send_index++)
-            {
-                if (current_send_index != this->kprime - 1)
-                {
-                    this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                    MPI_Send (
-                        this->send_buffers[current_send_index].data(),
-                        this->send_buffers[current_send_index].size(),
-                        MPI_INT, 0,
-                        current_send_index,
-                        MPI_COMM_WORLD
-                    );
-                }
-                else 
-                {
-                    this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index]));
-                    MPI_Send (
-                        this->send_buffers[current_send_index].data(),
-                        this->send_buffers[current_send_index].size(),
-                        MPI_INT, 0,
-                        this->GetUtility(covered),
-                        MPI_COMM_WORLD
-                    );
-                }
-
-                // delete this->send_buffers[current_send_index].second;
-            }
-        }
-        else 
-        {
-            // std::cout << "Sending " << current_send_index << std::endl;
-            if (currentSeed > 0)
-            {
-                MPI_Status status;
-                int flag = 0;
-                // std::cout << "going to test? " << (current_send_index < this->kprime - 2) << std::endl;
-                if (current_send_index < this->kprime - 2)
-                {
-                    MPI_Test(&(this->request), &flag, &status);
-                    if (flag == 1)
-                    {
-                        // std::cout << "sent " << current_send_index << std::endl;
-                        // delete this->send_buffers[current_send_index++].second;
-                        current_send_index++;
-
-                        if (current_send_index < this->kprime - 1)
-                        {
-                            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                            this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
-                        }
-                    }
-                }
-            }
-            else 
-            {
-                // std::cout << "inserting first seed into buffer" << std::endl;
-                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
-                // current_send_index++;
-            }
-        }
+        current_send_index == this->kprime - 1 ? 
+            this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index])) :
+            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]))
+        ;
+        
+        this->cEngine.QueueNextSeed(
+            this->send_buffers[current_send_index].data(),
+            this->send_buffers[current_send_index].size(), 
+            current_send_index,
+            this->request
+        );        
     }
 
     void InsertNextSeedIntoSendBuffer
@@ -636,13 +560,13 @@ class StreamingMaxKCover : public MaxKCoverBase<GraphTy>
         int kprime, 
         TimerAggregator &timer,
         const CommunicationEngine<GraphTy> &cEngine
-    ) : MaxKCoverBase<GraphTy>(k, kprime, timer), cEngine(cEngine), send_buffers(k)
-    {
-        std::cout << "built streaming object" << std::endl;
-    }
+    ) : MaxKCoverBase<GraphTy>(k, kprime, timer), cEngine(cEngine), send_buffers(kprime)
+    {}
 
     std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta) override
     {
+        std::cout << "starting cover" << std::endl;
+
         std::vector<unsigned int> res(this->k, -1);
         ripples::Bitmask<int> covered(theta);
 
@@ -652,7 +576,7 @@ class StreamingMaxKCover : public MaxKCoverBase<GraphTy>
         for (const auto & l : data) { all_vertices->push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
-        unsigned int current_send_index = 0;
+        int current_send_index = 0;
 
         std::pair<int, int*> sendData;
 
@@ -674,17 +598,50 @@ class StreamingMaxKCover : public MaxKCoverBase<GraphTy>
 
             // This code block sends data to the global protion of the streaming solution
             this->timer.sendTimer.startTimer();
-            this->SendSeed(currentSeed, false, current_send_index, res, data, covered);
+
+            int flag = 0;
+            if (currentSeed > 0 && current_send_index < this->kprime - 1)
+            {
+                flag = this->cEngine.TestSend(this->request);
+                if (flag == 1)
+                {
+                    current_send_index++;
+                }
+            }
+
+            if (flag == 1 || currentSeed == 0)
+            {
+                // std::cout << "queuing seed " << current_send_index << std::endl;
+                this->QueueNextSeed(current_send_index, res, data);
+            }
+
             this->timer.sendTimer.endTimer();
         }
 
         this->timer.sendTimer.startTimer();
-        this->SendSeed((unsigned int)0, true, current_send_index, res, data, covered);
+        
+        this->cEngine.WaitForSend(this->request);
+        current_send_index++;
+
+        for (; current_send_index < this->kprime; current_send_index++)
+        {
+            // std::cout << "batch sending seed " << current_send_index << std::endl;
+
+            current_send_index == this->kprime - 1 ? 
+                this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index])) :
+                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]))
+            ;
+
+            this->cEngine.SendNextSeed(                    
+                this->send_buffers[current_send_index].data(),
+                this->send_buffers[current_send_index].size(),
+                current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index
+            );
+        }
+
         this->timer.sendTimer.endTimer();
         
         delete all_vertices;
-
-        // std::cout << "LOCAL PROCESS FOUND LOCAL SEEDS, UTILITY; " << this->GetUtility(covered) << " OR " << covered.popcount() << std::endl;
 
         return std::make_pair(res, this->GetUtility(covered));
     }

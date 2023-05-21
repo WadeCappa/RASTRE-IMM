@@ -50,6 +50,37 @@ class CommunicationEngine
         return this->world_size;
     }
 
+    int TestSend(MPI_Request &request) const
+    {
+        MPI_Status status;
+        int flag = 0;
+        MPI_Test(&request, &flag, &status);
+        return flag;
+    }
+
+    void SendNextSeed(const unsigned int* data, const size_t data_size, const unsigned int tag) const
+    {
+        MPI_Send (
+            data,
+            data_size,
+            MPI_INT, 0,
+            tag,
+            MPI_COMM_WORLD
+        );
+    }
+
+    void QueueNextSeed(const unsigned int* data, const size_t data_size, const unsigned int tag, MPI_Request &request) const
+    {
+        MPI_Isend (
+            data,
+            data_size,
+            MPI_INT, 0,
+            tag,
+            MPI_COMM_WORLD,
+            &request
+        );
+    }
+
     std::vector<int> DistributeVertices
     (
         const bool streaming,
@@ -120,6 +151,12 @@ class CommunicationEngine
         this->getProcessSpecificVertexRRRSets(aggregateSets, data, countPerProcess.data(), localThetaPrime);
 
         delete data;
+    }
+
+    void WaitForSend(MPI_Request &request) const 
+    {
+        MPI_Status status;
+        MPI_Wait(request, &status);
     }
 
     size_t GatherPartialSolutions(

@@ -361,7 +361,6 @@ struct MPI_Plus_X<mpi_omp_parallel_tag> {
   using seed_selection_ex_tag = mpi_omp_parallel_tag;
 };
 
-
 //! Split a random number generator into one sequence per MPI rank.
 //!
 //! \tparam PRNG The type of the random number generator.
