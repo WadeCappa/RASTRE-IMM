@@ -361,32 +361,6 @@ struct MPI_Plus_X<mpi_omp_parallel_tag> {
   using seed_selection_ex_tag = mpi_omp_parallel_tag;
 };
 
-//! Compute ThetaPrime for the MPI implementation.
-//!
-//! \param x The index of the current iteration.
-//! \param epsilonPrime Parameter controlling the approximation factor.
-//! \param l Parameter usually set to 1.
-//! \param k The size of the seed set.
-//! \param num_nodes The number of nodes in the input graph.
-// inline size_t GreeDIMMThetaPrime(ssize_t x, double epsilonPrime, double l, size_t k,
-//                          size_t num_nodes, unsigned int world_size, mpi_omp_parallel_tag &&) {
-
-//   std::cout << "calculating theta" << std::endl;
-
-//   return (GreeDIMMThetaPrime(x, epsilonPrime, l, k, num_nodes, omp_parallel_tag{}) /
-//           world_size) +
-//          1;
-// }
-
-template <typename execution_tag>
-ssize_t GreeDIMMThetaPrime(ssize_t x, double epsilonPrime, double l, size_t k,
-                   size_t num_nodes, execution_tag &&) {
-  k = std::min(k, num_nodes/2);
-  return (2 + 2. / 3. * epsilonPrime) *
-         (l * std::log(num_nodes) + logBinomial(num_nodes, k) +
-          std::log(std::log2(num_nodes))) *
-         std::pow(2.0, x) / (epsilonPrime * epsilonPrime);
-}
 
 //! Split a random number generator into one sequence per MPI rank.
 //!
@@ -512,7 +486,7 @@ auto GREEDI(
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) 
   {
     // Equation 9
-    ssize_t thetaPrime = mpi::GreeDIMMThetaPrime(
+    ssize_t thetaPrime = ThetaPrime(
       x, epsilonPrime, l_value, CFG.k, G.num_nodes(), 
       std::forward<execution_tag>(ex_tag)
     );
