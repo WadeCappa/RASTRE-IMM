@@ -40,6 +40,38 @@ class CommunicationEngine
         MPI_Type_free(&(this->batch_int));
     }
 
+    unsigned int GetRank() const
+    {
+        return this->world_rank;
+    }
+
+    unsigned int GetSize() const
+    {
+        return this->world_size;
+    }
+
+    std::vector<int> DistributeVertices
+    (
+        const bool streaming,
+        const GraphTy &G
+    ) const
+    {
+        size_t nodes = G.num_nodes();
+
+        std::vector<int> vertex_mapping(nodes, -1);
+        unsigned int seed = (unsigned int)time(0);
+        MPI_Bcast(&seed, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+
+        std::uniform_int_distribution<int> uniform_distribution(streaming ? 1 : 0, this->world_size - 1);
+        std::default_random_engine number_selecter(seed);
+
+        for (int i = 0; i < nodes; i++) {
+            vertex_mapping[i] = uniform_distribution(number_selecter);
+        }
+
+        return vertex_mapping;
+    }
+
     void AggregateThroughAllToAll(
         const TransposeRRRSets<GraphTy> &tRRRSets,
         const std::vector<int> &vertexToProcess,
@@ -231,14 +263,6 @@ class CommunicationEngine
         }
 
         *(linearAggregateSets + offset) = -1;
-
-        std::cout << "sending element " << vertexID << " of size " << set.size()+2 << std::endl;
-
-        // for (int* itr = linearAggregateSets; *itr != -1; itr++)
-        // {
-        //     std::cout << *itr << ", ";
-        // }
-        // std::cout << -1 << std::endl;
 
         return std::make_pair(set.size()+2, linearAggregateSets);
     }
@@ -494,4 +518,16 @@ class CommunicationEngine
     }
 };
 
+template <typename GraphTy>
+class CommunicationEngineBuilder
+{
+    public:
+    static CommunicationEngine<GraphTy> BuildCommunicationEngine()
+    {
+        int world_size, world_rank;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
+        return CommunicationEngine<GraphTy>(world_size, world_rank);
+    }
+};

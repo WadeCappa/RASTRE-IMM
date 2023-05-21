@@ -107,8 +107,6 @@ class RanDIMM
   IMMExecutionRecord &record;
   const CommunicationEngine<GraphTy> &cEngine;
 
-  const unsigned int world_size;
-  const unsigned int world_rank;
   const double l;
   size_t thetaPrime = 0;
 
@@ -120,35 +118,6 @@ class RanDIMM
   const std::vector<int> vertexToProcess;
 
   TimerAggregator &timeAggregator;
-
-  static std::vector<int> DistributeVertices
-  (
-    const bool streaming,
-    const GraphTy &G,
-    const unsigned int world_size
-  )
-  {
-    std::cout << "distributing vertices" << std::endl;
-
-    std::cout << "streaming? " << streaming << std::endl;
-
-    size_t nodes = G.num_nodes();
-
-    std::vector<int> vertex_mapping(nodes, -1);
-    unsigned int seed = (unsigned int)time(0);
-    MPI_Bcast(&seed, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-
-    std::uniform_int_distribution<int> uniform_distribution(streaming ? 1 : 0, world_size - 1);
-    std::default_random_engine number_selecter(seed);
-
-    for (int i = 0; i < nodes; i++) {
-      vertex_mapping[i] = uniform_distribution(number_selecter);
-    }
-
-    std::cout << "mapping size: " << vertex_mapping.size() << std::endl;
-
-    return vertex_mapping;
-  }
 
   RRRsetAllocator<typename GraphTy::vertex_type> GetAllocator()
   {
@@ -165,7 +134,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   ssize_t thetaPrime
 ) 
 {
-  const size_t localThetaPrime = (thetaPrime / world_size) + 1;
+  const size_t localThetaPrime = (thetaPrime / this->cEngine.GetSize()) + 1;
 
   std::pair<std::vector<unsigned int>, size_t> approximated_solution;
 
@@ -207,9 +176,9 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     if (CFG.use_streaming == true) 
     {
-      if (world_rank == 0) 
+      if (this->cEngine.GetRank() == 0) 
       {
-        StreamingRandGreedIEngine streamingEngine((int)CFG.k, kprime, thetaPrime*2, (double)CFG.epsilon_2, world_size - 1);
+        StreamingRandGreedIEngine streamingEngine((int)CFG.k, kprime, thetaPrime*2, (double)CFG.epsilon_2, this->cEngine.GetSize() - 1);
         approximated_solution = streamingEngine.Stream(&timeAggregator);
       }
       else 
@@ -244,7 +213,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
       timeAggregator.allGatherTimer.endTimer();
 
-      if (world_rank == 0) {
+      if (this->cEngine.GetRank() == 0) {
         std::map<int, std::vector<int>> bestKMSeeds;
 
         spdlog::get("console")->info("unpacking local seeds in global process...");
@@ -290,7 +259,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   auto timeMostInfluential = measure<>::exec_time([&]() { });
   record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
 
-  std::cout << "rank " << world_rank << " returning global seeds" << std::endl;
+  std::cout << "rank " << this->cEngine.GetRank() << " returning global seeds" << std::endl;
   return approximated_solution;
 }
 
@@ -301,8 +270,6 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     const ConfTy &input_CFG,
     ripples::omp_parallel_tag &e_tag,
     diff_model_tag &model_tag,
-    const unsigned int world_size,
-    const unsigned int world_rank,
     const double input_l,
     RRRGeneratorTy &gen,
     IMMExecutionRecord &record,
@@ -315,10 +282,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       ex_tag(e_tag), 
       model_tag(model_tag),
       tRRRSets(G.num_nodes()), 
-      world_rank(world_rank), 
-      world_size(world_size), 
       l(input_l * (1 + 1 / std::log2(G.num_nodes()))),
-      vertexToProcess(this->DistributeVertices(input_CFG.use_streaming, input_G, world_size)),
+      vertexToProcess(cEngine.DistributeVertices(input_CFG.use_streaming, input_G)),
       old_sampling_sizes(input_G.num_nodes(), 0),
       gen(gen),
       record(record),
@@ -330,7 +295,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     for (size_t i = 0; i < vertexToProcess.size(); i++)
     {
-      if (vertexToProcess[i] == world_rank)
+      if (vertexToProcess[i] == this->cEngine.GetRank())
       {
         this->aggregateSets.insert({i, std::vector<int>()});
       }
@@ -402,14 +367,24 @@ struct MPI_Plus_X<mpi_omp_parallel_tag> {
 //! \param l Parameter usually set to 1.
 //! \param k The size of the seed set.
 //! \param num_nodes The number of nodes in the input graph.
-inline size_t ThetaPrime(ssize_t x, double epsilonPrime, double l, size_t k,
-                         size_t num_nodes, mpi_omp_parallel_tag &&) {
-  int world_size;
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+// inline size_t GreeDIMMThetaPrime(ssize_t x, double epsilonPrime, double l, size_t k,
+//                          size_t num_nodes, unsigned int world_size, mpi_omp_parallel_tag &&) {
 
-  return (ThetaPrime(x, epsilonPrime, l, k, num_nodes, omp_parallel_tag{}) /
-          world_size) +
-         1;
+//   std::cout << "calculating theta" << std::endl;
+
+//   return (GreeDIMMThetaPrime(x, epsilonPrime, l, k, num_nodes, omp_parallel_tag{}) /
+//           world_size) +
+//          1;
+// }
+
+template <typename execution_tag>
+ssize_t GreeDIMMThetaPrime(ssize_t x, double epsilonPrime, double l, size_t k,
+                   size_t num_nodes, execution_tag &&) {
+  k = std::min(k, num_nodes/2);
+  return (2 + 2. / 3. * epsilonPrime) *
+         (l * std::log(num_nodes) + logBinomial(num_nodes, k) +
+          std::log(std::log2(num_nodes))) *
+         std::pow(2.0, x) / (epsilonPrime * epsilonPrime);
 }
 
 //! Split a random number generator into one sequence per MPI rank.
@@ -506,11 +481,7 @@ auto GREEDI(
 
   ////// INITIALIZATION //////
 
-  int world_size, world_rank;
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  CommunicationEngine<GraphTy> cEngine(world_size, world_rank);
-
+  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine();
   execution_tag ex_tag = typename ExTagTrait::generate_ex_tag{};
 
   TimerAggregator timeAggregator;
@@ -519,7 +490,7 @@ auto GREEDI(
   // std::cout << "number of nodes before functions " << G.num_nodes() << std::endl;
 
   RanDIMM<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> randimm(
-    G, CFG, ex_tag, model_tag, world_size, world_rank, l_value, gen, record, cEngine, timeAggregator
+    G, CFG, ex_tag, model_tag, l_value, gen, record, cEngine, timeAggregator
   );
 
   double LB = 0;
@@ -540,8 +511,8 @@ auto GREEDI(
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) 
   {
     // Equation 9
-    ssize_t thetaPrime = ThetaPrime(
-      x, epsilonPrime, l_value, CFG.k, G.num_nodes(),
+    ssize_t thetaPrime = mpi::GreeDIMMThetaPrime(
+      x, epsilonPrime, l_value, CFG.k, G.num_nodes(), 
       std::forward<execution_tag>(ex_tag)
     );
 
@@ -555,7 +526,7 @@ auto GREEDI(
 
     std::cout << "thetaprime: " << thetaPrime << std::endl;
 
-    if (world_rank == 0) {
+    if (cEngine.GetRank() == 0) {
       f = (double)(seeds.second) / thetaPrime;
     }
     // mpi_broadcast f(s)
