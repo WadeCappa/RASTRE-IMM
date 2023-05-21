@@ -449,7 +449,7 @@ class StreamingRandGreedIEngine
                     }
                 }
 
-                std::cout << "starting to process elements..." << std::endl;
+                // std::cout << "starting to process elements..." << std::endl;
 
                 timer->max_k_globalTimer.startTimer();
 
@@ -491,8 +491,8 @@ class StreamingRandGreedIEngine
 
         for (int i = 0; i < local_utilities.size(); i++)
         {
-            std::cout << "streaming utility is " << bestSeeds.second << std::endl;
-            std::cout << "looking at " << local_utilities[i] << " from local process " << i+1 << std::endl;
+            // std::cout << "streaming utility is " << bestSeeds.second << std::endl;
+            // std::cout << "looking at " << local_utilities[i] << " from local process " << i+1 << std::endl;
             if (local_utilities[i] > bestSeeds.second)
             {
                 bestSeeds.second = local_utilities[i];

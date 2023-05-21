@@ -15,10 +15,9 @@
 // #include "mpi/communication_engine.h"
 
 template <typename GraphTy>
-class MaxKCoverEngine 
+class MaxKCoverBase 
 {
 private:
-
     class NextMostInfluentialFinder
     { 
     protected:
@@ -267,14 +266,14 @@ private:
             delete bitmaps;
         }
 
-        NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
+        NextMostInfluentialFinder setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
         {
             this->vertex_subset = subset_of_selection_sets;
             this->subset_size = subset_size;
             return this;
         } 
 
-        NextMostInfluentialFinder* reloadSubset () override 
+        NextMostInfluentialFinder reloadSubset () override 
         {
             return this;
         }
@@ -329,17 +328,14 @@ private:
         }
     };
 
+protected: 
     int k;
     int kprime;
     double epsilon;
     bool usingStochastic = false;
-    bool sendPartialSolutions;
     unsigned int utility = -1;
-    CommunicationEngine<GraphTy>* cEngine;
     NextMostInfluentialFinder* finder = 0;
-    TimerAggregator* timer = 0;
-    MPI_Request *request;
-    std::vector<std::vector<unsigned int>> send_buffers;
+    TimerAggregator &timer;
 
     void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int>& seedSet)
     {
@@ -370,13 +366,216 @@ private:
         return ((size_t)std::round((double)n/(double)k) * std::log10(1/epsilon)) + 1;
     }
 
-    void InsertNextSeedIntoSendBuffer(
+    unsigned int GetUtility(ripples::Bitmask<int>& covered)
+    {
+        this->utility = this->utility == -1 ? covered.popcount() : this->utility;
+        return this->utility;
+    }
+
+public:
+    MaxKCoverBase(int k, int kprime, TimerAggregator &timer) : timer(timer)
+    {
+        this->k = k;
+        this->kprime = kprime;
+    };
+
+    ~MaxKCoverBase() {
+        delete this->finder;
+    }
+
+    MaxKCoverBase& useStochasticGreedy(double e)
+    {
+        this->epsilon = e;
+        this->usingStochastic = true;
+        return *this;
+    }
+
+    MaxKCoverBase& useLazyGreedy(std::map<int, std::vector<int>>& data)
+    {
+        this->finder = new LazyGreedy(data);
+
+        return *this;
+    }
+
+    MaxKCoverBase& useNaiveGreedy(std::map<int, std::vector<int>>& data)
+    {
+        this->finder = new NaiveGreedy(data);
+
+        return *this;
+    }
+
+    MaxKCoverBase& useNaiveBitmapGreedy(std::map<int, std::vector<int>>& data, int theta)
+    {
+        this->finder = new NaiveBitMapGreedy(data, theta);
+
+        return *this;
+    }
+
+    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta) = 0;
+};
+
+template <typename GraphTy>
+class MaxKCover : public MaxKCoverBase<GraphTy>
+{
+    public:
+    MaxKCover(int k, int kprime, TimerAggregator &timer) : MaxKCoverBase<GraphTy>(k, kprime, timer)
+    {
+
+    }
+
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover
+    (
+        std::map<int, std::vector<int>>& data, 
+        ssize_t theta
+    ) override
+    {
+        std::vector<unsigned int> res(this->k, -1);
+        ripples::Bitmask<int> covered(theta);
+
+        size_t subset_size = (this->usingStochastic) ? this->getSubsetSize(data.size(), this->k, this->epsilon) : data.size() ;
+
+        std::vector<unsigned int>* all_vertices = new std::vector<unsigned int>();  
+        for (const auto & l : data) { all_vertices->push_back(l.first); }
+        this->finder->setSubset(all_vertices, subset_size);
+
+        unsigned int current_send_index = 0;
+
+        std::pair<int, int*> sendData;
+
+        for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
+        {
+            if (this->usingStochastic)
+            {
+                this->reorganizeVertexSet(all_vertices, subset_size, res);
+                this->finder->reloadSubset();
+            }
+
+            this->timer.max_k_localTimer.startTimer();
+
+            res[currentSeed] = this->finder->findNextInfluential(
+                covered, theta
+            );
+
+            this->timer.max_k_localTimer.endTimer();
+        }
+        
+        delete all_vertices;
+
+        return std::make_pair(res, this->GetUtility(covered));
+    }
+};
+
+template <typename GraphTy>
+class StreamingMaxKCover : public MaxKCoverBase<GraphTy>
+{
+    private:
+    const CommunicationEngine<GraphTy> &cEngine;
+    MPI_Request request;
+    std::vector<std::vector<unsigned int>> send_buffers;
+
+    void SendNextSeed(const unsigned int current_send_index, const unsigned int tag)
+    {
+        MPI_Isend (
+            this->send_buffers[current_send_index].data(),
+            this->send_buffers[current_send_index].size(),
+            MPI_INT, 0,
+            tag,
+            MPI_COMM_WORLD,
+            &(this->request)
+        );
+    }
+
+    void SendSeed
+    (
+        unsigned int currentSeed, 
+        bool waitingOnSends, 
+        unsigned int& current_send_index, 
+        std::vector<unsigned int>& res,
+        std::map<int, std::vector<int>>& data,
+        ripples::Bitmask<int>& covered
+    )
+    {
+        if (waitingOnSends)
+        {
+            // std::cout << "WAITING ON SENDS" << std::endl;
+            MPI_Status status;
+
+            MPI_Wait(&(this->request), &status);
+
+            // delete this->send_buffers[current_send_index++].second;
+            current_send_index++;
+
+            for (; current_send_index < this->kprime; current_send_index++)
+            {
+                if (current_send_index != this->kprime - 1)
+                {
+                    this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
+                    MPI_Send (
+                        this->send_buffers[current_send_index].data(),
+                        this->send_buffers[current_send_index].size(),
+                        MPI_INT, 0,
+                        current_send_index,
+                        MPI_COMM_WORLD
+                    );
+                }
+                else 
+                {
+                    this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index]));
+                    MPI_Send (
+                        this->send_buffers[current_send_index].data(),
+                        this->send_buffers[current_send_index].size(),
+                        MPI_INT, 0,
+                        this->GetUtility(covered),
+                        MPI_COMM_WORLD
+                    );
+                }
+
+                // delete this->send_buffers[current_send_index].second;
+            }
+        }
+        else 
+        {
+            // std::cout << "Sending " << current_send_index << std::endl;
+            if (currentSeed > 0)
+            {
+                MPI_Status status;
+                int flag = 0;
+                // std::cout << "going to test? " << (current_send_index < this->kprime - 2) << std::endl;
+                if (current_send_index < this->kprime - 2)
+                {
+                    MPI_Test(&(this->request), &flag, &status);
+                    if (flag == 1)
+                    {
+                        // std::cout << "sent " << current_send_index << std::endl;
+                        // delete this->send_buffers[current_send_index++].second;
+                        current_send_index++;
+
+                        if (current_send_index < this->kprime - 1)
+                        {
+                            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
+                            this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
+                        }
+                    }
+                }
+            }
+            else 
+            {
+                // std::cout << "inserting first seed into buffer" << std::endl;
+                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
+                this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
+                // current_send_index++;
+            }
+        }
+    }
+
+    void InsertNextSeedIntoSendBuffer
+    (
         const unsigned int current_seed, 
         const unsigned int vertex_id, 
         const std::vector<int>& RRRSetIDs 
     )
     {
-        auto sendData = this->cEngine->LinearizeSingleSeed(vertex_id, RRRSetIDs);
+        auto sendData = this->cEngine.LinearizeSingleSeed(vertex_id, RRRSetIDs);
 
         this->send_buffers[current_seed].resize(sendData.first);
         
@@ -431,160 +630,19 @@ private:
         // this->send_buffers[current_seed].first = this->send_buffers[current_seed].size() + local_seed_set.size() + 1;
     }
 
-    void SendNextSeed(const unsigned int current_send_index, const unsigned int tag)
+    public:
+    StreamingMaxKCover(
+        int k, 
+        int kprime, 
+        TimerAggregator &timer,
+        const CommunicationEngine<GraphTy> &cEngine
+    ) : MaxKCoverBase<GraphTy>(k, kprime, timer), cEngine(cEngine), send_buffers(k)
     {
-        MPI_Isend (
-            this->send_buffers[current_send_index].data(),
-            this->send_buffers[current_send_index].size(),
-            MPI_INT, 0,
-            tag,
-            MPI_COMM_WORLD,
-            this->request
-        );
+        std::cout << "built streaming object" << std::endl;
     }
 
-    unsigned int GetUtility(ripples::Bitmask<int>& covered)
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta) override
     {
-        this->utility = this->utility == -1 ? covered.popcount() : this->utility;
-        return this->utility;
-    }
-
-    void SendSeed(
-        unsigned int currentSeed, 
-        bool waitingOnSends, 
-        unsigned int& current_send_index, 
-        std::vector<unsigned int>& res,
-        std::map<int, std::vector<int>>& data,
-        ripples::Bitmask<int>& covered
-    )
-    {
-        if (waitingOnSends)
-        {
-            // std::cout << "WAITING ON SENDS" << std::endl;
-            MPI_Status status;
-
-            MPI_Wait(this->request, &status);
-
-            // delete this->send_buffers[current_send_index++].second;
-            current_send_index++;
-
-            for (; current_send_index < this->kprime; current_send_index++)
-            {
-                if (current_send_index != this->kprime - 1)
-                {
-                    this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                    MPI_Send (
-                        this->send_buffers[current_send_index].data(),
-                        this->send_buffers[current_send_index].size(),
-                        MPI_INT, 0,
-                        current_send_index,
-                        MPI_COMM_WORLD
-                    );
-                }
-                else 
-                {
-                    this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index]));
-                    MPI_Send (
-                        this->send_buffers[current_send_index].data(),
-                        this->send_buffers[current_send_index].size(),
-                        MPI_INT, 0,
-                        this->GetUtility(covered),
-                        MPI_COMM_WORLD
-                    );
-                }
-
-                // delete this->send_buffers[current_send_index].second;
-            }
-        }
-        else 
-        {
-            // std::cout << "Sending " << current_send_index << std::endl;
-            if (currentSeed > 0)
-            {
-                MPI_Status status;
-                int flag = 0;
-                // std::cout << "going to test? " << (current_send_index < this->kprime - 2) << std::endl;
-                if (current_send_index < this->kprime - 2)
-                {
-                    MPI_Test(this->request, &flag, &status);
-                    if (flag == 1)
-                    {
-                        // std::cout << "sent " << current_send_index << std::endl;
-                        // delete this->send_buffers[current_send_index++].second;
-                        current_send_index++;
-
-                        if (current_send_index < this->kprime - 1)
-                        {
-                            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                            this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
-                        }
-                    }
-                }
-            }
-            else 
-            {
-                // std::cout << "inserting first seed into buffer" << std::endl;
-                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
-                // current_send_index++;
-            }
-        }
-    }
-
-public:
-    MaxKCoverEngine(int k, int kprime) 
-    {
-        this->k = k;
-        this->kprime = kprime;
-        this->sendPartialSolutions = false;
-    };
-
-    ~MaxKCoverEngine() {
-        delete this->finder;
-        delete this->request;
-    }
-
-    MaxKCoverEngine* useStochasticGreedy(double e)
-    {
-        this->epsilon = e;
-        this->usingStochastic = true;
-        return this;
-    }
-
-    MaxKCoverEngine* useLazyGreedy(std::map<int, std::vector<int>>& data)
-    {
-        this->finder = new LazyGreedy(data);
-
-        return this;
-    }
-
-    MaxKCoverEngine* useNaiveGreedy(std::map<int, std::vector<int>>& data)
-    {
-        this->finder = new NaiveGreedy(data);
-
-        return this;
-    }
-
-    MaxKCoverEngine* useNaiveBitmapGreedy(std::map<int, std::vector<int>>& data, int theta)
-    {
-        this->finder = new NaiveBitMapGreedy(data, theta);
-
-        return this;
-    }
-
-    MaxKCoverEngine* setSendPartialSolutions(CommunicationEngine<GraphTy>* cEngine, TimerAggregator* timer)
-    {
-        this->sendPartialSolutions = true;
-        this->cEngine = cEngine;
-        this->timer = timer;
-
-        return this;
-    }
-
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta)
-    {
-        this->request = new MPI_Request();
-
         std::vector<unsigned int> res(this->k, -1);
         ripples::Bitmask<int> covered(theta);
 
@@ -598,52 +656,31 @@ public:
 
         std::pair<int, int*> sendData;
 
-        if (this->sendPartialSolutions)
-        {
-            for (int i = 0; i < this->kprime; i++)
-            {
-                this->send_buffers.push_back(std::vector<unsigned int>());
-            }
-        }
-
         for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
         {
             if (this->usingStochastic)
             {
-                reorganizeVertexSet(all_vertices, subset_size, res);
+                this->reorganizeVertexSet(all_vertices, subset_size, res);
                 this->finder->reloadSubset();
             }
 
-            if (this->timer != 0) 
-            {
-                this->timer->max_k_localTimer.startTimer();
-            }
+            this->timer.max_k_localTimer.startTimer();
 
-            res[currentSeed] = finder->findNextInfluential(
+            res[currentSeed] = this->finder->findNextInfluential(
                 covered, theta
             );
 
-            if (this->timer != 0) 
-            {
-                this->timer->max_k_localTimer.endTimer();
-            }
+            this->timer.max_k_localTimer.endTimer();
 
-            // This code block sends data to the global protion of the streaming solution if the 
-            //  streaming setting has been selected. 
-            if (this->sendPartialSolutions) 
-            {
-                this->timer->sendTimer.startTimer();
-                this->SendSeed(currentSeed, false, current_send_index, res, data, covered);
-                this->timer->sendTimer.endTimer();
-            }
+            // This code block sends data to the global protion of the streaming solution
+            this->timer.sendTimer.startTimer();
+            this->SendSeed(currentSeed, false, current_send_index, res, data, covered);
+            this->timer.sendTimer.endTimer();
         }
 
-        if (this->sendPartialSolutions)
-        {
-            this->timer->sendTimer.startTimer();
-            this->SendSeed((unsigned int)0, true, current_send_index, res, data, covered);
-            this->timer->sendTimer.endTimer();
-        }
+        this->timer.sendTimer.startTimer();
+        this->SendSeed((unsigned int)0, true, current_send_index, res, data, covered);
+        this->timer.sendTimer.endTimer();
         
         delete all_vertices;
 

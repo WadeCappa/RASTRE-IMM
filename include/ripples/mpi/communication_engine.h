@@ -18,16 +18,24 @@ template <typename GraphTy>
 class CommunicationEngine
 {
     private: 
+    const unsigned int world_size;
+    const unsigned int world_rank;
 
     public:
-    CommunicationEngine() {}
+    CommunicationEngine
+    (
+        const unsigned int world_size, 
+        const unsigned int world_rank
+    ) : world_size(world_size), world_rank(world_rank)
+    {}
+
     ~CommunicationEngine() {}
 
     // Returns total count, modifies the countPerProcess vector;
-    size_t count(std::vector<unsigned int>& countPerProcess, TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor, int p) 
+    size_t count(std::vector<unsigned int>& countPerProcess, TransposeRRRSets<GraphTy> &tRRRSets, std::vector<int> vertexToProcessor) const
     {
-        std::vector<std::mutex> locksPerProcess(p);
-        countPerProcess.resize(p, 0);
+        std::vector<std::mutex> locksPerProcess(this->world_size);
+        countPerProcess.resize(this->world_size, 0);
 
         size_t count = 0;
         #pragma omp parallel for reduction(+:count)
@@ -47,13 +55,12 @@ class CommunicationEngine
         std::vector<unsigned int>& countPerProcess, 
         TransposeRRRSets<GraphTy> &tRRRSets, 
         std::vector<int> vertexToProcessor, 
-        int p, 
         size_t block_size,
         const std::vector<size_t>& old_sizes
-    ) 
+    ) const 
     {
-        std::vector<std::mutex> locksPerProcess(p);
-        countPerProcess.resize(p, 0);
+        std::vector<std::mutex> locksPerProcess(this->world_size);
+        countPerProcess.resize(this->world_size, 0);
 
         size_t count = 0;
 
@@ -82,15 +89,17 @@ class CommunicationEngine
         return count + block_tax;
     }
 
-    void buildPrefixSum(std::vector<unsigned int>& prefixSum, unsigned int* v, int p) {
-        prefixSum.resize(p, 0);
+    void buildPrefixSum(std::vector<unsigned int>& prefixSum, unsigned int* v, unsigned int total_count) const
+    {
+        prefixSum.resize(total_count, 0);
 
-        for (int i = 1; i < p; i++) {
+        for (int i = 1; i < total_count; i++) {
             prefixSum[i] = prefixSum[i - 1] + v[i - 1];
         }
     }
 
-    void SendToGlobal(int* data, int size, int tag) {
+    void SendToGlobal(int* data, int size, int tag) const
+    {
         MPI_Send(data, size, MPI_INT, 0, tag,
             MPI_COMM_WORLD);
     }
@@ -102,7 +111,7 @@ class CommunicationEngine
         const std::vector<unsigned int>& localSeeds, 
         const size_t total_utility,
         const int block_size
-    ) 
+    ) const
     {
         std::vector<std::pair<int, int>> setsPrefixSum;
 
@@ -142,7 +151,7 @@ class CommunicationEngine
         return total_block_data;
     }
 
-    std::pair<int, int*> LinearizeSingleSeed(const int vertexID, const std::vector<int>& set) 
+    std::pair<int, int*> LinearizeSingleSeed(const int vertexID, const std::vector<int>& set) const
     {
         int* linearAggregateSets = new int[set.size()+2];
         int offset = 1;
@@ -172,13 +181,12 @@ class CommunicationEngine
         std::vector<int> vertexToProcessor, 
         std::vector<unsigned int> dataStartPartialSum, 
         size_t totalData, 
-        int p, 
         size_t block_size,
         std::vector<size_t>& old_sizes
-    ) 
+    ) const
     {
         #pragma omp parallel for
-        for (int rank = 0; rank < p; rank++) {
+        for (int rank = 0; rank < this->world_size; rank++) {
             linearizeRank(tRRRSets, linearTRRRSets, vertexToProcessor, dataStartPartialSum, rank, totalData, old_sizes);
         }
     }
@@ -191,7 +199,7 @@ class CommunicationEngine
         int rank, 
         size_t totalData,
         std::vector<size_t>& old_sizes
-    ) 
+    ) const
     {
         size_t index = dataStartPartialSum[rank];
         for (size_t i = 0; i < tRRRSets.sets.size(); i++) {
@@ -211,7 +219,7 @@ class CommunicationEngine
         }
     }
 
-    void DEBUG_printLinearizedSets(int* linearizedData, int totalData)
+    void DEBUG_printLinearizedSets(int* linearizedData, int totalData) const
     {
         for (int i = 0; i < totalData; i++) {
             std::cout << linearizedData[i] << " ";
@@ -233,12 +241,11 @@ class CommunicationEngine
         std::map<int, std::vector<int>> &aggregateSets, 
         unsigned int* data, 
         unsigned int* receivedDataSizes, 
-        int p, 
         ssize_t RRRIDsPerProcess
-    )
+    ) const
     {
         size_t totalData = 0;
-        for (int i = 0; i < p; i++) {
+        for (int i = 0; i < this->world_size; i++) {
             totalData += *(receivedDataSizes + i);
         }            
 
@@ -269,7 +276,7 @@ class CommunicationEngine
         }
     }
 
-    std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* aggregateLocalKSeeds(std::map<int, std::vector<int>> &bestMKSeeds, unsigned int* data, size_t totalData)
+    std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* aggregateLocalKSeeds(std::map<int, std::vector<int>> &bestMKSeeds, unsigned int* data, size_t totalData) const
     {
         // tracks total utility of each local process
         std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* local_seeds = new std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>();
@@ -315,27 +322,25 @@ class CommunicationEngine
         std::map<int, std::vector<int>> &aggregateSets, 
         unsigned int* linearizedData,
         unsigned int* countPerProcess,
-        int p,
         ssize_t RRRIDsPerProcess,
         MPI_Datatype& batch_int,
-        int block_size,
-        int rank
-    ) {
-        unsigned int* receiveSizes = new unsigned int[p];
+        int block_size
+    ) const {
+        unsigned int* receiveSizes = new unsigned int[this->world_size];
 
         MPI_Alltoall(countPerProcess, 1, MPI_UNSIGNED, receiveSizes, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
 
         size_t totalReceivingBlocks = 0;
-        for (int i = 0; i < p; i++) {
+        for (int i = 0; i < this->world_size; i++) {
             totalReceivingBlocks += (unsigned int)*(receiveSizes + i);
         }
         
         unsigned int* linearizedLocalData = new unsigned int[totalReceivingBlocks * block_size];
 
         std::vector<unsigned int> sendPrefixSum;
-        buildPrefixSum(sendPrefixSum, countPerProcess, p);
+        buildPrefixSum(sendPrefixSum, countPerProcess, this->world_size);
         std::vector<unsigned int> receivePrefixSum; 
-        buildPrefixSum(receivePrefixSum, receiveSizes, p);
+        buildPrefixSum(receivePrefixSum, receiveSizes, this->world_size);
 
         // call alltoall_v
         MPI_Alltoallv(
@@ -350,18 +355,18 @@ class CommunicationEngine
             MPI_COMM_WORLD
         );
 
-        for (int i = 0; i < p; i++) {
+        for (int i = 0; i < this->world_size; i++) {
             receiveSizes[i] *= block_size;
         }
 
         // TODO: make this not terrible
-        if (rank == 0)
+        if (this->world_rank == 0)
         {
             aggregateSets.insert({0, std::vector<int>()});
         }   
         else 
         {
-            aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, p, RRRIDsPerProcess);
+            aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
         }
         
         delete receiveSizes;
@@ -371,13 +376,12 @@ class CommunicationEngine
     size_t aggregateAggregateSets(
         std::vector<unsigned int>& aggregatedSeeds, 
         size_t totalGatherData, 
-        int world_size, 
         unsigned int* localLinearAggregateSets,
         int block_size,
         MPI_Datatype& batch_int
-    )
+    ) const
     {
-        unsigned int* gatherSizes = new unsigned int[world_size];
+        unsigned int* gatherSizes = new unsigned int[this->world_size];
         gatherSizes[0] = -1;
 
         std::cout << "remainder: " << totalGatherData % block_size << std::endl; 
@@ -396,11 +400,11 @@ class CommunicationEngine
             totalData = 1;
         }
         else{
-            for (int i = 0; i < world_size; i++) {
+            for (int i = 0; i < this->world_size; i++) {
                 totalData += (unsigned int)gatherSizes[i];
             }  
 
-            buildPrefixSum(displacements, gatherSizes, world_size);
+            buildPrefixSum(displacements, gatherSizes, this->world_size);
         }
 
         aggregatedSeeds.resize(totalData * block_size);
@@ -421,7 +425,7 @@ class CommunicationEngine
         return totalData * block_size;
     }
 
-    void distributeF(double* f)
+    void distributeF(double* f) const
     {
         MPI_Bcast(f, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     }
