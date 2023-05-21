@@ -146,6 +146,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     spdlog::get("console")->info("sampling...");
 
     timeAggregator.samplingTimer.startTimer();
+    
     GenerateTransposeRRRSets(
       tRRRSets, this->RR_sets, delta, G, this->gen, record,
       std::forward<diff_model_tag>(model_tag),
