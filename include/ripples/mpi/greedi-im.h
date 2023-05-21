@@ -114,7 +114,7 @@ class RanDIMM
 
   std::map<int, std::vector<int>> aggregateSets;
   std::vector<size_t> old_sampling_sizes;
-  std::vector<RRRset<GraphTy>> RR;
+  size_t RR_sets;
   RRRsetAllocator<typename GraphTy::vertex_type> allocator;
   TransposeRRRSets<GraphTy> tRRRSets;
   const std::vector<int> vertexToProcess;
@@ -170,28 +170,21 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
   std::pair<std::vector<unsigned int>, size_t> approximated_solution;
 
-  size_t number_of_old_RRRSets = RR.size();
-
   auto timeRRRSets = measure<>::exec_time([&]() {
-    if (localThetaPrime > RR.size()) {
-      size_t delta = localThetaPrime - RR.size();
+    if (localThetaPrime > this->RR_sets) {
+      size_t delta = localThetaPrime - this->RR_sets;
       record.ThetaPrimeDeltas.push_back(delta);
-
-      RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
-      auto begin = RR.end() - delta;
-
-      // std::vector<bool> proxy_vector(RR.size()); // possible fix
 
       spdlog::get("console")->info("sampling...");
 
-      // std::cout << "generating transpose RRR sets within the martigale loop" << std::endl;
-      // within this function, there is a logical bug with counting RRRset IDs
       timeAggregator.samplingTimer.startTimer();
-      GenerateTransposeRRRSets(tRRRSets, RR.begin(), G, this->gen, begin, RR.end(), record,
-                      std::forward<diff_model_tag>(model_tag),
-                      std::forward<execution_tag>(ex_tag));
+      GenerateTransposeRRRSets(
+        tRRRSets, this->RR_sets, delta, G, this->gen, record,
+        std::forward<diff_model_tag>(model_tag),
+        std::forward<execution_tag>(ex_tag)
+      );
 
-      // tRRRSets.RemoveDuplicates();
+      this->RR_sets += delta;
 
       timeAggregator.samplingTimer.endTimer();
     }
@@ -405,6 +398,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       timeAggregator(timeAggregator)
   {
     this->allocator = this->GetAllocator();
+    this->RR_sets = 0;
 
     for (size_t i = 0; i < vertexToProcess.size(); i++)
     {
