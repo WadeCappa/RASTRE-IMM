@@ -447,7 +447,6 @@ class StreamingRandGreedIEngine
             else // processor
             {   
                 this->WaitToProcess(dummy_value, buckets_initialized);
-                std::cout << "exited waiting loop..." << std::endl;
 
                 this->timer.initBucketTimer.startTimer();
                 this->buckets.CreateBuckets(maxVal);

@@ -117,14 +117,11 @@ class CommunicationEngine
         std::vector<unsigned int> psum;
         this->buildPrefixSum(psum, countPerProcess.data(), this->world_size);
 
-        unsigned int* data = new unsigned int[totalCount];
-
         std::string print_string = std::string("rank ") + std::to_string(this->world_rank) + " linearizing data for AllToAll...";
 
         spdlog::get("console")->info(print_string);
 
-        this->linearize(
-            data,
+        std::vector<unsigned int> linear_sets = this->LinearizeColumnsInRRRSetMatrix(
             tRRRSets, 
             vertexToProcess, 
             psum, 
@@ -148,9 +145,7 @@ class CommunicationEngine
 
         spdlog::get("console")->info("distributing samples, AllToAll operation...");
 
-        this->getProcessSpecificVertexRRRSets(aggregateSets, data, countPerProcess.data(), localThetaPrime);
-
-        delete data;
+        this->GetProcessSpecificVertexRRRSets(aggregateSets, linear_sets.data(), countPerProcess.data(), localThetaPrime);
     }
 
     void QueueReceive(int* buffer, size_t size, MPI_Request &request) const 
@@ -317,28 +312,30 @@ class CommunicationEngine
         return std::make_pair(set.size()+2, linearAggregateSets);
     }
 
-    void linearize(
-        unsigned int* linearTRRRSets, 
+    std::vector<unsigned int> LinearizeColumnsInRRRSetMatrix(
         const TransposeRRRSets<GraphTy> &tRRRSets, 
         const std::vector<int> &vertexToProcessor, 
         const std::vector<unsigned int> &dataStartPartialSum, 
-        size_t totalData, 
+        size_t total_data, 
         const std::vector<size_t>& old_sizes
     ) const
     {
+        std::vector<unsigned int> linear_sets(total_data);
+
         #pragma omp parallel for
         for (int rank = 0; rank < this->world_size; rank++) {
-            linearizeRank(tRRRSets, linearTRRRSets, vertexToProcessor, dataStartPartialSum, rank, totalData, old_sizes);
+            LinearizeRank(tRRRSets, linear_sets, vertexToProcessor, dataStartPartialSum, rank, old_sizes);
         }
+
+        return linear_sets;
     }
 
-    void linearizeRank(
+    void LinearizeRank(
         const TransposeRRRSets<GraphTy> &tRRRSets, 
-        unsigned int* linearTRRRSets, 
+        std::vector<unsigned int>& linearTRRRSets, 
         const std::vector<int> &vertexToProcessor, 
         const std::vector<unsigned int> &dataStartPartialSum, 
         int rank, 
-        size_t totalData,
         const std::vector<size_t>& old_sizes
     ) const
     {
@@ -354,7 +351,7 @@ class CommunicationEngine
             }
         }
 
-        size_t stop = rank < (dataStartPartialSum.size() - 1) ? dataStartPartialSum[rank+1] : totalData ;
+        size_t stop = rank < (dataStartPartialSum.size() - 1) ? dataStartPartialSum[rank+1] : linearTRRRSets.size() ;
         for (; index < stop; index++) {
             linearTRRRSets[index] = -1;
         }
@@ -378,11 +375,11 @@ class CommunicationEngine
     /// @param receivedDataSizes is the data collected from MPI_alltoall
     /// @param p number of processes
     /// @param RRRIDsPerProcess the upper bound of the maximum number of RRRIDs that each process is responsible for generating
-    void aggregateTRRRSets(
+    void AggregateTRRRSets(
         std::map<int, std::vector<int>> &aggregateSets, 
         unsigned int* data, 
         unsigned int* receivedDataSizes, 
-        ssize_t RRRIDsPerProcess
+        size_t RRRIDsPerProcess
     ) const
     {
         size_t totalData = 0;
@@ -417,21 +414,26 @@ class CommunicationEngine
         }
     }
 
-    std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* aggregateLocalKSeeds(std::map<int, std::vector<int>> &bestMKSeeds, unsigned int* data, size_t totalData) const
+    std::vector<std::pair<unsigned int, std::vector<unsigned int>>> aggregateLocalKSeeds
+    (
+        std::map<int, std::vector<int>> &bestMKSeeds, 
+        unsigned int* data, 
+        size_t totalData
+    ) const
     {
         // tracks total utility of each local process
-        std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* local_seeds = new std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>();
-        std::vector<unsigned int>* current_seeds = new std::vector<unsigned int>();
+        std::vector<std::pair<unsigned int, std::vector<unsigned int>>> local_seeds;
+        std::vector<unsigned int> current_seeds;
 
         // cycle over data
         int vertexID = *data;   
-        current_seeds->push_back(vertexID);
+        current_seeds.push_back(vertexID);
         bestMKSeeds.insert({ vertexID, std::vector<int>() });
 
         for (size_t rankDataProcessed = 1, i = 1; i < totalData - 1; i++) {
             if (*(data + i) == -2) {
-                local_seeds->push_back(std::make_pair(*(data + ++i), current_seeds));
-                current_seeds = new std::vector<unsigned int>();
+                local_seeds.push_back(std::make_pair(*(data + ++i), std::vector<unsigned int>(current_seeds)));
+                current_seeds.empty();
 
                 i++;
                 while (*(data + i) == -3)
@@ -440,12 +442,12 @@ class CommunicationEngine
                 }
                 
                 vertexID = *(data + i);
-                current_seeds->push_back(vertexID);
+                current_seeds.push_back(vertexID);
                 bestMKSeeds.insert({ vertexID, std::vector<int>() });
             }
 
             else if (*(data + i) == -1) {
-                current_seeds->push_back(vertexID);
+                current_seeds.push_back(vertexID);
                 vertexID = *(data + ++i);
                 bestMKSeeds.insert({ vertexID, std::vector<int>() });
             }
@@ -459,11 +461,11 @@ class CommunicationEngine
     }
 
 
-    void getProcessSpecificVertexRRRSets(
+    void GetProcessSpecificVertexRRRSets(
         std::map<int, std::vector<int>> &aggregateSets, 
         unsigned int* linearizedData,
         unsigned int* countPerProcess,
-        ssize_t RRRIDsPerProcess
+        size_t RRRIDsPerProcess
     ) const {
         unsigned int* receiveSizes = new unsigned int[this->world_size];
 
@@ -505,7 +507,7 @@ class CommunicationEngine
         }   
         else 
         {
-            aggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
+            this->AggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
         }
         
         delete receiveSizes;

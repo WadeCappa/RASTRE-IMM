@@ -130,6 +130,91 @@ class RanDIMM
     #endif
   }
 
+auto Streaming(const int kprime, const size_t theta)
+{
+  if (this->cEngine.GetRank() == 0) 
+  {
+    StreamingRandGreedIEngine<GraphTy> streamingEngine((int)CFG.k, kprime, theta, (double)this->CFG.epsilon_2, this->cEngine.GetSize() - 1, cEngine, this->timeAggregator);
+    return streamingEngine.Stream();
+  }
+  else 
+  {
+    this->timeAggregator.totalSendTimer.startTimer();
+    
+    StreamingMaxKCover<GraphTy> localKCoverEngine((int)CFG.k, kprime, this->timeAggregator, this->cEngine);
+    localKCoverEngine.useLazyGreedy(this->aggregateSets);
+    localKCoverEngine.run_max_k_cover(this->aggregateSets, theta);
+
+    this->timeAggregator.totalSendTimer.endTimer();
+
+    return std::make_pair(std::vector<unsigned int>(), 0);
+  }
+}
+
+static std::pair<std::vector<unsigned int>, ssize_t> SolveKCover(
+  const int k,
+  const int kprime,
+  const size_t max_element, 
+  TimerAggregator &timeAggregator,
+  const std::map<int, std::vector<int>>& elements
+)
+{
+  MaxKCover<GraphTy> localKCoverEngine(k, kprime, timeAggregator);
+  return localKCoverEngine.useLazyGreedy(elements).run_max_k_cover(elements, max_element);
+}
+
+auto RandGreedi(const int kprime, const size_t theta)
+{
+  this->timeAggregator.max_k_localTimer.startTimer();
+
+  std::pair<std::vector<unsigned int>, ssize_t> localSeeds = RanDIMM::SolveKCover(
+    (int)CFG.k, kprime, theta, this->timeAggregator, this->aggregateSets
+  );
+
+  this->timeAggregator.max_k_localTimer.endTimer();
+
+  spdlog::get("console")->info("all gather...");
+  this->timeAggregator.allGatherTimer.startTimer();
+
+  std::vector<unsigned int> globalAggregation;
+  size_t totalData = this->cEngine.GatherPartialSolutions(localSeeds, this->aggregateSets, globalAggregation);
+
+  this->timeAggregator.allGatherTimer.endTimer();
+
+  std::pair<std::vector<unsigned int>, size_t> approximated_solution;
+
+  if (this->cEngine.GetRank() == 0) {
+    std::map<int, std::vector<int>> bestKMSeeds;
+
+    spdlog::get("console")->info("unpacking local seeds in global process...");
+
+    this->timeAggregator.allGatherTimer.startTimer();
+    std::vector<std::pair<unsigned int, std::vector<unsigned int>>> local_seeds = cEngine.aggregateLocalKSeeds(bestKMSeeds, globalAggregation.data(), totalData);
+
+    this->timeAggregator.allGatherTimer.endTimer();
+
+    spdlog::get("console")->info("global max_k_cover...");
+    this->timeAggregator.max_k_globalTimer.startTimer();
+
+    approximated_solution = RanDIMM::SolveKCover(
+      (int)CFG.k, kprime, theta, this->timeAggregator, bestKMSeeds
+    );
+
+    for (const auto & s: local_seeds)
+    {
+      if (s.first > approximated_solution.second)
+      {
+        approximated_solution.second = s.first;
+        approximated_solution.first = s.second;
+      }
+    }
+
+    this->timeAggregator.max_k_globalTimer.endTimer();
+  }
+
+  return approximated_solution;
+}
+
 std::pair<std::vector<unsigned int>, int> MartigaleRound(
   ssize_t thetaPrime
 ) 
@@ -145,31 +230,32 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     spdlog::get("console")->info("sampling...");
 
-    timeAggregator.samplingTimer.startTimer();
+    this->timeAggregator.samplingTimer.startTimer();
     
     GenerateTransposeRRRSets(
-      tRRRSets, this->RR_sets, delta, G, this->gen, record,
+      this->tRRRSets, this->RR_sets, delta, 
+      this->G, this->gen, this->record,
       std::forward<diff_model_tag>(model_tag),
       std::forward<execution_tag>(ex_tag)
     );
 
-    this->RR_sets += delta;
+    this->RR_sets = localThetaPrime;
 
-    timeAggregator.samplingTimer.endTimer();    
+    this->timeAggregator.samplingTimer.endTimer();    
 
     spdlog::get("console")->info("AlltoAll...");
 
-    timeAggregator.allToAllTimer.startTimer();  
+    this->timeAggregator.allToAllTimer.startTimer();  
 
     cEngine.AggregateThroughAllToAll(
       this->tRRRSets,
       this->vertexToProcess,
       this->old_sampling_sizes,
-      localThetaPrime,
+      this->RR_sets,
       this->aggregateSets
     );
   
-    timeAggregator.allToAllTimer.endTimer();
+    this->timeAggregator.allToAllTimer.endTimer();
 
     spdlog::get("console")->info("seed selection...");
 
@@ -177,81 +263,11 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     if (CFG.use_streaming == true) 
     {
-      if (this->cEngine.GetRank() == 0) 
-      {
-        StreamingRandGreedIEngine<GraphTy> streamingEngine((int)CFG.k, kprime, thetaPrime, (double)CFG.epsilon_2, this->cEngine.GetSize() - 1, cEngine, timeAggregator);
-        approximated_solution = streamingEngine.Stream();
-      }
-      else 
-      {
-        timeAggregator.totalSendTimer.startTimer();
-        
-        StreamingMaxKCover<GraphTy> localKCoverEngine((int)CFG.k, kprime, timeAggregator, this->cEngine);
-        localKCoverEngine.useLazyGreedy(this->aggregateSets);
-        localKCoverEngine.run_max_k_cover(this->aggregateSets, thetaPrime*2);
-
-        timeAggregator.totalSendTimer.endTimer();
-      }
+      approximated_solution = this->Streaming(kprime, thetaPrime);
     }
     else 
     {
-      timeAggregator.max_k_localTimer.startTimer();
-
-      std::pair<std::vector<unsigned int>, ssize_t> localSeeds;
-
-      {
-        MaxKCover<GraphTy> localKCoverEngine((int)CFG.k, kprime, timeAggregator);
-        localSeeds = localKCoverEngine.useLazyGreedy(this->aggregateSets).run_max_k_cover(this->aggregateSets, thetaPrime*2);
-      }
-
-      timeAggregator.max_k_localTimer.endTimer();
-
-      spdlog::get("console")->info("all gather...");
-      timeAggregator.allGatherTimer.startTimer();
-
-      std::vector<unsigned int> globalAggregation;
-      size_t totalData = this->cEngine.GatherPartialSolutions(localSeeds, this->aggregateSets, globalAggregation);
-
-      timeAggregator.allGatherTimer.endTimer();
-
-      if (this->cEngine.GetRank() == 0) {
-        std::map<int, std::vector<int>> bestKMSeeds;
-
-        spdlog::get("console")->info("unpacking local seeds in global process...");
-
-        timeAggregator.allGatherTimer.startTimer();
-        std::vector<std::pair<unsigned int, std::vector<unsigned int>*>>* local_seeds = cEngine.aggregateLocalKSeeds(bestKMSeeds, globalAggregation.data(), totalData);
-
-        timeAggregator.allGatherTimer.endTimer();
-
-        spdlog::get("console")->info("global max_k_cover...");
-        timeAggregator.max_k_globalTimer.startTimer();
-
-        {
-          MaxKCover<GraphTy> globalKCoverEngine((int)CFG.k, kprime, timeAggregator);
-          approximated_solution = globalKCoverEngine.useLazyGreedy(bestKMSeeds).run_max_k_cover(bestKMSeeds, thetaPrime * 2);
-        }
-
-        // end = std::chrono::high_resolution_clock::now();
-
-        for (const auto & s: *local_seeds)
-        {
-          if (s.first > approximated_solution.second)
-          {
-            approximated_solution.second = s.first;
-            approximated_solution.first = *(s.second);
-          }
-        }
-
-        timeAggregator.max_k_globalTimer.endTimer();
-
-        for (auto & s : *local_seeds)
-        {
-          delete s.second;
-        }
-
-        delete local_seeds;
-      }
+      approximated_solution = this->RandGreedi(kprime, thetaPrime);
     }    
 
   });

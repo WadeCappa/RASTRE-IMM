@@ -80,7 +80,7 @@ private:
         }
 
     public:
-        LazyGreedy(std::map<int, std::vector<int>>& data)
+        LazyGreedy(const std::map<int, std::vector<int>>& data)
         {
             this->allSets = new std::map<int, std::vector<int>*>();
 
@@ -162,7 +162,7 @@ private:
     class NaiveGreedy : public NextMostInfluentialFinder
     {
     public:
-        NaiveGreedy(std::map<int, std::vector<int>>& data) 
+        NaiveGreedy(const std::map<int, std::vector<int>>& data) 
         {
             this->allSets = new std::map<int, std::vector<int>*>();
 
@@ -245,7 +245,7 @@ private:
         std::map<int, ripples::Bitmask<int>*>* bitmaps = 0;
 
     public:
-        NaiveBitMapGreedy(std::map<int, std::vector<int>>& data, int theta) 
+        NaiveBitMapGreedy(const std::map<int, std::vector<int>>& data, int theta) 
         {
             this->bitmaps = new std::map<int, ripples::Bitmask<int>*>();
             this->allSets = new std::map<int, std::vector<int>*>();
@@ -390,28 +390,28 @@ public:
         return *this;
     }
 
-    MaxKCoverBase& useLazyGreedy(std::map<int, std::vector<int>>& data)
+    MaxKCoverBase& useLazyGreedy(const std::map<int, std::vector<int>>& data)
     {
         this->finder = new LazyGreedy(data);
 
         return *this;
     }
 
-    MaxKCoverBase& useNaiveGreedy(std::map<int, std::vector<int>>& data)
+    MaxKCoverBase& useNaiveGreedy(const std::map<int, std::vector<int>>& data)
     {
         this->finder = new NaiveGreedy(data);
 
         return *this;
     }
 
-    MaxKCoverBase& useNaiveBitmapGreedy(std::map<int, std::vector<int>>& data, int theta)
+    MaxKCoverBase& useNaiveBitmapGreedy(const std::map<int, std::vector<int>>& data, int theta)
     {
         this->finder = new NaiveBitMapGreedy(data, theta);
 
         return *this;
     }
 
-    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta) = 0;
+    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data, ssize_t theta) = 0;
 };
 
 template <typename GraphTy>
@@ -425,7 +425,7 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
 
     std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover
     (
-        std::map<int, std::vector<int>>& data, 
+        const std::map<int, std::vector<int>>& data, 
         ssize_t theta
     ) override
     {
@@ -563,7 +563,7 @@ private:
     ) : MaxKCoverBase<GraphTy>(k, kprime, timer), cEngine(cEngine), send_buffers(kprime)
     {}
 
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta) override
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data, ssize_t theta) override
     {
         // std::cout << "starting cover: " << this->k << " " << this->kprime << std::endl;
 
