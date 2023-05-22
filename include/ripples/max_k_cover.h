@@ -28,7 +28,7 @@ private:
     public:
         virtual ~NextMostInfluentialFinder()
         {
-            std::cout << "deallocating base class in max_k_cover..." << std::endl;
+            // std::cout << "deallocating base class in max_k_cover..." << std::endl;
             for (const auto & l : *(this->allSets))
             {
                 delete l.second;
@@ -565,7 +565,7 @@ private:
 
     std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta) override
     {
-        std::cout << "starting cover" << std::endl;
+        // std::cout << "starting cover: " << this->k << " " << this->kprime << std::endl;
 
         std::vector<unsigned int> res(this->k, -1);
         ripples::Bitmask<int> covered(theta);
@@ -582,6 +582,8 @@ private:
 
         for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
         {
+            // std::cout << "finding seed " << currentSeed << std::endl;
+
             if (this->usingStochastic)
             {
                 this->reorganizeVertexSet(all_vertices, subset_size, res);
@@ -593,6 +595,8 @@ private:
             res[currentSeed] = this->finder->findNextInfluential(
                 covered, theta
             );
+
+            // std::cout << "found seed " << res[currentSeed] << std::endl;
 
             this->timer.max_k_localTimer.endTimer();
 

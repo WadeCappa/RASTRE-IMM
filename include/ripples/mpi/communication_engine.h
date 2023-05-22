@@ -153,10 +153,23 @@ class CommunicationEngine
         delete data;
     }
 
+    void QueueReceive(int* buffer, size_t size, MPI_Request &request) const 
+    {
+        MPI_Irecv(
+            buffer,
+            size,
+            MPI_INT,
+            MPI_ANY_SOURCE,
+            MPI_ANY_TAG,
+            MPI_COMM_WORLD,
+            &request
+        );
+    }
+
     void WaitForSend(MPI_Request &request) const 
     {
         MPI_Status status;
-        MPI_Wait(request, &status);
+        MPI_Wait(&request, &status);
     }
 
     size_t GatherPartialSolutions(

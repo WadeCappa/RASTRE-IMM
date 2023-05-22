@@ -179,8 +179,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     {
       if (this->cEngine.GetRank() == 0) 
       {
-        StreamingRandGreedIEngine streamingEngine((int)CFG.k, kprime, thetaPrime*2, (double)CFG.epsilon_2, this->cEngine.GetSize() - 1);
-        approximated_solution = streamingEngine.Stream(&timeAggregator);
+        StreamingRandGreedIEngine<GraphTy> streamingEngine((int)CFG.k, kprime, thetaPrime, (double)CFG.epsilon_2, this->cEngine.GetSize() - 1, cEngine, timeAggregator);
+        approximated_solution = streamingEngine.Stream();
       }
       else 
       {
