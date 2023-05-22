@@ -89,7 +89,9 @@ class ThresholdBucket
 class BucketController 
 {
     private:
-    std::vector<ThresholdBucket*>* buckets = new std::vector<ThresholdBucket*>();
+    std::vector<ThresholdBucket*> buckets;
+    std::vector<std::vector<ThresholdBucket*>> threadMap;
+
     int k;
     ssize_t theta;
     double epsilon;
@@ -110,23 +112,79 @@ class BucketController
 
         for (int i = 0; i < num_buckets + 1; i++)
         {
-            this->buckets->push_back(new ThresholdBucket(this->theta, this->deltaZero, this->k, this->epsilon, i));
+            this->buckets.push_back(new ThresholdBucket(this->theta, this->deltaZero, this->k, this->epsilon, i));
+        }
+    }
+
+    void MapBucketsToThreads(const unsigned int threads)
+    {
+        // build mapping of each thread to number of buckets
+        int buckets_per_thread = std::ceil((double)this->buckets.size() / ((double)threads));
+        std::cout << "number of buckets; " << this->buckets.size() << ", threads; " << threads << ", buckets per thread; " << buckets_per_thread << std::endl;
+        this->threadMap.resize(threads);
+
+        int bucket_index = 0;
+        for (int i = 0; i < this->threadMap.size(); i++ )
+        {
+            int buckets_added = 0;
+            while (bucket_index < this->buckets.size() && buckets_added < buckets_per_thread)
+            {
+                this->threadMap[i].push_back(this->buckets.at(bucket_index));
+                bucket_index++;
+                buckets_added++;
+            }
+        }
+    }
+
+    void ProcessElements(
+        const unsigned int threads, 
+        const std::vector<std::pair<int, Origin>> &availability_index,
+        const std::vector<std::vector<CandidateSet>> &element_matrix
+    )
+    {
+        #pragma omp parallel for num_threads(threads)
+        for (int i = 0; i < this->threadMap.size(); i++)
+        {
+            const std::vector<ThresholdBucket*>& thread_buckets = this->threadMap[i];
+            int local_dummy_value = 0;
+
+            for (int local_received_index = 0; local_received_index < availability_index.size(); local_received_index++)
+            {
+                while (true) 
+                {
+                    if (availability_index[local_received_index].first == 1)
+                    {
+                        break;
+                    }
+
+                    # pragma omp atomic
+                    local_dummy_value++;
+                }
+
+                // std::cout << "inserting seed " << local_received_index << std::endl;
+
+                for (const auto & b : thread_buckets)
+                {
+                    const auto & p = availability_index[local_received_index].second;
+                    b->attemptInsert(element_matrix[p.source][p.seed]);
+                }
+            }
         }
     }
 
     size_t GetNumberOfBuckets()
     {
-        return this->buckets->size();
+        return this->buckets.size();
     }
 
-    std::vector<ThresholdBucket*>* GetBuckets()
+    std::vector<ThresholdBucket*> GetBuckets()
     {
         return this->buckets;
     }
 
     bool Initialized()
     {
-        return this->buckets->size() > 0;
+        return this->buckets.size() > 0;
     }
 
     bool AllBucketsFull()
@@ -140,9 +198,9 @@ class BucketController
         size_t max_covered = 0;
         int max_covered_index = 0;
 
-        for (int i = 0; i < this->buckets->size(); i++)
+        for (int i = 0; i < this->buckets.size(); i++)
         {
-            size_t bucket_utility = this->buckets->at(i)->getUtility();
+            size_t bucket_utility = this->buckets.at(i)->getUtility();
             if (bucket_utility > max_covered) {
                 max_covered = bucket_utility;
                 max_covered_index = i;
@@ -150,11 +208,11 @@ class BucketController
         }
         
         std::vector<unsigned int> seeds;
-        for (const auto p : this->buckets->at(max_covered_index)->getSeeds()) {
+        for (const auto p : this->buckets.at(max_covered_index)->getSeeds()) {
             seeds.push_back(p.first);
         }
 
-        std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets->at(max_covered_index)->getSeeds().size() << std::endl;
+        std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets.at(max_covered_index)->getSeeds().size() << std::endl;
 
         return std::make_pair(seeds, max_covered);
     }
@@ -168,12 +226,10 @@ class BucketController
 
     ~BucketController() 
     {
-        for (auto b : *(this->buckets))
+        for (auto b : this->buckets)
         {
             delete b;
         }
-
-        delete this->buckets;
     }
 };
 
@@ -257,6 +313,20 @@ class StreamingRandGreedIEngine
         return this->buffer;
     }
 
+    static void WaitToProcess(int &dummy_value, int &buckets_initialized)
+    {
+        while (true) 
+        {
+            # pragma omp atomic
+            dummy_value++;
+            
+            if (buckets_initialized == 1)
+            {
+                break;
+            }
+        }
+    }
+
     public:
     StreamingRandGreedIEngine(
         int k, int kprime, size_t theta, 
@@ -306,6 +376,7 @@ class StreamingRandGreedIEngine
         int buckets_initialized = 0;
         int dummy_value = 0;
         int kill_processors = 0;
+        size_t maxVal = 0;
 
         int threads = omp_get_max_threads();
         omp_set_nested(2);
@@ -316,8 +387,6 @@ class StreamingRandGreedIEngine
         {
             if (omp_get_thread_num() == 0) // receiver
             {
-                size_t maxVal = 0;
-
                 // std::cout << "RECEIVING WITH THREAD ID " << omp_get_thread_num() << std::endl;
 
                 for (int i = 0; i < (this->number_of_senders * this->kprime); i++)
@@ -347,7 +416,10 @@ class StreamingRandGreedIEngine
 
                     // std::cout << "extracted elements" << std::endl;
 
-                    maxVal = std::max(maxVal, element_matrix[source][tag].covered.size());
+                    if (buckets_initialized == 0)
+                    {
+                        maxVal = std::max(maxVal, element_matrix[source][tag].covered.size());
+                    }
 
                     availability_index[i].second.source = source;
                     availability_index[i].second.seed = tag;
@@ -363,10 +435,6 @@ class StreamingRandGreedIEngine
 
                     if (this->first_values_from_senders == this->number_of_senders && buckets_initialized == 0)
                     {
-                        this->timer.initBucketTimer.startTimer();
-                        this->buckets.CreateBuckets(maxVal);
-                        this->timer.initBucketTimer.endTimer();
-
                         #pragma omp atomic 
                         buckets_initialized++;
                     }
@@ -378,70 +446,18 @@ class StreamingRandGreedIEngine
             }
             else // processor
             {   
-                while (true) 
-                {
-                    # pragma omp atomic
-                    dummy_value++;
-                    
-                    if (buckets_initialized == 1)
-                    {
-                        break;
-                    }
-                }
-
+                this->WaitToProcess(dummy_value, buckets_initialized);
                 std::cout << "exited waiting loop..." << std::endl;
 
-                // build mapping of each thread to number of buckets
-                auto buckets = this->buckets.GetBuckets();
-                int buckets_per_thread = std::ceil((double)buckets->size() / ((double)threads - (double)1));
-                std::cout << "number of buckets; " << buckets->size() << ", threads; " << threads-1 << ", buckets per thread; " << buckets_per_thread << std::endl;
-                std::vector<std::vector<ThresholdBucket*>> bucketMap(threads-1);
-
-                int bucket_index = 0;
-                for (int i = 0; i < bucketMap.size(); i++ )
-                {
-                    int buckets_added = 0;
-                    while (bucket_index < buckets->size() && buckets_added < buckets_per_thread)
-                    {
-                        bucketMap[i].push_back(buckets->at(bucket_index));
-                        bucket_index++;
-                        buckets_added++;
-                    }
-                }
+                this->timer.initBucketTimer.startTimer();
+                this->buckets.CreateBuckets(maxVal);
+                this->buckets.MapBucketsToThreads(threads - 1);
+                this->timer.initBucketTimer.endTimer();
 
                 std::cout << "starting to process elements..." << std::endl;
 
                 this->timer.max_k_globalTimer.startTimer();
-
-                #pragma omp parallel for num_threads(threads-1)
-                for (int i = 0; i < bucketMap.size(); i++)
-                {
-                    const std::vector<ThresholdBucket*>& thread_buckets = bucketMap[i];
-                    int local_dummy_value = 0;
-
-                    for (int local_received_index = 0; local_received_index < availability_index.size(); local_received_index++)
-                    {
-                        while (true) 
-                        {
-                            if (availability_index[local_received_index].first == 1)
-                            {
-                                break;
-                            }
-
-                            # pragma omp atomic
-                            local_dummy_value++;
-                        }
-
-                        // std::cout << "inserting seed " << local_received_index << std::endl;
-
-                        for (const auto & b : thread_buckets)
-                        {
-                            auto p = availability_index[local_received_index].second;
-                            b->attemptInsert(element_matrix[p.source][p.seed]);
-                        }
-                    }
-                }
-                
+                this->buckets.ProcessElements(threads - 1, availability_index, element_matrix);                
                 this->timer.max_k_globalTimer.endTimer();
             }
         }
