@@ -142,7 +142,7 @@ class BucketController
         const std::vector<std::vector<CandidateSet>> &element_matrix
     )
     {
-        // #pragma omp parallel for num_threads(threads)
+        #pragma omp parallel for num_threads(threads)
         for (int i = 0; i < this->threadMap.size(); i++)
         {
             const std::vector<ThresholdBucket*>& thread_buckets = this->threadMap[i];

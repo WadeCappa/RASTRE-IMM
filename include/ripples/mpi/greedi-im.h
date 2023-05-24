@@ -142,8 +142,8 @@ auto Streaming(const int kprime, const size_t theta)
     this->timeAggregator.totalSendTimer.startTimer();
     
     StreamingMaxKCover<GraphTy> localKCoverEngine((int)CFG.k, kprime, theta, this->timeAggregator, this->cEngine);
-    localKCoverEngine.useLazyGreedy(this->aggregateSets);
-    localKCoverEngine.run_max_k_cover(this->aggregateSets, theta);
+    localKCoverEngine.useLazyGreedy();
+    localKCoverEngine.run_max_k_cover(this->aggregateSets);
 
     this->timeAggregator.totalSendTimer.endTimer();
 
@@ -160,7 +160,8 @@ static std::pair<std::vector<unsigned int>, ssize_t> SolveKCover(
 )
 {
   MaxKCover<GraphTy> localKCoverEngine(k, kprime, max_element, timeAggregator);
-  return localKCoverEngine.useLazyGreedy(elements).run_max_k_cover(elements, max_element);
+  localKCoverEngine.useLazyGreedy();
+  return localKCoverEngine.run_max_k_cover(elements);
 }
 
 auto RandGreedi(const int kprime, const size_t theta)

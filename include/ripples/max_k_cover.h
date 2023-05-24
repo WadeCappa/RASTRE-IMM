@@ -21,34 +21,43 @@ private:
     class NextMostInfluentialFinder
     { 
     protected:
-        std::vector<unsigned int>* vertex_subset;
-        std::map<int, std::vector<int>*>* allSets;
+        std::vector<unsigned int> vertex_subset;
+        std::map<int, std::vector<int>*> replicated_data;
         ripples::Bitmask<int> covered;
         size_t subset_size;
 
     public:
-        NextMostInfluentialFinder(int theta) : covered(theta) 
-        {
+        NextMostInfluentialFinder(
+            int theta
+        ) : covered(theta)
+        {}
 
+        virtual void Setup(const std::map<int, std::vector<int>>& original_data)
+        {
+            for (const auto & l : original_data)
+            {
+                this->replicated_data.insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
+            }
         }
 
         virtual ~NextMostInfluentialFinder()
         {
             // std::cout << "deallocating base class in max_k_cover..." << std::endl;
-            for (const auto & l : *(this->allSets))
+            for (const auto & l : this->replicated_data)
             {
                 delete l.second;
             }
-            delete this->allSets;
         }
 
-        virtual ssize_t findNextInfluential (
-            ripples::Bitmask<int>& covered,
-            int theta
-        ) = 0;
+        unsigned int GetUtility()
+        {
+            return covered.popcount();
+        }
+
+        virtual ssize_t findNextInfluential () = 0;
 
         virtual NextMostInfluentialFinder* setSubset (
-            std::vector<unsigned int>* subset_of_selection_sets,
+            const std::vector<unsigned int>& subset_of_selection_sets,
             size_t subset_size
         ) = 0;
 
@@ -70,26 +79,19 @@ private:
         CompareMaxHeap<int> cmp;            
         std::vector<std::pair<int, std::vector<int>*>>* heap;
 
-        void generateQueue(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size)
+        void generateQueue(const std::vector<unsigned int>& subset_of_selection_sets, size_t subset_size)
         {
             for (int i = 0; i < subset_size; i++)
             {
-                this->heap->at(i) = std::make_pair(subset_of_selection_sets->at(i), this->allSets->at(subset_of_selection_sets->at(i)));
+                this->heap->at(i) = std::make_pair(subset_of_selection_sets[i], this->replicated_data.at(subset_of_selection_sets[i]));
             }
 
             std::make_heap(this->heap->begin(), this->heap->end(), this->cmp);
         }
 
     public:
-        LazyGreedy(const std::map<int, std::vector<int>>& data, int theta) : NextMostInfluentialFinder(theta)
-        {
-            this->allSets = new std::map<int, std::vector<int>*>();
-
-            for (const auto & l : data)
-            {
-                this->allSets->insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
-            }
-        }
+        LazyGreedy(int theta) : NextMostInfluentialFinder(theta)
+        {}
 
         ~LazyGreedy()
         {
@@ -97,7 +99,7 @@ private:
             delete heap;
         }
 
-        NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
+        NextMostInfluentialFinder* setSubset(const std::vector<unsigned int>& subset_of_selection_sets, size_t subset_size) override
         {
             this->subset_size = subset_size;
             this->heap = new std::vector<std::pair<int, std::vector<int>*>>(subset_size);
@@ -113,10 +115,7 @@ private:
             return this;
         }
 
-        ssize_t findNextInfluential(
-            ripples::Bitmask<int>& covered,
-            int theta
-        ) override
+        ssize_t findNextInfluential() override
         {
             std::pair<int, std::vector<int>*> l = this->heap->front();
             std::pop_heap(this->heap->begin(), this->heap->end(), this->cmp);
@@ -128,12 +127,12 @@ private:
 
             // remove RR IDs from l that are already covered. 
             for (unsigned int e: *(l.second)) {
-                if (!(covered.get(e))) {
+                if (!(this->covered.get(e))) {
                     new_set.push_back(e);
                 }
             }      
 
-            if (this->allSets->find(l.first) == this->allSets->end())
+            if (this->replicated_data.find(l.first) == this->replicated_data.end())
             {
                 // std::cout << "could not find " << l.first << " in sets" << std::endl;
                 exit(1);
@@ -157,8 +156,8 @@ private:
             if (marginal_gain >= r.second->size()) 
             {               
                 for (unsigned int e: *(l.second)) {
-                    if (!(covered.get(e))) {
-                        covered.set(e);
+                    if (!(this->covered.get(e))) {
+                        this->covered.set(e);
                     }
                 }
 
@@ -173,7 +172,7 @@ private:
                 this->heap->push_back(l);
                 std::push_heap(this->heap->begin(), this->heap->end(), this->cmp);
 
-                return findNextInfluential( covered, theta );
+                return findNextInfluential();
             }
         }
     };
@@ -181,19 +180,14 @@ private:
     class NaiveGreedy : public NextMostInfluentialFinder
     {
     public:
-        NaiveGreedy(const std::map<int, std::vector<int>>& data, int theta) : NextMostInfluentialFinder(theta)
-        {
-            this->allSets = new std::map<int, std::vector<int>*>();
-
-            for (const auto & l : data)
-            {
-                this->allSets->insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
-            }
-        }
+        NaiveGreedy(
+            int theta
+        ) : NextMostInfluentialFinder(theta)
+        {}
 
         ~NaiveGreedy(){}
 
-        NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
+        NextMostInfluentialFinder* setSubset(const std::vector<unsigned int>& subset_of_selection_sets, size_t subset_size) override
         {
             this->vertex_subset = subset_of_selection_sets;
             this->subset_size = subset_size;
@@ -205,27 +199,24 @@ private:
             return this;
         }
 
-        ssize_t findNextInfluential(
-            ripples::Bitmask<int>& covered,
-            int theta
-        ) override
+        ssize_t findNextInfluential() override
         {
             int max = 0;
             int max_key = -1;
 
             for ( int i = 0; i < this->subset_size; i++ )
             {
-                int vertex = this->vertex_subset->at(i);
-                if (this->allSets->find(vertex) != this->allSets->end() && this->allSets->at(vertex)->size() > max)
+                int vertex = this->vertex_subset.at(i);
+                if (this->replicated_data.find(vertex) != this->replicated_data.end() && this->replicated_data.at(vertex)->size() > max)
                 {
-                    max = this->allSets->at(vertex)->size();
+                    max = this->replicated_data.at(vertex)->size();
                     max_key = vertex;
                 }
             }
 
-            for (int e: *(this->allSets->at(max_key))) {
-                if (!(covered.get(e))) {
-                    covered.set(e);
+            for (int e: *(this->replicated_data.at(max_key))) {
+                if (!(this->covered.get(e))) {
+                    this->covered.set(e);
                 }
             }
 
@@ -233,19 +224,19 @@ private:
             {
                 # pragma omp for schedule(static)
                 for( int i = 0; i < this->subset_size; i++ ) {
-                    if (this->allSets->find(this->vertex_subset->at(i)) != this->allSets->end()) 
+                    if (this->replicated_data.find(this->vertex_subset.at(i)) != this->replicated_data.end()) 
                     {
-                        auto RRRSets = this->allSets->at(this->vertex_subset->at(i));
+                        auto RRRSets = this->replicated_data.at(this->vertex_subset.at(i));
 
                         std::vector<int> temp;
-                        if (this->vertex_subset->at(i) != max_key) {
+                        if (this->vertex_subset.at(i) != max_key) {
                             for (int e: *RRRSets) {
-                                if (covered.get(e)) {
+                                if (this->covered.get(e)) {
                                     temp.push_back(e);
                                 }
                             }
                             for (int e: temp) {
-                                this->allSets->at(this->vertex_subset->at(i))->erase(e); 
+                                this->replicated_data.at(this->vertex_subset.at(i))->erase(e); 
                             }
 
                         }
@@ -253,99 +244,99 @@ private:
                 }
             }
 
-            this->allSets->erase(max_key);
+            this->replicated_data.erase(max_key);
             return max_key;
         }
     };
 
-    class NaiveBitMapGreedy : public NextMostInfluentialFinder
-    {
-    private:
-        std::map<int, ripples::Bitmask<int>*>* bitmaps = 0;
+    // class NaiveBitMapGreedy : public NextMostInfluentialFinder
+    // {
+    // private:
+    //     std::map<int, ripples::Bitmask<int>> bitmaps;
 
-    public:
-        NaiveBitMapGreedy(const std::map<int, std::vector<int>>& data, int theta) : NextMostInfluentialFinder(theta)
-        {
-            this->bitmaps = new std::map<int, ripples::Bitmask<int>*>();
-            this->allSets = new std::map<int, std::vector<int>*>();
+    // public:
+    //     NaiveBitMapGreedy(int theta) : NextMostInfluentialFinder(theta)
+    //     {}
 
-            for (const auto & l : data)
-            {
-                ripples::Bitmask<int>* newBitMask = new ripples::Bitmask<int>(theta);
-                for (const auto & r : l.second)
-                {
-                    newBitMask->set(r);
-                }
-                this->bitmaps->insert({ l.first, newBitMask });
-            }
-        }
+    //     void Setup(const std::map<int, std::vector<int>>& original_data) override 
+    //     {
+    //         for (const auto & l : original_data)
+    //         {
+    //             this->replicated_data.insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
+    //         }
 
-        ~NaiveBitMapGreedy()
-        {
-            delete bitmaps;
-        }
+    //         for (const auto & l : this->replicated_data)
+    //         {
+    //             ripples::Bitmask<int> newBitMask(theta);
+    //             for (const auto & r : *(l.second))
+    //             {
+    //                 newBitMask.set(r);
+    //             }
+    //             this->bitmaps.insert({ l.first, newBitMask });
+    //         }
+    //     }
 
-        NextMostInfluentialFinder setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
-        {
-            this->vertex_subset = subset_of_selection_sets;
-            this->subset_size = subset_size;
-            return this;
-        } 
+    //     ~NaiveBitMapGreedy()
+    //     {}
 
-        NextMostInfluentialFinder reloadSubset () override 
-        {
-            return this;
-        }
+    //     NextMostInfluentialFinder setSubset(const std::vector<unsigned int>& subset_of_selection_sets, size_t subset_size) override
+    //     {
+    //         this->vertex_subset = subset_of_selection_sets;
+    //         this->subset_size = subset_size;
+    //         return this;
+    //     } 
 
-        ssize_t findNextInfluential(
-            ripples::Bitmask<int>& covered,
-            int theta
-        ) override
-        {
-            int best_score = -1;
-            int max_key = -1;
+    //     NextMostInfluentialFinder reloadSubset () override 
+    //     {
+    //         return this;
+    //     }
 
-            ripples::Bitmask<int> localCovered(covered);
-            localCovered.notOperation();
+    //     ssize_t findNextInfluential() override
+    //     {
+    //         int best_score = -1;
+    //         int max_key = -1;
 
-            // check this->bitmaps for the bitmap that has the maximal marginal gain when bitmap[i] & ~covered is used. 
-            #pragma omp parallel 
-            {
-                int local_best_score = best_score;
-                int local_max_key = max_key;
+    //         ripples::Bitmask<int> localCovered(this->covered);
+    //         localCovered.notOperation();
 
-                # pragma omp for 
-                for ( int i = 0; i < this->subset_size; i++ )
-                {
-                    int vertex = this->vertex_subset->at(i);
-                    if (this->bitmaps->find(vertex) != this->bitmaps->end())
-                    {
-                        ripples::Bitmask<int> working(localCovered);
-                        working.andOperation(*(this->bitmaps->at(vertex)));
-                        size_t popcount = working.popcount();
-                        if ((int)popcount > local_best_score) {
-                            local_best_score = popcount;
-                            local_max_key = vertex;
-                        }
-                    }
-                }
+    //         // check this->bitmaps for the bitmap that has the maximal marginal gain when bitmap[i] & ~covered is used. 
+    //         #pragma omp parallel 
+    //         {
+    //             int local_best_score = best_score;
+    //             int local_max_key = max_key;
 
-                #pragma omp critical 
-                {
-                    if (local_best_score > best_score) {
-                        best_score = local_best_score;
-                        max_key = local_max_key;
-                    }
-                }
-            }
+    //             # pragma omp for 
+    //             for ( int i = 0; i < this->subset_size; i++ )
+    //             {
+    //                 int vertex = this->vertex_subset.at(i);
+    //                 if (this->bitmaps->find(vertex) != this->bitmaps->end())
+    //                 {
+    //                     ripples::Bitmask<int> working(localCovered);
+    //                     working.andOperation(*(this->bitmaps->at(vertex)));
+    //                     size_t popcount = working.popcount();
+    //                     if ((int)popcount > local_best_score) {
+    //                         local_best_score = popcount;
+    //                         local_max_key = vertex;
+    //                     }
+    //                 }
+    //             }
 
-            // update covered
-            covered.orOperation(*(this->bitmaps->at(max_key)));
+    //             #pragma omp critical 
+    //             {
+    //                 if (local_best_score > best_score) {
+    //                     best_score = local_best_score;
+    //                     max_key = local_max_key;
+    //                 }
+    //             }
+    //         }
 
-            this->bitmaps->erase(max_key);
-            return max_key;
-        }
-    };
+    //         // update covered
+    //         this->covered.orOperation(*(this->bitmaps->at(max_key)));
+
+    //         this->bitmaps->erase(max_key);
+    //         return max_key;
+    //     }
+    // };
 
 protected: 
     int k;
@@ -353,11 +344,10 @@ protected:
     double epsilon;
     const int theta;
     bool usingStochastic = false;
-    unsigned int utility = -1;
     NextMostInfluentialFinder* finder = 0;
     TimerAggregator &timer;
 
-    void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int>& seedSet)
+    void reorganizeVertexSet(std::vector<unsigned int>& vertices, size_t size, std::vector<unsigned int>& seedSet)
     {
         // for i from 0 to n−2 do
         //     j ← random integer such that i ≤ j < n
@@ -366,12 +356,12 @@ protected:
 
         for (int i = 0; i < size; i++) 
         {
-            int j = getRandom(i, vertices->size()-1);
-            while (seeds.find(vertices->at(j)) != seeds.end())
+            int j = getRandom(i, vertices.size()-1);
+            while (seeds.find(vertices.at(j)) != seeds.end())
             {
-                j = getRandom(i, vertices->size()-1);
+                j = getRandom(i, vertices.size()-1);
             }
-            std::swap(vertices->at(i), vertices->at(j));
+            std::swap(vertices.at(i), vertices.at(j));
         }
     }
 
@@ -386,14 +376,9 @@ protected:
         return ((size_t)std::round((double)n/(double)k) * std::log10(1/epsilon)) + 1;
     }
 
-    unsigned int GetUtility(ripples::Bitmask<int>& covered)
-    {
-        this->utility = this->utility == -1 ? covered.popcount() : this->utility;
-        return this->utility;
-    }
-
 public:
-    MaxKCoverBase(int k, int kprime, int theta, TimerAggregator &timer) : timer(timer), theta(theta)
+    MaxKCoverBase(int k, int kprime, int theta, TimerAggregator &timer) 
+        : timer(timer), theta(theta)
     {
         this->k = k;
         this->kprime = kprime;
@@ -410,51 +395,46 @@ public:
         return *this;
     }
 
-    MaxKCoverBase& useLazyGreedy(const std::map<int, std::vector<int>>& data)
+    MaxKCoverBase& useLazyGreedy()
     {
-        this->finder = new LazyGreedy(data, this->theta);
+        this->finder = new LazyGreedy(this->theta);
 
         return *this;
     }
 
-    MaxKCoverBase& useNaiveGreedy(const std::map<int, std::vector<int>>& data)
+    MaxKCoverBase& useNaiveGreedy()
     {
-        this->finder = new NaiveGreedy(data, this->theta);
+        this->finder = new NaiveGreedy(this->theta);
 
         return *this;
     }
 
-    MaxKCoverBase& useNaiveBitmapGreedy(const std::map<int, std::vector<int>>& data)
-    {
-        this->finder = new NaiveBitMapGreedy(data, this->theta);
+    // MaxKCoverBase& useNaiveBitmapGreedy()
+    // {
+    //     this->finder = new NaiveBitMapGreedy(this->theta);
 
-        return *this;
-    }
+    //     return *this;
+    // }
 
-    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data, size_t theta) = 0;
+    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) = 0;
 };
 
 template <typename GraphTy>
 class MaxKCover : public MaxKCoverBase<GraphTy>
 {
     public:
-    MaxKCover(int k, int kprime, int theta, TimerAggregator &timer) : MaxKCoverBase<GraphTy>(k, kprime, theta, timer)
-    {
+    MaxKCover(int k, int kprime, int theta, TimerAggregator &timer) 
+        : MaxKCoverBase<GraphTy>(k, kprime, theta, timer)
+    {}
 
-    }
-
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover (
-        const std::map<int, std::vector<int>>& data, 
-        size_t theta
-    ) override
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
     {
         std::vector<unsigned int> res(this->k, -1);
-        ripples::Bitmask<int> covered(theta);
 
         size_t subset_size = (this->usingStochastic) ? this->getSubsetSize(data.size(), this->k, this->epsilon) : data.size() ;
 
-        std::vector<unsigned int>* all_vertices = new std::vector<unsigned int>();  
-        for (const auto & l : data) { all_vertices->push_back(l.first); }
+        std::vector<unsigned int> all_vertices;  
+        for (const auto & l : data) { all_vertices.push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
         unsigned int current_send_index = 0;
@@ -471,16 +451,12 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
 
             this->timer.max_k_localTimer.startTimer();
 
-            res[currentSeed] = this->finder->findNextInfluential(
-                covered, theta
-            );
+            res[currentSeed] = this->finder->findNextInfluential();
 
             this->timer.max_k_localTimer.endTimer();
         }
-        
-        delete all_vertices;
 
-        return std::make_pair(res, this->GetUtility(covered));
+        return std::make_pair(res, this->finder->GetUtility());
     }
 };
 
@@ -582,17 +558,16 @@ private:
     ) : MaxKCoverBase<GraphTy>(k, kprime, theta, timer), cEngine(cEngine), send_buffers(kprime)
     {}
 
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data, size_t theta) override
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
     {
-        // std::cout << "starting cover: " << this->k << " " << this->kprime << std::endl;
+        this->finder->Setup(data);
 
         std::vector<unsigned int> res(this->k, -1);
-        ripples::Bitmask<int> covered(theta);
 
         size_t subset_size = (this->usingStochastic) ? this->getSubsetSize(data.size(), this->k, this->epsilon) : data.size() ;
 
-        std::vector<unsigned int>* all_vertices = new std::vector<unsigned int>();  
-        for (const auto & l : data) { all_vertices->push_back(l.first); }
+        std::vector<unsigned int> all_vertices;  
+        for (const auto & l : data) { all_vertices.push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
         int current_send_index = 0;
@@ -611,9 +586,7 @@ private:
 
             this->timer.max_k_localTimer.startTimer();
 
-            res[currentSeed] = this->finder->findNextInfluential(
-                covered, theta
-            );
+            res[currentSeed] = this->finder->findNextInfluential();
 
             // std::cout << "found seed " << currentSeed << " of id " << res[currentSeed] << std::endl;
 
@@ -659,14 +632,12 @@ private:
             this->cEngine.SendNextSeed(                    
                 this->send_buffers[current_send_index].data(),
                 this->send_buffers[current_send_index].size(),
-                current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index
+                current_send_index == this->kprime - 1 ? this->finder->GetUtility() : current_send_index
             );
         }
 
         this->timer.sendTimer.endTimer();
-        
-        delete all_vertices;
 
-        return std::make_pair(res, this->GetUtility(covered));
+        return std::make_pair(res, this->finder->GetUtility());
     }
 };
