@@ -176,7 +176,7 @@ void AddRRRSet(const GraphTy &G, typename GraphTy::vertex_type r,
 /// @param tag 
 template <typename GraphTy, typename PRNGeneratorTy, typename diff_model_tag>
 void AddTransposeRRRSet(TransposeRRRSets<GraphTy> &tRRRSets, const GraphTy &G, typename GraphTy::vertex_type r,
-               PRNGeneratorTy &generator, RRRset<GraphTy> &result,
+               PRNGeneratorTy &generator,
                diff_model_tag &&tag, size_t RRRIndex) {
   using vertex_type = typename GraphTy::vertex_type;
 
@@ -299,14 +299,14 @@ template <typename GraphTy, typename PRNGeneratorTy,
           typename diff_model_tag>
 void GenerateTransposeRRRSets(
                      TransposeRRRSets<GraphTy> &transposeRRRSets,
-                     ItrTy mem_start,
+                     size_t current_sets,
+                     size_t delta,
                      const GraphTy &G,
                      StreamingRRRGenerator<GraphTy, PRNGeneratorTy, ItrTy, diff_model_tag> &se,
-                     ItrTy begin, ItrTy end,
                      ExecRecordTy &,
                      diff_model_tag &&,
                      omp_parallel_tag &&) {
-  se.transposeGenerate(transposeRRRSets, begin, end, mem_start);
+  se.transposeGenerate(transposeRRRSets, current_sets, delta);
 }
 
 //! \brief Generate Random Reverse Reachability Sets - CUDA.

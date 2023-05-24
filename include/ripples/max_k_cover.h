@@ -15,35 +15,49 @@
 // #include "mpi/communication_engine.h"
 
 template <typename GraphTy>
-class MaxKCoverEngine 
+class MaxKCoverBase 
 {
 private:
-
     class NextMostInfluentialFinder
     { 
     protected:
-        std::vector<unsigned int>* vertex_subset;
-        std::map<int, std::vector<int>*>* allSets;
+        std::vector<unsigned int> vertex_subset;
+        std::map<int, std::vector<int>*> replicated_data;
+        ripples::Bitmask<int> covered;
         size_t subset_size;
 
     public:
+        NextMostInfluentialFinder(
+            int theta
+        ) : covered(theta)
+        {}
+
+        virtual void Setup(const std::map<int, std::vector<int>>& original_data)
+        {
+            for (const auto & l : original_data)
+            {
+                this->replicated_data.insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
+            }
+        }
+
         virtual ~NextMostInfluentialFinder()
         {
-            std::cout << "deallocating base class in max_k_cover..." << std::endl;
-            for (const auto & l : *(this->allSets))
+            // std::cout << "deallocating base class in max_k_cover..." << std::endl;
+            for (const auto & l : this->replicated_data)
             {
                 delete l.second;
             }
-            delete this->allSets;
         }
 
-        virtual ssize_t findNextInfluential (
-            ripples::Bitmask<int>& covered,
-            int theta
-        ) = 0;
+        unsigned int GetUtility()
+        {
+            return covered.popcount();
+        }
+
+        virtual ssize_t findNextInfluential () = 0;
 
         virtual NextMostInfluentialFinder* setSubset (
-            std::vector<unsigned int>* subset_of_selection_sets,
+            const std::vector<unsigned int>& subset_of_selection_sets,
             size_t subset_size
         ) = 0;
 
@@ -65,31 +79,19 @@ private:
         CompareMaxHeap<int> cmp;            
         std::vector<std::pair<int, std::vector<int>*>>* heap;
 
-        void generateQueue(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size)
+        void generateQueue(const std::vector<unsigned int>& subset_of_selection_sets, size_t subset_size)
         {
-            for (int i = 0; i < subset_size - this->heap->size(); i++) 
-            {
-                this->heap->push_back(std::make_pair(0,(std::vector<int>*)0));
-            }
-
             for (int i = 0; i < subset_size; i++)
             {
-                this->heap->at(i) = std::make_pair(subset_of_selection_sets->at(i), this->allSets->at(subset_of_selection_sets->at(i)));
+                this->heap->at(i) = std::make_pair(subset_of_selection_sets[i], this->replicated_data.at(subset_of_selection_sets[i]));
             }
 
             std::make_heap(this->heap->begin(), this->heap->end(), this->cmp);
         }
 
     public:
-        LazyGreedy(std::map<int, std::vector<int>>& data)
-        {
-            this->allSets = new std::map<int, std::vector<int>*>();
-
-            for (const auto & l : data)
-            {
-                this->allSets->insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
-            }
-        }
+        LazyGreedy(int theta) : NextMostInfluentialFinder(theta)
+        {}
 
         ~LazyGreedy()
         {
@@ -97,10 +99,10 @@ private:
             delete heap;
         }
 
-        NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
+        NextMostInfluentialFinder* setSubset(const std::vector<unsigned int>& subset_of_selection_sets, size_t subset_size) override
         {
             this->subset_size = subset_size;
-            this->heap = new std::vector<std::pair<int, std::vector<int>*>>(this->subset_size);
+            this->heap = new std::vector<std::pair<int, std::vector<int>*>>(subset_size);
 
             generateQueue(subset_of_selection_sets, subset_size);
             this->vertex_subset = subset_of_selection_sets;
@@ -113,26 +115,36 @@ private:
             return this;
         }
 
-        ssize_t findNextInfluential(
-            ripples::Bitmask<int>& covered,
-            int theta
-        ) override
+        ssize_t findNextInfluential() override
         {
             std::pair<int, std::vector<int>*> l = this->heap->front();
             std::pop_heap(this->heap->begin(), this->heap->end(), this->cmp);
             this->heap->pop_back();
 
+            // std::cout << "covered is size " << covered.size() << std::endl;
+
             std::vector<int> new_set;
 
             // remove RR IDs from l that are already covered. 
-            for (int e: *(l.second)) {
-                if (!(covered.get(e))) {
+            for (unsigned int e: *(l.second)) {
+                if (!(this->covered.get(e))) {
                     new_set.push_back(e);
                 }
             }      
 
+            if (this->replicated_data.find(l.first) == this->replicated_data.end())
+            {
+                // std::cout << "could not find " << l.first << " in sets" << std::endl;
+                exit(1);
+            }
+            
             // delete l.second;
-            *(this->allSets->at(l.first)) = new_set;
+            l.second->empty();
+
+            for (const auto & e : new_set)
+            {
+                l.second->push_back(e);
+            }
             
             // calculate marginal gain
             auto marginal_gain = l.second->size();
@@ -143,19 +155,24 @@ private:
             // if marginal of l is better than r's utility, l is the current best     
             if (marginal_gain >= r.second->size()) 
             {               
-                for (int e : *(l.second)) {
-                    if (!covered.get(e)) {
-                        covered.set(e);
+                for (unsigned int e: *(l.second)) {
+                    if (!(this->covered.get(e))) {
+                        this->covered.set(e);
                     }
                 }
+
+                // std::cout << "returning " << l.first << " of size " << l.second->size() << std::endl;
+
                 return l.first;
             }
             // else push l's marginal into the heap 
             else {
+                // std::cout << "l.first: " << l.first << ", l.second.size(): " << l.second->size() << ", r.second.size(): " << r.second->size() << std::endl;
+
                 this->heap->push_back(l);
                 std::push_heap(this->heap->begin(), this->heap->end(), this->cmp);
 
-                return findNextInfluential( covered, theta );
+                return findNextInfluential();
             }
         }
     };
@@ -163,19 +180,14 @@ private:
     class NaiveGreedy : public NextMostInfluentialFinder
     {
     public:
-        NaiveGreedy(std::map<int, std::vector<int>>& data) 
-        {
-            this->allSets = new std::map<int, std::vector<int>*>();
-
-            for (const auto & l : data)
-            {
-                this->allSets->insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
-            }
-        }
+        NaiveGreedy(
+            int theta
+        ) : NextMostInfluentialFinder(theta)
+        {}
 
         ~NaiveGreedy(){}
 
-        NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
+        NextMostInfluentialFinder* setSubset(const std::vector<unsigned int>& subset_of_selection_sets, size_t subset_size) override
         {
             this->vertex_subset = subset_of_selection_sets;
             this->subset_size = subset_size;
@@ -187,27 +199,24 @@ private:
             return this;
         }
 
-        ssize_t findNextInfluential(
-            ripples::Bitmask<int>& covered,
-            int theta
-        ) override
+        ssize_t findNextInfluential() override
         {
             int max = 0;
             int max_key = -1;
 
             for ( int i = 0; i < this->subset_size; i++ )
             {
-                int vertex = this->vertex_subset->at(i);
-                if (this->allSets->find(vertex) != this->allSets->end() && this->allSets->at(vertex)->size() > max)
+                int vertex = this->vertex_subset.at(i);
+                if (this->replicated_data.find(vertex) != this->replicated_data.end() && this->replicated_data.at(vertex)->size() > max)
                 {
-                    max = this->allSets->at(vertex)->size();
+                    max = this->replicated_data.at(vertex)->size();
                     max_key = vertex;
                 }
             }
 
-            for (int e: *(this->allSets->at(max_key))) {
-                if (!covered.get(e)) {
-                    covered.set(e);
+            for (int e: *(this->replicated_data.at(max_key))) {
+                if (!(this->covered.get(e))) {
+                    this->covered.set(e);
                 }
             }
 
@@ -215,19 +224,19 @@ private:
             {
                 # pragma omp for schedule(static)
                 for( int i = 0; i < this->subset_size; i++ ) {
-                    if (this->allSets->find(this->vertex_subset->at(i)) != this->allSets->end()) 
+                    if (this->replicated_data.find(this->vertex_subset.at(i)) != this->replicated_data.end()) 
                     {
-                        auto RRRSets = this->allSets->at(this->vertex_subset->at(i));
+                        auto RRRSets = this->replicated_data.at(this->vertex_subset.at(i));
 
                         std::vector<int> temp;
-                        if (this->vertex_subset->at(i) != max_key) {
+                        if (this->vertex_subset.at(i) != max_key) {
                             for (int e: *RRRSets) {
-                                if (covered.get(e)) {
+                                if (this->covered.get(e)) {
                                     temp.push_back(e);
                                 }
                             }
                             for (int e: temp) {
-                                this->allSets->at(this->vertex_subset->at(i))->erase(e); 
+                                this->replicated_data.at(this->vertex_subset.at(i))->erase(e); 
                             }
 
                         }
@@ -235,113 +244,110 @@ private:
                 }
             }
 
-            this->allSets->erase(max_key);
+            this->replicated_data.erase(max_key);
             return max_key;
         }
     };
 
-    class NaiveBitMapGreedy : public NextMostInfluentialFinder
-    {
-    private:
-        std::map<int, ripples::Bitmask<int>*>* bitmaps = 0;
+    // class NaiveBitMapGreedy : public NextMostInfluentialFinder
+    // {
+    // private:
+    //     std::map<int, ripples::Bitmask<int>> bitmaps;
 
-    public:
-        NaiveBitMapGreedy(std::map<int, std::vector<int>>& data, int theta) 
-        {
-            this->bitmaps = new std::map<int, ripples::Bitmask<int>*>();
-            this->allSets = new std::map<int, std::vector<int>*>();
+    // public:
+    //     NaiveBitMapGreedy(int theta) : NextMostInfluentialFinder(theta)
+    //     {}
 
-            for (const auto & l : data)
-            {
-                ripples::Bitmask<int>* newBitMask = new ripples::Bitmask<int>(theta);
-                for (const auto & r : l.second)
-                {
-                    newBitMask->set(r);
-                }
-                this->bitmaps->insert({ l.first, newBitMask });
-            }
-        }
+    //     void Setup(const std::map<int, std::vector<int>>& original_data) override 
+    //     {
+    //         for (const auto & l : original_data)
+    //         {
+    //             this->replicated_data.insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
+    //         }
 
-        ~NaiveBitMapGreedy()
-        {
-            delete bitmaps;
-        }
+    //         for (const auto & l : this->replicated_data)
+    //         {
+    //             ripples::Bitmask<int> newBitMask(theta);
+    //             for (const auto & r : *(l.second))
+    //             {
+    //                 newBitMask.set(r);
+    //             }
+    //             this->bitmaps.insert({ l.first, newBitMask });
+    //         }
+    //     }
 
-        NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
-        {
-            this->vertex_subset = subset_of_selection_sets;
-            this->subset_size = subset_size;
-            return this;
-        } 
+    //     ~NaiveBitMapGreedy()
+    //     {}
 
-        NextMostInfluentialFinder* reloadSubset () override 
-        {
-            return this;
-        }
+    //     NextMostInfluentialFinder setSubset(const std::vector<unsigned int>& subset_of_selection_sets, size_t subset_size) override
+    //     {
+    //         this->vertex_subset = subset_of_selection_sets;
+    //         this->subset_size = subset_size;
+    //         return this;
+    //     } 
 
-        ssize_t findNextInfluential(
-            ripples::Bitmask<int>& covered,
-            int theta
-        ) override
-        {
-            int best_score = -1;
-            int max_key = -1;
+    //     NextMostInfluentialFinder reloadSubset () override 
+    //     {
+    //         return this;
+    //     }
 
-            ripples::Bitmask<int> localCovered(covered);
-            localCovered.notOperation();
+    //     ssize_t findNextInfluential() override
+    //     {
+    //         int best_score = -1;
+    //         int max_key = -1;
 
-            // check this->bitmaps for the bitmap that has the maximal marginal gain when bitmap[i] & ~covered is used. 
-            #pragma omp parallel 
-            {
-                int local_best_score = best_score;
-                int local_max_key = max_key;
+    //         ripples::Bitmask<int> localCovered(this->covered);
+    //         localCovered.notOperation();
 
-                # pragma omp for 
-                for ( int i = 0; i < this->subset_size; i++ )
-                {
-                    int vertex = this->vertex_subset->at(i);
-                    if (this->bitmaps->find(vertex) != this->bitmaps->end())
-                    {
-                        ripples::Bitmask<int> working(localCovered);
-                        working.andOperation(*(this->bitmaps->at(vertex)));
-                        size_t popcount = working.popcount();
-                        if ((int)popcount > local_best_score) {
-                            local_best_score = popcount;
-                            local_max_key = vertex;
-                        }
-                    }
-                }
+    //         // check this->bitmaps for the bitmap that has the maximal marginal gain when bitmap[i] & ~covered is used. 
+    //         #pragma omp parallel 
+    //         {
+    //             int local_best_score = best_score;
+    //             int local_max_key = max_key;
 
-                #pragma omp critical 
-                {
-                    if (local_best_score > best_score) {
-                        best_score = local_best_score;
-                        max_key = local_max_key;
-                    }
-                }
-            }
+    //             # pragma omp for 
+    //             for ( int i = 0; i < this->subset_size; i++ )
+    //             {
+    //                 int vertex = this->vertex_subset.at(i);
+    //                 if (this->bitmaps->find(vertex) != this->bitmaps->end())
+    //                 {
+    //                     ripples::Bitmask<int> working(localCovered);
+    //                     working.andOperation(*(this->bitmaps->at(vertex)));
+    //                     size_t popcount = working.popcount();
+    //                     if ((int)popcount > local_best_score) {
+    //                         local_best_score = popcount;
+    //                         local_max_key = vertex;
+    //                     }
+    //                 }
+    //             }
 
-            // update covered
-            covered.orOperation(*(this->bitmaps->at(max_key)));
+    //             #pragma omp critical 
+    //             {
+    //                 if (local_best_score > best_score) {
+    //                     best_score = local_best_score;
+    //                     max_key = local_max_key;
+    //                 }
+    //             }
+    //         }
 
-            this->bitmaps->erase(max_key);
-            return max_key;
-        }
-    };
+    //         // update covered
+    //         this->covered.orOperation(*(this->bitmaps->at(max_key)));
 
+    //         this->bitmaps->erase(max_key);
+    //         return max_key;
+    //     }
+    // };
+
+protected: 
     int k;
     int kprime;
     double epsilon;
+    const int theta;
     bool usingStochastic = false;
-    bool sendPartialSolutions;
-    unsigned int utility = -1;
-    CommunicationEngine<GraphTy>* cEngine;
     NextMostInfluentialFinder* finder = 0;
-    TimerAggregator* timer = 0;
-    MPI_Request *request;
-    std::vector<std::vector<unsigned int>> send_buffers;
+    TimerAggregator &timer;
 
-    void reorganizeVertexSet(std::vector<unsigned int>* vertices, size_t size, std::vector<unsigned int>& seedSet)
+    void reorganizeVertexSet(std::vector<unsigned int>& vertices, size_t size, std::vector<unsigned int>& seedSet)
     {
         // for i from 0 to n−2 do
         //     j ← random integer such that i ≤ j < n
@@ -350,12 +356,12 @@ private:
 
         for (int i = 0; i < size; i++) 
         {
-            int j = getRandom(i, vertices->size()-1);
-            while (seeds.find(vertices->at(j)) != seeds.end())
+            int j = getRandom(i, vertices.size()-1);
+            while (seeds.find(vertices.at(j)) != seeds.end())
             {
-                j = getRandom(i, vertices->size()-1);
+                j = getRandom(i, vertices.size()-1);
             }
-            std::swap(vertices->at(i), vertices->at(j));
+            std::swap(vertices.at(i), vertices.at(j));
         }
     }
 
@@ -370,13 +376,124 @@ private:
         return ((size_t)std::round((double)n/(double)k) * std::log10(1/epsilon)) + 1;
     }
 
-    void InsertNextSeedIntoSendBuffer(
+public:
+    MaxKCoverBase(int k, int kprime, int theta, TimerAggregator &timer) 
+        : timer(timer), theta(theta)
+    {
+        this->k = k;
+        this->kprime = kprime;
+    };
+
+    ~MaxKCoverBase() {
+        delete this->finder;
+    }
+
+    MaxKCoverBase& useStochasticGreedy(double e)
+    {
+        this->epsilon = e;
+        this->usingStochastic = true;
+        return *this;
+    }
+
+    MaxKCoverBase& useLazyGreedy()
+    {
+        this->finder = new LazyGreedy(this->theta);
+
+        return *this;
+    }
+
+    MaxKCoverBase& useNaiveGreedy()
+    {
+        this->finder = new NaiveGreedy(this->theta);
+
+        return *this;
+    }
+
+    // MaxKCoverBase& useNaiveBitmapGreedy()
+    // {
+    //     this->finder = new NaiveBitMapGreedy(this->theta);
+
+    //     return *this;
+    // }
+
+    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) = 0;
+};
+
+template <typename GraphTy>
+class MaxKCover : public MaxKCoverBase<GraphTy>
+{
+    public:
+    MaxKCover(int k, int kprime, int theta, TimerAggregator &timer) 
+        : MaxKCoverBase<GraphTy>(k, kprime, theta, timer)
+    {}
+
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
+    {
+        std::vector<unsigned int> res(this->k, -1);
+
+        size_t subset_size = (this->usingStochastic) ? this->getSubsetSize(data.size(), this->k, this->epsilon) : data.size() ;
+
+        std::vector<unsigned int> all_vertices;  
+        for (const auto & l : data) { all_vertices.push_back(l.first); }
+        this->finder->setSubset(all_vertices, subset_size);
+
+        unsigned int current_send_index = 0;
+
+        std::pair<int, int*> sendData;
+
+        for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
+        {
+            if (this->usingStochastic)
+            {
+                this->reorganizeVertexSet(all_vertices, subset_size, res);
+                this->finder->reloadSubset();
+            }
+
+            this->timer.max_k_localTimer.startTimer();
+
+            res[currentSeed] = this->finder->findNextInfluential();
+
+            this->timer.max_k_localTimer.endTimer();
+        }
+
+        return std::make_pair(res, this->finder->GetUtility());
+    }
+};
+
+template <typename GraphTy>
+class StreamingMaxKCover : public MaxKCoverBase<GraphTy>
+{
+private:
+    const CommunicationEngine<GraphTy> &cEngine;
+    MPI_Request request;
+    std::vector<std::vector<unsigned int>> send_buffers;
+
+    void QueueNextSeed(
+        const unsigned int current_send_index,
+        const std::vector<unsigned int>& res,
+        const std::map<int, std::vector<int>>& data
+    )
+    {
+        current_send_index == this->kprime - 1 ? 
+            this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index])) :
+            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]))
+        ;
+
+        this->cEngine.QueueNextSeed(
+            this->send_buffers[current_send_index].data(),
+            this->send_buffers[current_send_index].size(), 
+            current_send_index,
+            this->request
+        );        
+    }
+
+    void InsertNextSeedIntoSendBuffer (
         const unsigned int current_seed, 
         const unsigned int vertex_id, 
         const std::vector<int>& RRRSetIDs 
     )
     {
-        auto sendData = this->cEngine->LinearizeSingleSeed(vertex_id, RRRSetIDs);
+        std::pair<int, int*> sendData = this->cEngine.LinearizeSingleSeed(vertex_id, RRRSetIDs);
 
         this->send_buffers[current_seed].resize(sendData.first);
         
@@ -431,224 +548,96 @@ private:
         // this->send_buffers[current_seed].first = this->send_buffers[current_seed].size() + local_seed_set.size() + 1;
     }
 
-    void SendNextSeed(const unsigned int current_send_index, const unsigned int tag)
+    public:
+    StreamingMaxKCover(
+        int k, 
+        int kprime, 
+        int theta,
+        TimerAggregator &timer,
+        const CommunicationEngine<GraphTy> &cEngine
+    ) : MaxKCoverBase<GraphTy>(k, kprime, theta, timer), cEngine(cEngine), send_buffers(kprime)
+    {}
+
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
     {
-        MPI_Isend (
-            this->send_buffers[current_send_index].data(),
-            this->send_buffers[current_send_index].size(),
-            MPI_INT, 0,
-            tag,
-            MPI_COMM_WORLD,
-            this->request
-        );
-    }
-
-    unsigned int GetUtility(ripples::Bitmask<int>& covered)
-    {
-        this->utility = this->utility == -1 ? covered.popcount() : this->utility;
-        return this->utility;
-    }
-
-    void SendSeed(
-        unsigned int currentSeed, 
-        bool waitingOnSends, 
-        unsigned int& current_send_index, 
-        std::vector<unsigned int>& res,
-        std::map<int, std::vector<int>>& data,
-        ripples::Bitmask<int>& covered
-    )
-    {
-        if (waitingOnSends)
-        {
-            // std::cout << "WAITING ON SENDS" << std::endl;
-            MPI_Status status;
-
-            MPI_Wait(this->request, &status);
-
-            // delete this->send_buffers[current_send_index++].second;
-            current_send_index++;
-
-            for (; current_send_index < this->kprime; current_send_index++)
-            {
-                if (current_send_index != this->kprime - 1)
-                {
-                    this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                    MPI_Send (
-                        this->send_buffers[current_send_index].data(),
-                        this->send_buffers[current_send_index].size(),
-                        MPI_INT, 0,
-                        current_send_index,
-                        MPI_COMM_WORLD
-                    );
-                }
-                else 
-                {
-                    this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index]));
-                    MPI_Send (
-                        this->send_buffers[current_send_index].data(),
-                        this->send_buffers[current_send_index].size(),
-                        MPI_INT, 0,
-                        this->GetUtility(covered),
-                        MPI_COMM_WORLD
-                    );
-                }
-
-                // delete this->send_buffers[current_send_index].second;
-            }
-        }
-        else 
-        {
-            // std::cout << "Sending " << current_send_index << std::endl;
-            if (currentSeed > 0)
-            {
-                MPI_Status status;
-                int flag = 0;
-                // std::cout << "going to test? " << (current_send_index < this->kprime - 2) << std::endl;
-                if (current_send_index < this->kprime - 2)
-                {
-                    MPI_Test(this->request, &flag, &status);
-                    if (flag == 1)
-                    {
-                        // std::cout << "sent " << current_send_index << std::endl;
-                        // delete this->send_buffers[current_send_index++].second;
-                        current_send_index++;
-
-                        if (current_send_index < this->kprime - 1)
-                        {
-                            this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                            this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
-                        }
-                    }
-                }
-            }
-            else 
-            {
-                // std::cout << "inserting first seed into buffer" << std::endl;
-                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]));
-                this->SendNextSeed(current_send_index, current_send_index == this->kprime - 1 ? this->GetUtility(covered) : current_send_index);
-                // current_send_index++;
-            }
-        }
-    }
-
-public:
-    MaxKCoverEngine(int k, int kprime) 
-    {
-        this->k = k;
-        this->kprime = kprime;
-        this->sendPartialSolutions = false;
-    };
-
-    ~MaxKCoverEngine() {
-        delete this->finder;
-        delete this->request;
-    }
-
-    MaxKCoverEngine* useStochasticGreedy(double e)
-    {
-        this->epsilon = e;
-        this->usingStochastic = true;
-        return this;
-    }
-
-    MaxKCoverEngine* useLazyGreedy(std::map<int, std::vector<int>>& data)
-    {
-        this->finder = new LazyGreedy(data);
-
-        return this;
-    }
-
-    MaxKCoverEngine* useNaiveGreedy(std::map<int, std::vector<int>>& data)
-    {
-        this->finder = new NaiveGreedy(data);
-
-        return this;
-    }
-
-    MaxKCoverEngine* useNaiveBitmapGreedy(std::map<int, std::vector<int>>& data, int theta)
-    {
-        this->finder = new NaiveBitMapGreedy(data, theta);
-
-        return this;
-    }
-
-    MaxKCoverEngine* setSendPartialSolutions(CommunicationEngine<GraphTy>* cEngine, TimerAggregator* timer)
-    {
-        this->sendPartialSolutions = true;
-        this->cEngine = cEngine;
-        this->timer = timer;
-
-        return this;
-    }
-
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(std::map<int, std::vector<int>>& data, ssize_t theta)
-    {
-        this->request = new MPI_Request();
+        this->finder->Setup(data);
 
         std::vector<unsigned int> res(this->k, -1);
-        ripples::Bitmask<int> covered(theta);
 
         size_t subset_size = (this->usingStochastic) ? this->getSubsetSize(data.size(), this->k, this->epsilon) : data.size() ;
 
-        std::vector<unsigned int>* all_vertices = new std::vector<unsigned int>();  
-        for (const auto & l : data) { all_vertices->push_back(l.first); }
+        std::vector<unsigned int> all_vertices;  
+        for (const auto & l : data) { all_vertices.push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
-        unsigned int current_send_index = 0;
+        int current_send_index = 0;
 
         std::pair<int, int*> sendData;
 
-        if (this->sendPartialSolutions)
-        {
-            for (int i = 0; i < this->kprime; i++)
-            {
-                this->send_buffers.push_back(std::vector<unsigned int>());
-            }
-        }
-
         for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
         {
+            // std::cout << "finding seed " << currentSeed << " while trying to send " << current_send_index << std::endl;
+
             if (this->usingStochastic)
             {
-                reorganizeVertexSet(all_vertices, subset_size, res);
+                this->reorganizeVertexSet(all_vertices, subset_size, res);
                 this->finder->reloadSubset();
             }
 
-            if (this->timer != 0) 
+            this->timer.max_k_localTimer.startTimer();
+
+            res[currentSeed] = this->finder->findNextInfluential();
+
+            // std::cout << "found seed " << currentSeed << " of id " << res[currentSeed] << std::endl;
+
+            this->timer.max_k_localTimer.endTimer();
+
+            // This code block sends data to the global protion of the streaming solution
+            this->timer.sendTimer.startTimer();
+
+            int flag = 0;
+            if (currentSeed > 0 && current_send_index < this->kprime - 1)
             {
-                this->timer->max_k_localTimer.startTimer();
+                flag = this->cEngine.TestSend(this->request);
+                if (flag == 1)
+                {
+                    current_send_index++;
+                }
             }
 
-            res[currentSeed] = finder->findNextInfluential(
-                covered, theta
-            );
-
-            if (this->timer != 0) 
+            if (flag == 1 || currentSeed == 0)
             {
-                this->timer->max_k_localTimer.endTimer();
+                // std::cout << "queuing seed " << current_send_index << std::endl;
+                this->QueueNextSeed(current_send_index, res, data);
+                // std::cout << "finished queuing " << current_send_index << std::endl;
             }
 
-            // This code block sends data to the global protion of the streaming solution if the 
-            //  streaming setting has been selected. 
-            if (this->sendPartialSolutions) 
-            {
-                this->timer->sendTimer.startTimer();
-                this->SendSeed(currentSeed, false, current_send_index, res, data, covered);
-                this->timer->sendTimer.endTimer();
-            }
+            this->timer.sendTimer.endTimer();
         }
 
-        if (this->sendPartialSolutions)
-        {
-            this->timer->sendTimer.startTimer();
-            this->SendSeed((unsigned int)0, true, current_send_index, res, data, covered);
-            this->timer->sendTimer.endTimer();
-        }
+        this->timer.sendTimer.startTimer();
         
-        delete all_vertices;
+        this->cEngine.WaitForSend(this->request);
+        current_send_index++;
 
-        // std::cout << "LOCAL PROCESS FOUND LOCAL SEEDS, UTILITY; " << this->GetUtility(covered) << " OR " << covered.popcount() << std::endl;
+        for (; current_send_index < this->kprime; current_send_index++)
+        {
+            // std::cout << "batch sending seed " << current_send_index << std::endl;
 
-        return std::make_pair(res, this->GetUtility(covered));
+            current_send_index == this->kprime - 1 ? 
+                this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index])) :
+                this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]))
+            ;
+
+            this->cEngine.SendNextSeed(                    
+                this->send_buffers[current_send_index].data(),
+                this->send_buffers[current_send_index].size(),
+                current_send_index == this->kprime - 1 ? this->finder->GetUtility() : current_send_index
+            );
+        }
+
+        this->timer.sendTimer.endTimer();
+
+        return std::make_pair(res, this->finder->GetUtility());
     }
 };

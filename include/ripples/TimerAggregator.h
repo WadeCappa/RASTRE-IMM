@@ -25,7 +25,7 @@ class Timer
         timer.push_back(end - start);
     }
 
-    double resolveTimerDEBUG()
+    double resolveTimerDEBUG() const
     {
         double totalTime = 0;
         for (const auto time : timer)
@@ -36,7 +36,7 @@ class Timer
         return totalTime;
     }
 
-    double resolveTimer()
+    double resolveTimer() const
     {
         double totalTime = 0;
         for (const auto time : timer)

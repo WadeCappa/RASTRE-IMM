@@ -132,7 +132,7 @@ class WalkWorker {
                         ItrTy end) = 0;
 
   virtual void svc_transpose_loop(std::atomic<size_t> &mpmc_head, TransposeRRRSets<GraphTy> &transposeRRRSets,
-                        ItrTy begin, ItrTy end, ItrTy mem_start) = 0;
+                        size_t current, size_t delta) = 0;
 
  protected:
   const GraphTy &G_;
@@ -167,16 +167,16 @@ class CPUWalkWorker : public WalkWorker<GraphTy, ItrTy> {
     }
   }
 
-  void svc_transpose_loop(std::atomic<size_t> &mpmc_head, TransposeRRRSets<GraphTy> &tRRRSets, ItrTy begin, ItrTy end, ItrTy mem_start) {
+  void svc_transpose_loop(std::atomic<size_t> &mpmc_head, TransposeRRRSets<GraphTy> &tRRRSets, size_t current, size_t delta) {
     size_t offset = 0;
-    while ((offset = mpmc_head.fetch_add(batch_size_)) < std::distance(begin, end)) {
-      auto first = begin;
-      std::advance(first, offset);
-      auto last = first;
-      std::advance(last, batch_size_);
-      if (last > end) last = end;
+    while ((offset = mpmc_head.fetch_add(batch_size_)) < delta) 
+    {
+      size_t first = current + offset;
+      size_t last = first + batch_size_;
 
-      batchTranspose(tRRRSets, first, last, mem_start);
+      if (last > delta + current) last = delta + current;
+
+      batchTranspose(tRRRSets, first, last);
     }
   }
 
@@ -185,17 +185,17 @@ class CPUWalkWorker : public WalkWorker<GraphTy, ItrTy> {
   PRNGeneratorTy rng_;
   trng::uniform_int_dist u_;
 
-  void batchTranspose(TransposeRRRSets<GraphTy> &tRRRSets, ItrTy first, ItrTy last, ItrTy mem_start) {
+  void batchTranspose(TransposeRRRSets<GraphTy> &tRRRSets, size_t first, size_t last) {
 #if CUDA_PROFILE
     auto start = std::chrono::high_resolution_clock::now();
 #endif
-    auto size = std::distance(first, last);
+    size_t size = last - first;
     auto local_rng = rng_;
     auto local_u = u_;
     for (; first != last; ++first) {
       vertex_t root = local_u(local_rng);
 
-      AddTransposeRRRSet(tRRRSets, this->G_, root, local_rng, *first, diff_model_tag{}, std::distance(mem_start, first));
+      AddTransposeRRRSet(tRRRSets, this->G_, root, local_rng, diff_model_tag{}, first);
     }
 
     rng_ = local_rng;
@@ -901,7 +901,7 @@ class StreamingRRRGenerator {
 #endif
   }
 
-    void transposeGenerate(TransposeRRRSets<GraphTy> &transposeRRRSets, ItrTy begin, ItrTy end, ItrTy mem_start) {
+    void transposeGenerate(TransposeRRRSets<GraphTy> &transposeRRRSets, size_t current, size_t delta) {
 #if CUDA_PROFILE
     auto start = std::chrono::high_resolution_clock::now();
     for (auto &w : workers) w->begin_prof_iter();
@@ -918,7 +918,7 @@ class StreamingRRRGenerator {
       // ItrTy temp_end = begin + (stepSize*(rank+1));
       // ItrTy new_end = temp_end > end ? end : temp_end;
       // ItrTy new_begin = begin + (stepSize*rank);
-      workers[rank]->svc_transpose_loop(mpmc_head, transposeRRRSets, begin, end, mem_start);
+      workers[rank]->svc_transpose_loop(mpmc_head, transposeRRRSets, current, delta);
     }
 
 #if CUDA_PROFILE
