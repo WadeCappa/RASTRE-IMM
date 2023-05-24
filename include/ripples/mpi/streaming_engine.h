@@ -142,7 +142,7 @@ class BucketController
         const std::vector<std::vector<CandidateSet>> &element_matrix
     )
     {
-        #pragma omp parallel for num_threads(threads)
+        // #pragma omp parallel for num_threads(threads)
         for (int i = 0; i < this->threadMap.size(); i++)
         {
             const std::vector<ThresholdBucket*>& thread_buckets = this->threadMap[i];
@@ -161,7 +161,7 @@ class BucketController
                     local_dummy_value++;
                 }
 
-                // std::cout << "inserting seed " << local_received_index << std::endl;
+                // std::cout << "inserting seed " << local_received_index << " " << availability_index[local_received_index].first << std::endl;
 
                 for (const auto & b : thread_buckets)
                 {

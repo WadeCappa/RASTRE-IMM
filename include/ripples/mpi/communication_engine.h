@@ -58,7 +58,11 @@ class CommunicationEngine
         return flag;
     }
 
-    void SendNextSeed(const unsigned int* data, const size_t data_size, const unsigned int tag) const
+    void SendNextSeed(
+        const unsigned int* data, 
+        const size_t data_size, 
+        const unsigned int tag
+    ) const
     {
         MPI_Send (
             data,
@@ -69,20 +73,24 @@ class CommunicationEngine
         );
     }
 
-    void QueueNextSeed(const unsigned int* data, const size_t data_size, const unsigned int tag, MPI_Request &request) const
+    void QueueNextSeed(
+        const unsigned int* data, 
+        const size_t data_size, 
+        const unsigned int tag, 
+        MPI_Request &request
+    ) const
     {
         MPI_Isend (
             data,
             data_size,
-            MPI_INT, 0,
+            MPI_UNSIGNED, 0,
             tag,
             MPI_COMM_WORLD,
             &request
         );
     }
 
-    std::vector<int> DistributeVertices
-    (
+    std::vector<int> DistributeVertices (
         const bool streaming,
         const GraphTy &G
     ) const
@@ -299,7 +307,7 @@ class CommunicationEngine
     std::pair<int, int*> LinearizeSingleSeed(const int vertexID, const std::vector<int>& set) const
     {
         int* linearAggregateSets = new int[set.size()+2];
-        int offset = 1;
+        size_t offset = 1;
 
         *linearAggregateSets = vertexID;
 

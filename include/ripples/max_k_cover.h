@@ -23,9 +23,15 @@ private:
     protected:
         std::vector<unsigned int>* vertex_subset;
         std::map<int, std::vector<int>*>* allSets;
+        ripples::Bitmask<int> covered;
         size_t subset_size;
 
     public:
+        NextMostInfluentialFinder(int theta) : covered(theta) 
+        {
+
+        }
+
         virtual ~NextMostInfluentialFinder()
         {
             // std::cout << "deallocating base class in max_k_cover..." << std::endl;
@@ -66,11 +72,6 @@ private:
 
         void generateQueue(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size)
         {
-            for (int i = 0; i < subset_size - this->heap->size(); i++) 
-            {
-                this->heap->push_back(std::make_pair(0,(std::vector<int>*)0));
-            }
-
             for (int i = 0; i < subset_size; i++)
             {
                 this->heap->at(i) = std::make_pair(subset_of_selection_sets->at(i), this->allSets->at(subset_of_selection_sets->at(i)));
@@ -80,7 +81,7 @@ private:
         }
 
     public:
-        LazyGreedy(const std::map<int, std::vector<int>>& data)
+        LazyGreedy(const std::map<int, std::vector<int>>& data, int theta) : NextMostInfluentialFinder(theta)
         {
             this->allSets = new std::map<int, std::vector<int>*>();
 
@@ -99,7 +100,7 @@ private:
         NextMostInfluentialFinder* setSubset(std::vector<unsigned int>* subset_of_selection_sets, size_t subset_size) override
         {
             this->subset_size = subset_size;
-            this->heap = new std::vector<std::pair<int, std::vector<int>*>>(this->subset_size);
+            this->heap = new std::vector<std::pair<int, std::vector<int>*>>(subset_size);
 
             generateQueue(subset_of_selection_sets, subset_size);
             this->vertex_subset = subset_of_selection_sets;
@@ -121,17 +122,30 @@ private:
             std::pop_heap(this->heap->begin(), this->heap->end(), this->cmp);
             this->heap->pop_back();
 
+            // std::cout << "covered is size " << covered.size() << std::endl;
+
             std::vector<int> new_set;
 
             // remove RR IDs from l that are already covered. 
-            for (int e: *(l.second)) {
+            for (unsigned int e: *(l.second)) {
                 if (!(covered.get(e))) {
                     new_set.push_back(e);
                 }
             }      
 
+            if (this->allSets->find(l.first) == this->allSets->end())
+            {
+                // std::cout << "could not find " << l.first << " in sets" << std::endl;
+                exit(1);
+            }
+            
             // delete l.second;
-            *(this->allSets->at(l.first)) = new_set;
+            l.second->empty();
+
+            for (const auto & e : new_set)
+            {
+                l.second->push_back(e);
+            }
             
             // calculate marginal gain
             auto marginal_gain = l.second->size();
@@ -142,15 +156,20 @@ private:
             // if marginal of l is better than r's utility, l is the current best     
             if (marginal_gain >= r.second->size()) 
             {               
-                for (int e : *(l.second)) {
-                    if (!covered.get(e)) {
+                for (unsigned int e: *(l.second)) {
+                    if (!(covered.get(e))) {
                         covered.set(e);
                     }
                 }
+
+                // std::cout << "returning " << l.first << " of size " << l.second->size() << std::endl;
+
                 return l.first;
             }
             // else push l's marginal into the heap 
             else {
+                // std::cout << "l.first: " << l.first << ", l.second.size(): " << l.second->size() << ", r.second.size(): " << r.second->size() << std::endl;
+
                 this->heap->push_back(l);
                 std::push_heap(this->heap->begin(), this->heap->end(), this->cmp);
 
@@ -162,7 +181,7 @@ private:
     class NaiveGreedy : public NextMostInfluentialFinder
     {
     public:
-        NaiveGreedy(const std::map<int, std::vector<int>>& data) 
+        NaiveGreedy(const std::map<int, std::vector<int>>& data, int theta) : NextMostInfluentialFinder(theta)
         {
             this->allSets = new std::map<int, std::vector<int>*>();
 
@@ -205,7 +224,7 @@ private:
             }
 
             for (int e: *(this->allSets->at(max_key))) {
-                if (!covered.get(e)) {
+                if (!(covered.get(e))) {
                     covered.set(e);
                 }
             }
@@ -245,7 +264,7 @@ private:
         std::map<int, ripples::Bitmask<int>*>* bitmaps = 0;
 
     public:
-        NaiveBitMapGreedy(const std::map<int, std::vector<int>>& data, int theta) 
+        NaiveBitMapGreedy(const std::map<int, std::vector<int>>& data, int theta) : NextMostInfluentialFinder(theta)
         {
             this->bitmaps = new std::map<int, ripples::Bitmask<int>*>();
             this->allSets = new std::map<int, std::vector<int>*>();
@@ -332,6 +351,7 @@ protected:
     int k;
     int kprime;
     double epsilon;
+    const int theta;
     bool usingStochastic = false;
     unsigned int utility = -1;
     NextMostInfluentialFinder* finder = 0;
@@ -373,7 +393,7 @@ protected:
     }
 
 public:
-    MaxKCoverBase(int k, int kprime, TimerAggregator &timer) : timer(timer)
+    MaxKCoverBase(int k, int kprime, int theta, TimerAggregator &timer) : timer(timer), theta(theta)
     {
         this->k = k;
         this->kprime = kprime;
@@ -392,41 +412,40 @@ public:
 
     MaxKCoverBase& useLazyGreedy(const std::map<int, std::vector<int>>& data)
     {
-        this->finder = new LazyGreedy(data);
+        this->finder = new LazyGreedy(data, this->theta);
 
         return *this;
     }
 
     MaxKCoverBase& useNaiveGreedy(const std::map<int, std::vector<int>>& data)
     {
-        this->finder = new NaiveGreedy(data);
+        this->finder = new NaiveGreedy(data, this->theta);
 
         return *this;
     }
 
-    MaxKCoverBase& useNaiveBitmapGreedy(const std::map<int, std::vector<int>>& data, int theta)
+    MaxKCoverBase& useNaiveBitmapGreedy(const std::map<int, std::vector<int>>& data)
     {
-        this->finder = new NaiveBitMapGreedy(data, theta);
+        this->finder = new NaiveBitMapGreedy(data, this->theta);
 
         return *this;
     }
 
-    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data, ssize_t theta) = 0;
+    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data, size_t theta) = 0;
 };
 
 template <typename GraphTy>
 class MaxKCover : public MaxKCoverBase<GraphTy>
 {
     public:
-    MaxKCover(int k, int kprime, TimerAggregator &timer) : MaxKCoverBase<GraphTy>(k, kprime, timer)
+    MaxKCover(int k, int kprime, int theta, TimerAggregator &timer) : MaxKCoverBase<GraphTy>(k, kprime, theta, timer)
     {
 
     }
 
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover
-    (
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover (
         const std::map<int, std::vector<int>>& data, 
-        ssize_t theta
+        size_t theta
     ) override
     {
         std::vector<unsigned int> res(this->k, -1);
@@ -483,7 +502,7 @@ private:
             this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index])) :
             this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]))
         ;
-        
+
         this->cEngine.QueueNextSeed(
             this->send_buffers[current_send_index].data(),
             this->send_buffers[current_send_index].size(), 
@@ -492,14 +511,13 @@ private:
         );        
     }
 
-    void InsertNextSeedIntoSendBuffer
-    (
+    void InsertNextSeedIntoSendBuffer (
         const unsigned int current_seed, 
         const unsigned int vertex_id, 
         const std::vector<int>& RRRSetIDs 
     )
     {
-        auto sendData = this->cEngine.LinearizeSingleSeed(vertex_id, RRRSetIDs);
+        std::pair<int, int*> sendData = this->cEngine.LinearizeSingleSeed(vertex_id, RRRSetIDs);
 
         this->send_buffers[current_seed].resize(sendData.first);
         
@@ -558,12 +576,13 @@ private:
     StreamingMaxKCover(
         int k, 
         int kprime, 
+        int theta,
         TimerAggregator &timer,
         const CommunicationEngine<GraphTy> &cEngine
-    ) : MaxKCoverBase<GraphTy>(k, kprime, timer), cEngine(cEngine), send_buffers(kprime)
+    ) : MaxKCoverBase<GraphTy>(k, kprime, theta, timer), cEngine(cEngine), send_buffers(kprime)
     {}
 
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data, ssize_t theta) override
+    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data, size_t theta) override
     {
         // std::cout << "starting cover: " << this->k << " " << this->kprime << std::endl;
 
@@ -582,7 +601,7 @@ private:
 
         for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
         {
-            // std::cout << "finding seed " << currentSeed << std::endl;
+            // std::cout << "finding seed " << currentSeed << " while trying to send " << current_send_index << std::endl;
 
             if (this->usingStochastic)
             {
@@ -596,7 +615,7 @@ private:
                 covered, theta
             );
 
-            // std::cout << "found seed " << res[currentSeed] << std::endl;
+            // std::cout << "found seed " << currentSeed << " of id " << res[currentSeed] << std::endl;
 
             this->timer.max_k_localTimer.endTimer();
 
@@ -617,6 +636,7 @@ private:
             {
                 // std::cout << "queuing seed " << current_send_index << std::endl;
                 this->QueueNextSeed(current_send_index, res, data);
+                // std::cout << "finished queuing " << current_send_index << std::endl;
             }
 
             this->timer.sendTimer.endTimer();

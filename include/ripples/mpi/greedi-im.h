@@ -141,7 +141,7 @@ auto Streaming(const int kprime, const size_t theta)
   {
     this->timeAggregator.totalSendTimer.startTimer();
     
-    StreamingMaxKCover<GraphTy> localKCoverEngine((int)CFG.k, kprime, this->timeAggregator, this->cEngine);
+    StreamingMaxKCover<GraphTy> localKCoverEngine((int)CFG.k, kprime, theta, this->timeAggregator, this->cEngine);
     localKCoverEngine.useLazyGreedy(this->aggregateSets);
     localKCoverEngine.run_max_k_cover(this->aggregateSets, theta);
 
@@ -159,7 +159,7 @@ static std::pair<std::vector<unsigned int>, ssize_t> SolveKCover(
   const std::map<int, std::vector<int>>& elements
 )
 {
-  MaxKCover<GraphTy> localKCoverEngine(k, kprime, timeAggregator);
+  MaxKCover<GraphTy> localKCoverEngine(k, kprime, max_element, timeAggregator);
   return localKCoverEngine.useLazyGreedy(elements).run_max_k_cover(elements, max_element);
 }
 
@@ -243,7 +243,8 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
     this->timeAggregator.samplingTimer.endTimer();    
 
-    spdlog::get("console")->info("AlltoAll...");
+    // spdlog::get("console")->info("AlltoAll...");
+    std::cout << "AllToAll with rank " << this->cEngine.GetRank() << std::endl;
 
     this->timeAggregator.allToAllTimer.startTimer();  
 
@@ -257,17 +258,18 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   
     this->timeAggregator.allToAllTimer.endTimer();
 
-    spdlog::get("console")->info("seed selection...");
+    // spdlog::get("console")->info("seed selection...");
+    std::cout << "seed selection with rank " << this->cEngine.GetRank() << std::endl;
 
     int kprime = int(CFG.alpha * (double)CFG.k);
 
     if (CFG.use_streaming == true) 
     {
-      approximated_solution = this->Streaming(kprime, thetaPrime);
+      approximated_solution = this->Streaming(kprime, thetaPrime + this->cEngine.GetSize());
     }
     else 
     {
-      approximated_solution = this->RandGreedi(kprime, thetaPrime);
+      approximated_solution = this->RandGreedi(kprime, thetaPrime + this->cEngine.GetSize());
     }    
 
   });
