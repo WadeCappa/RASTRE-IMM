@@ -177,7 +177,7 @@ void AddRRRSet(const GraphTy &G, typename GraphTy::vertex_type r,
 template <typename GraphTy, typename PRNGeneratorTy, typename diff_model_tag>
 void AddTransposeRRRSet(TransposeRRRSets<GraphTy> &tRRRSets, const GraphTy &G, typename GraphTy::vertex_type r,
                PRNGeneratorTy &generator,
-               diff_model_tag &&tag, size_t RRRIndex) {
+               diff_model_tag &&tag, const size_t RRRIndex) {
   using vertex_type = typename GraphTy::vertex_type;
 
   trng::uniform01_dist<float> value;

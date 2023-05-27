@@ -11,7 +11,7 @@ class TransposeRRRSets
     std::vector<std::pair<std::mutex, std::vector<size_t>>> sets;
 
     public:
-    TransposeRRRSets(int numberOfVertices) 
+    TransposeRRRSets(size_t numberOfVertices) 
         : sets(numberOfVertices)
     {
     }

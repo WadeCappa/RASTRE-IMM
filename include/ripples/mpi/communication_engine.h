@@ -125,10 +125,6 @@ class CommunicationEngine
         std::vector<unsigned int> psum;
         this->buildPrefixSum(psum, countPerProcess.data(), this->world_size);
 
-        std::string print_string = std::string("rank ") + std::to_string(this->world_rank) + " linearizing data for AllToAll...";
-
-        spdlog::get("console")->info(print_string);
-
         std::vector<unsigned int> linear_sets = this->LinearizeColumnsInRRRSetMatrix(
             tRRRSets, 
             vertexToProcess, 
@@ -136,9 +132,6 @@ class CommunicationEngine
             totalCount, 
             old_sampling_sizes
         );
-
-        print_string = std::string("rank ") + std::to_string(this->world_rank) + " resetting sample sizes...";
-        spdlog::get("console")->info(print_string);
 
         for (size_t i = 0; i < old_sampling_sizes.size(); i++)
         {
@@ -150,9 +143,7 @@ class CommunicationEngine
         for (auto & processCount : countPerProcess) {
             processCount = processCount / block_size;
         }
-
-        spdlog::get("console")->info("distributing samples, AllToAll operation...");
-
+        
         this->GetProcessSpecificVertexRRRSets(aggregateSets, linear_sets.data(), countPerProcess.data(), localThetaPrime);
     }
 
