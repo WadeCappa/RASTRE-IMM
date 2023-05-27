@@ -344,8 +344,6 @@ class StreamingRandGreedIEngine
         this->first_values_from_senders = 0;
         this->theta = theta;
 
-        std::cout << "theta = " << theta << std::endl;
-
         this->buffer = new int[theta];
     
         this->element_matrix = std::vector<std::vector<CandidateSet>>(

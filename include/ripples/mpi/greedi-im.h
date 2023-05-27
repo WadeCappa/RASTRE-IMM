@@ -108,6 +108,7 @@ class RanDIMM
   const CommunicationEngine<GraphTy> &cEngine;
 
   const double l;
+  size_t previous_theta = 0;
   size_t thetaPrime = 0;
 
   std::map<int, std::vector<int>> aggregateSets;
@@ -217,21 +218,27 @@ auto RandGreedi(const int kprime, const size_t theta)
 }
 
 std::pair<std::vector<unsigned int>, int> MartigaleRound(
-  ssize_t thetaPrime
+  const size_t thetaPrime,
+  const size_t previous_theta
 ) 
 {
   const size_t localThetaPrime = (thetaPrime / this->cEngine.GetSize()) + 1;
+  // delta will always be (theta / 2) / world_size
 
   std::pair<std::vector<unsigned int>, size_t> approximated_solution;
 
-  auto timeRRRSets = measure<>::exec_time([&]() {
-
-    size_t delta = localThetaPrime - this->RR_sets;
+  auto timeRRRSets = measure<>::exec_time([&]() 
+  {
+    // size_t delta = localThetaPrime - this->RR_sets;
+    // size_t delta = this->RR_sets == 0 ? thetaPrime / this->cEngine.GetSize() : (thetaPrime / 2) / this->cEngine.GetSize();
+    size_t delta = (thetaPrime - previous_theta) / this->cEngine.GetSize();
     record.ThetaPrimeDeltas.push_back(delta);
 
-    spdlog::get("console")->info("sampling...");
+    spdlog::get("console")->info("sampling ...");
 
     this->timeAggregator.samplingTimer.startTimer();
+
+    // std::cout << this->RR_sets << ", " << delta << ", " << thetaPrime << ", " << localThetaPrime << std::endl;
     
     GenerateTransposeRRRSets(
       this->tRRRSets, this->RR_sets, delta, 
@@ -240,27 +247,40 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       std::forward<execution_tag>(ex_tag)
     );
 
-    this->RR_sets = localThetaPrime;
+    this->RR_sets = thetaPrime;
 
     this->timeAggregator.samplingTimer.endTimer();    
 
-    // spdlog::get("console")->info("AlltoAll...");
-    std::cout << "AllToAll with rank " << this->cEngine.GetRank() << std::endl;
-
     this->timeAggregator.allToAllTimer.startTimer();  
+
+    spdlog::get("console")->info("distributing samples with AllToAll ...");
 
     cEngine.AggregateThroughAllToAll(
       this->tRRRSets,
       this->vertexToProcess,
       this->old_sampling_sizes,
-      this->RR_sets,
+      delta,
       this->aggregateSets
     );
+
+    // int max_val = 0;
+    // for (const auto & m : this->aggregateSets)
+    // {
+    //   for (const auto & v : m.second)
+    //   {
+    //     // if (v > thetaPrime + this->cEngine.GetSize())
+    //     // {
+    //       max_val = std::max(max_val, v);
+    //       // std::cout << "invalid set id of " << v << " which is greater than " << thetaPrime << std::endl;
+    //     // }
+    //   }
+    // }
+    
+    // std::cout << "max val: " << max_val << std::endl;
   
     this->timeAggregator.allToAllTimer.endTimer();
 
-    // spdlog::get("console")->info("seed selection...");
-    std::cout << "seed selection with rank " << this->cEngine.GetRank() << std::endl;
+    spdlog::get("console")->info("seed selection ...");
 
     int kprime = int(CFG.alpha * (double)CFG.k);
 
@@ -279,7 +299,6 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   auto timeMostInfluential = measure<>::exec_time([&]() { });
   record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
 
-  std::cout << "rank " << this->cEngine.GetRank() << " returning global seeds" << std::endl;
   return approximated_solution;
 }
 
@@ -324,9 +343,13 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
   auto ApproximateSeedSet(const size_t theta)
   {
-    return this->MartigaleRound(
-      theta
+    auto res = this->MartigaleRound(
+      theta, this->previous_theta
     );
+
+    this->previous_theta = theta;
+
+    return res;
   }
 
   void OutputDiagnosticData()
@@ -517,10 +540,9 @@ auto GREEDI(
     // this has to be a global value, if one process succeeds and another fails it will get stuck in communication (the algorithm will fail). 
     double f;
 
-    std::cout << "thetaprime: " << thetaPrime << std::endl;
-
     if (cEngine.GetRank() == 0) {
       f = (double)(seeds.second) / thetaPrime;
+      std::cout << "thetaprime: " << thetaPrime << std::endl;
     }
     // mpi_broadcast f(s)
     timeAggregator.broadcastTimer.startTimer();
@@ -531,7 +553,7 @@ auto GREEDI(
     if (f >= std::pow(2, -x)) {
       // std::cout << "Fraction " << f << std::endl;
       LB = (G.num_nodes() * f) / (1 + epsilonPrime);
-      spdlog::get("console")->info("Lower Bound {}", LB);
+      // spdlog::get("console")->info("Lower Bound {}", LB);
       break;
     }
   }
@@ -547,7 +569,11 @@ auto GREEDI(
   record.ThetaEstimationTotal = end - start;
 
   record.Theta = theta;
-  spdlog::get("console")->info("Theta {}", theta);
+
+  if (cEngine.GetRank() == 0)
+  {
+    spdlog::get("console")->info("Theta {}", theta);
+  }
 
   std::pair<std::vector<vertex_type>, int> bestSeeds;
 
