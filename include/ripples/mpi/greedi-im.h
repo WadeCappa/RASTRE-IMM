@@ -232,6 +232,13 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
     // size_t delta = localThetaPrime - this->RR_sets;
     // size_t delta = this->RR_sets == 0 ? thetaPrime / this->cEngine.GetSize() : (thetaPrime / 2) / this->cEngine.GetSize();
     size_t delta = (thetaPrime - previous_theta) / this->cEngine.GetSize();
+
+    if ((thetaPrime - previous_theta) / this->cEngine.GetSize() < 0)
+    {
+      std::cout << "DELTA ERROR" << std::endl;
+      exit(1);
+    }
+
     record.ThetaPrimeDeltas.push_back(delta);
 
     spdlog::get("console")->info("sampling ...");
@@ -262,21 +269,6 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       delta,
       this->aggregateSets
     );
-
-    // int max_val = 0;
-    // for (const auto & m : this->aggregateSets)
-    // {
-    //   for (const auto & v : m.second)
-    //   {
-    //     // if (v > thetaPrime + this->cEngine.GetSize())
-    //     // {
-    //       max_val = std::max(max_val, v);
-    //       // std::cout << "invalid set id of " << v << " which is greater than " << thetaPrime << std::endl;
-    //     // }
-    //   }
-    // }
-    
-    // std::cout << "max val: " << max_val << std::endl;
   
     this->timeAggregator.allToAllTimer.endTimer();
 
@@ -343,6 +335,12 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
 
   auto ApproximateSeedSet(const size_t theta)
   {
+    if (this->previous_theta > theta)
+    {
+      std::cout << "invalid theta value, smaller than previous theta. Theta = " << theta << ", previous theta = " << this->previous_theta << std::endl;
+      exit(1);
+    }
+
     auto res = this->MartigaleRound(
       theta, this->previous_theta
     );
@@ -515,7 +513,6 @@ auto GREEDI(
   size_t thetaPrime = 0;
 
   std::pair<std::vector<unsigned int>, int> seeds;
-  
   std::map<int, std::vector<int>> aggregateSets;
   
   ////// MARTINGALE LOOP //////
@@ -527,7 +524,7 @@ auto GREEDI(
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) 
   {
     // Equation 9
-    ssize_t thetaPrime = ThetaPrime(
+    thetaPrime = ThetaPrime(
       x, epsilonPrime, l_value, CFG.k, G.num_nodes(), 
       std::forward<execution_tag>(ex_tag)
     );
@@ -544,6 +541,7 @@ auto GREEDI(
       f = (double)(seeds.second) / thetaPrime;
       std::cout << "thetaprime: " << thetaPrime << std::endl;
     }
+    
     // mpi_broadcast f(s)
     timeAggregator.broadcastTimer.startTimer();
     cEngine.distributeF(&f);
@@ -561,10 +559,6 @@ auto GREEDI(
   auto end = std::chrono::high_resolution_clock::now();
 
   size_t theta = Theta(CFG.epsilon, l_value, CFG.k, LB, G.num_nodes());
-  
-  if (theta == 0) {
-    theta = thetaPrime;
-  }
 
   record.ThetaEstimationTotal = end - start;
 
@@ -572,12 +566,12 @@ auto GREEDI(
 
   if (cEngine.GetRank() == 0)
   {
-    spdlog::get("console")->info("Theta {}", theta);
+    spdlog::get("console")->info("Previous ThetaPrime: {}, current Theta: {}", thetaPrime, theta);
   }
 
   std::pair<std::vector<vertex_type>, int> bestSeeds;
 
-  if (theta <= thetaPrime) 
+  if (thetaPrime >= theta) 
   {
     bestSeeds = seeds; 
   }
@@ -588,7 +582,7 @@ auto GREEDI(
 
   randimm.OutputDiagnosticData();
 
-  return seeds.first;
+  return bestSeeds.first;
 }
 
 }  // namespace mpi
