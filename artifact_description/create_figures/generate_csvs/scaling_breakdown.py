@@ -148,10 +148,10 @@ class ScalingBreakdown:
             headers[0]: trial[self.SHARED][self.TOTAL], 
             headers[1]: trial[self.SENDER][self.SAMP], 
             headers[2]: trial[self.SENDER][self.ALL2ALL], 
-            headers[3]: trial[self.SENDER][self.SEND_SEED], 
+            headers[3]: trial[self.SENDER][self.TOTAL_SEND], 
             headers[4]: trial[self.RECEIVER][self.SAMP],
             headers[5]: trial[self.RECEIVER][self.ALL2ALL], 
-            headers[6]: trial[self.RECEIVER][self.RECV_SEED], 
+            headers[6]: trial[self.RECEIVER][self.TOTAL_RECV], 
         })) for trial in trials]
 
         builder.output_csv(output, headers, rows)

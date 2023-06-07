@@ -202,6 +202,10 @@ auto RandGreedi(const int kprime, const size_t theta)
       (int)CFG.k, kprime, theta, this->timeAggregator, bestKMSeeds
     );
 
+    // approximated_solution = RanDIMM::SolveKCover(
+    //   (int)CFG.k, kprime, theta, this->timeAggregator, bestKMSeeds
+    // );
+
     for (const auto & s: local_seeds)
     {
       if (s.first > approximated_solution.second)

@@ -416,7 +416,7 @@ public:
     //     return *this;
     // }
 
-    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) = 0;
+    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
 };
 
 template <typename GraphTy>
@@ -429,6 +429,7 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
 
     std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
     {
+        this->finder->Setup(data);
         std::vector<unsigned int> res(this->k, -1);
 
         size_t subset_size = (this->usingStochastic) ? this->getSubsetSize(data.size(), this->k, this->epsilon) : data.size() ;
@@ -436,10 +437,6 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
         std::vector<unsigned int> all_vertices;  
         for (const auto & l : data) { all_vertices.push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
-
-        unsigned int current_send_index = 0;
-
-        std::pair<int, int*> sendData;
 
         for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
         {
@@ -452,8 +449,6 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
             this->timer.max_k_localTimer.startTimer();
 
             res[currentSeed] = this->finder->findNextInfluential();
-
-            this->timer.max_k_localTimer.endTimer();
         }
 
         return std::make_pair(res, this->finder->GetUtility());
