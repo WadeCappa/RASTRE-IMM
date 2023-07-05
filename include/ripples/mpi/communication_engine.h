@@ -517,6 +517,8 @@ class CommunicationEngine
         std::vector<unsigned int>& aggregatedSeeds, 
         size_t totalGatherData, 
         unsigned int* localLinearAggregateSets
+        // needs vector of participating processes for 
+        // gatherv
     ) const
     {
         unsigned int* gatherSizes = new unsigned int[this->world_size];
@@ -547,6 +549,9 @@ class CommunicationEngine
 
         aggregatedSeeds.resize(totalData * this->block_size);
 
+        // for the leveled implementation of this communication, we may have to use alltoallv 
+        //  and formulate the communication as a matrix manipulation. Look more into this, create
+        //  some basic tests scripts.
         MPI_Gatherv(
             localLinearAggregateSets,
             total_block_send,

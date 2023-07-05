@@ -2,13 +2,13 @@
 
 #SBATCH -A m1641
 #SBATCH -C cpu
-#SBATCH -t 00:40:00
+#SBATCH -t 00:30:00
 #SBATCH -q regular
-#SBATCH -N 512
+#SBATCH -N 256
 #SBATCH --ntasks-per-node=1
-#SBATCH -J imm_512_IC_HepPh
-#SBATCH -o /global/cfs/cdirs/m1641/network-results/imm/HepPh/imm_512_IC_HepPh.o
-#SBATCH -e /global/cfs/cdirs/m1641/network-results/imm/HepPh/imm_512_IC_HepPh.e
+#SBATCH -J imm_256_LT_livejournal
+#SBATCH -o /global/homes/w/wadecap/strong_scaling/livejournal/imm_256_LT_livejournal.o
+#SBATCH -e /global/homes/w/wadecap/strong_scaling/livejournal/imm_256_LT_livejournal.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -30,4 +30,4 @@ module load cray-libsci
 #module load cudatoolkit/11.0
 
 
-srun -n 512 ./build/release/tools/mpi-imm -i /global/cfs/cdirs/m1641/network-data/Binaries/HepPh_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/imm/HepPh/imm_512_IC_HepPh.json --reload-binary 
+srun -n 256 ./build/release/tools/mpi-imm -i /global/cfs/cdirs/m1641/network-data/Binaries/livejournal_LT_binary.txt -w -k 100 -p -d LT -e 0.13 -o /global/homes/w/wadecap/strong_scaling/livejournal/imm_256_LT_livejournal.json --reload-binary 

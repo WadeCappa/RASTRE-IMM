@@ -2,13 +2,13 @@
 
 #SBATCH -A m1641
 #SBATCH -C cpu
-#SBATCH -t 01:00:00
+#SBATCH -t 00:30:00
 #SBATCH -q regular
-#SBATCH -N 128
+#SBATCH -N 512
 #SBATCH --ntasks-per-node=1
-#SBATCH -J m128_lazy_wikipedia
-#SBATCH -o /global/cfs/cdirs/m1641/network-results/algo-comparisons/wikipedia/m128_lazy_wikipedia.o
-#SBATCH -e /global/cfs/cdirs/m1641/network-results/algo-comparisons/wikipedia/m128_lazy_wikipedia.e
+#SBATCH -J m512_lazy_livejournal
+#SBATCH -o /global/cfs/cdirs/m1641/network-results/fixed_alltoall/livejournal/m512_lazy_livejournal.o
+#SBATCH -e /global/cfs/cdirs/m1641/network-results/fixed_alltoall/livejournal/m512_lazy_livejournal.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 128 ./build/release/tools/mpi-greedi-im -i /global/cfs/cdirs/m1641/network-data/Binaries/wikipedia_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/algo-comparisons/wikipedia/m128_lazy_wikipedia.json --run-streaming=false --reload-binary -u 
+srun -n 512 ./build/release/tools/mpi-randgreedi -i /global/cfs/cdirs/m1641/network-data/Binaries/livejournal_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/fixed_alltoall/livejournal/m512_lazy_livejournal.json --run-streaming=false --reload-binary 

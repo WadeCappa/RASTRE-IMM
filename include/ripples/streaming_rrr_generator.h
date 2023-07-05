@@ -169,7 +169,7 @@ class CPUWalkWorker : public WalkWorker<GraphTy, ItrTy> {
 
   void svc_transpose_loop(std::atomic<size_t> &mpmc_head, TransposeRRRSets<GraphTy> &tRRRSets, size_t current, size_t delta) {
     size_t offset = 0;
-    while ((offset = mpmc_head.fetch_add(batch_size_)) < delta) 
+    while ((offset = mpmc_head.fetch_add(batch_size_)) < delta) // TODO: verify that offset can be zero inside of loop
     {
       size_t first = current + offset;
       size_t last = first + batch_size_;
