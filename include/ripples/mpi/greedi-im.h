@@ -77,18 +77,6 @@
 namespace ripples {
 namespace mpi {
 
-// seeds = MartigaleRound(
-//   timeAggregator,
-//   thetaPrime, tRRRSets, RR, allocator, G, 
-//   CFG, gen, record,
-//   std::forward<diff_model_tag>(model_tag),
-//   std::forward<execution_tag>(ex_tag),
-//   vertexToProcess, world_size, world_rank,
-//   cEngine,
-//   aggregateSets,
-//   old_sampling_sizes
-// );
-
 template <
   typename GraphTy, 
   typename ConfTy, 
@@ -143,13 +131,7 @@ class RanDIMM
     return localKCoverEngine.run_max_k_cover(elements);
   }
 
-  virtual std::pair<std::vector<unsigned int>, size_t> GetBestSeeds(const int kprime, const size_t theta)
-  {
-    std::cout << "ERROR" << std::endl;
-    exit(1);
-
-    return std::make_pair(std::vector<unsigned int>(), 0);
-  };
+  virtual std::pair<std::vector<unsigned int>, size_t> GetBestSeeds(const int kprime, const size_t theta) = 0;
 
   std::pair<std::vector<unsigned int>, int> MartigaleRound(
     const size_t thetaPrime,
@@ -211,10 +193,6 @@ class RanDIMM
       // TODO: turn the streaming and randgreedi functions into objects, then make a 
       //  leveled_execution decorator that uses the same interface, that can wrap 
       //  around either object. 
-
-      // TODO: Perhaps extract these two pathways into seperate tools, this will improve 
-      //  user experience (also let's you push most of the configuaration into 
-      //  object constructors).
 
       approximated_solution = this->GetBestSeeds(kprime, thetaPrime + this->cEngine.GetSize());
     });
