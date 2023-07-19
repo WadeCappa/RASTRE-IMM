@@ -237,7 +237,7 @@ template <typename GraphTy>
 class StreamingRandGreedIEngine 
 {
     private: 
-    int* buffer;
+    std::vector<unsigned int> buffer;
     MPI_Request request;
     BucketController buckets;
     const CommunicationEngine<GraphTy> &cEngine;
@@ -256,10 +256,10 @@ class StreamingRandGreedIEngine
     std::vector<std::pair<int, Origin>> availability_index;
     std::vector<unsigned int> local_utilities;
 
-    static void GetSeedSet(int* data, std::vector<unsigned int>& seed_set)
+    static void GetSeedSet(unsigned int* data, std::vector<unsigned int>& seed_set)
     {
         int negatives = 0;
-        int* e = data;
+        unsigned int* e = data;
         for (; negatives != 2; e++)
         {
             if (negatives == 1 && *e != -1)
@@ -274,11 +274,11 @@ class StreamingRandGreedIEngine
         }
     }
 
-    static CandidateSet ExtractElement(int* data)
+    static CandidateSet ExtractElement(unsigned int* data)
     {
         std::vector<unsigned int> received_data;
 
-        for (int* e = data + 1; *(e) != -1; e++) 
+        for (unsigned int* e = data + 1; *(e) != -1; e++) 
         {
             received_data.push_back(*e);
         }
@@ -286,7 +286,7 @@ class StreamingRandGreedIEngine
         return (CandidateSet){(unsigned int)*data, received_data};
     }
 
-    void ResetBuffer(int* buffer)
+    void ResetBuffer(unsigned int* buffer)
     {
         this->cEngine.QueueReceive(buffer, this->theta, this->request);
     }
@@ -304,13 +304,13 @@ class StreamingRandGreedIEngine
         }
     }
 
-    int* ReceiveNextSend(MPI_Status& status)
+    unsigned int* ReceiveNextSend(MPI_Status& status)
     {
         this->timer.receiveTimer.startTimer();
         MPI_Wait(&(this->request), &status);
         this->timer.receiveTimer.endTimer();
 
-        return this->buffer;
+        return this->buffer.data();
     }
 
     static void WaitToProcess(int &dummy_value, int &buckets_initialized)
@@ -344,7 +344,7 @@ class StreamingRandGreedIEngine
         this->first_values_from_senders = 0;
         this->theta = theta;
 
-        this->buffer = new int[theta];
+        this->buffer.resize(this->cEngine.GetSendReceiveBufferSize(this->theta));
     
         this->element_matrix = std::vector<std::vector<CandidateSet>>(
             this->number_of_senders, 
@@ -390,8 +390,8 @@ class StreamingRandGreedIEngine
                 for (int i = 0; i < (this->number_of_senders * this->kprime); i++)
                 {                   
                     MPI_Status status;
-                    this->ResetBuffer(this->buffer);
-                    int* data = this->ReceiveNextSend(status);
+                    this->ResetBuffer(this->buffer.data());
+                    unsigned int* data = this->ReceiveNextSend(status);
 
                     this->timer.processingReceiveTimer.startTimer();
 

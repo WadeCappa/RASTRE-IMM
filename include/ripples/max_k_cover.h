@@ -488,13 +488,25 @@ private:
         const std::vector<int>& RRRSetIDs 
     )
     {
-        std::pair<int, int*> sendData = this->cEngine.LinearizeSingleSeed(vertex_id, RRRSetIDs);
+        // TODO: this code is slow, can potentially be sped up (marginally) by skipping the delete step, and giving
+        //  the communciation engine the vector buffer itself instead of making it create it's own temp buffer.
+        std::pair<size_t, int*> sendData = this->cEngine.LinearizeSingleSeed(vertex_id, RRRSetIDs);
+        // this->cEngine.BuildBufferForStreamingSend(send_buffers[current_seed]);
 
-        this->send_buffers[current_seed].resize(sendData.first);
+        size_t total_data = this->cEngine.GetSendReceiveBufferSize(sendData.first);
+
+        this->send_buffers[current_seed].resize(total_data);
         
-        for (size_t i = 0; i < sendData.first; i++)
+        size_t i = 0;
+
+        for (; i < sendData.first; i++)
         {
             this->send_buffers[current_seed][i] = sendData.second[i];
+        }
+
+        for (; i < total_data; i++)
+        {
+            this->send_buffers[current_seed][i] = -1; //TODO: Verify that this end of message flag is correct
         }
 
         delete sendData.second;
@@ -517,7 +529,7 @@ private:
             RRRSetIDs
         );
 
-        std::vector<unsigned int> newBuffer = std::vector<unsigned int>(this->send_buffers[current_seed].size() + local_seed_set.size() + 1);
+        std::vector<unsigned int> newBuffer = std::vector<unsigned int>(this->send_buffers[current_seed].size() + this->cEngine.GetBlockSize()); // TODO: get ceiling on division, mupliply by number of blocks required.
 
         int start = 0;
         for (; this->send_buffers[current_seed][start] != -1; start++)

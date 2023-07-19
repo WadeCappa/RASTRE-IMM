@@ -194,6 +194,12 @@ class RanDIMM
       //  leveled_execution decorator that uses the same interface, that can wrap 
       //  around either object. 
 
+      // TODO: The plan here is to have two communication engines that use the same 
+      //  interface. One of them for leveled communicaiton, one of them for non-leveled
+      //  communication. Then the SeedApproximationStrategy which is responsible for the 
+      //  step after max-k-cover in the martingale loop can generically use this new
+      //  communication engine to solve for a solution.
+
       approximated_solution = this->GetBestSeeds(kprime, thetaPrime + this->cEngine.GetSize());
     });
     

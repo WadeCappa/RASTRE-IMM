@@ -255,7 +255,7 @@ class MPIStreamingFindMostInfluential {
                                             coveredAndSelected[0]);
     }
 #endif
-    if (mpi_rank == 0) {
+    if (mpi_rank == 0) { // DIiMM: this code is the only different code (outside of preprocessing), use D to select next seed.
 
       uint32_t vertex = 0;
       uint32_t coverage = 0;
@@ -286,7 +286,7 @@ class MPIStreamingFindMostInfluential {
       coveredAndSelected[1] = vertex;
 
     }
-    MPI_Bcast(&coveredAndSelected, 2, MPI_UINT32_T, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&coveredAndSelected, 2, MPI_UINT32_T, 0, MPI_COMM_WORLD); // DIiMM: Stays the same
 
     return std::pair<vertex_type, size_t>(coveredAndSelected[1],
                                           coveredAndSelected[0]);
@@ -336,6 +336,12 @@ class MPIStreamingFindMostInfluential {
     auto queue = getHeap();
     std::vector<vertex_type> result;
     result.reserve(k);
+
+    // DIiMM: Build initial global histogram. Do this by reducing local histograms. 
+    //  After mpi_reduce, sort by set size to build vector D.This data structure 
+    //  becomes persistant. 
+
+    ReduceCounters();
 
     std::chrono::duration<double, std::milli> seedSelection(0);
     while (true) {
