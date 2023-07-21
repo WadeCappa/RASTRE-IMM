@@ -234,7 +234,7 @@ class MPIStreamingFindMostInfluential {
   }
 
   std::pair<vertex_type, size_t> get_next_DIiMM_seed(
-    std::vector<std::vector<size_t>> coverage_vector, 
+    std::vector<std::vector<size_t>>& coverage_vector, 
     std::pair<size_t, size_t>& last_vertex
   )
   {
@@ -272,7 +272,8 @@ class MPIStreamingFindMostInfluential {
 
     RETURN_RESULT:
 
-    MPI_Bcast(&coveredAndSelected, 2, MPI_UINT32_T, 0, MPI_COMM_WORLD); 
+    MPI_Bcast(&coveredAndSelected, 2, MPI_UINT32_T, 0, MPI_COMM_WORLD);
+
     return std::pair<vertex_type, size_t>(coveredAndSelected[1], coveredAndSelected[0]);
   }
 
@@ -392,8 +393,6 @@ class MPIStreamingFindMostInfluential {
       max_coverage = std::max(m, max_coverage);
     }
 
-    std::cout << "max coverage: " << max_coverage << std::endl;
-
     std::vector<std::vector<size_t>> coverage_vector(max_coverage + 1);
 
     for (size_t i = 0; i < this->reduced_vertex_coverage_.size(); i++)
@@ -407,7 +406,6 @@ class MPIStreamingFindMostInfluential {
     while (true) {
       //      std::cout << "Get Seed" << std::endl;
       auto start = std::chrono::high_resolution_clock::now();
-      std::cout << "last checked coverage: " << last_checked_coverage.first << std::endl;
       auto element = get_next_DIiMM_seed(coverage_vector, last_checked_coverage);
       auto end = std::chrono::high_resolution_clock::now();
 
@@ -639,12 +637,10 @@ auto FindMostInfluentialSet(const GraphTy &G, const ConfTy &CFG,
   MPIStreamingFindMostInfluential<GraphTy> SE(G, RRRsets, num_max_cpu, num_gpu);
   if (CFG.use_diimm == true)
   {
-    std::cout << "running DIiMM" << std::endl;
     return SE.find_most_influential_set_using_diimm(CFG.k);
   }
   else 
   {
-    std::cout << "running IMM" << std::endl;
     return SE.find_most_influential_set(CFG.k);
   }
 }
