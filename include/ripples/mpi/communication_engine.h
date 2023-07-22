@@ -179,11 +179,11 @@ class CommunicationEngine
     //     delete sendData.second;
     // }
 
-    void QueueReceive(unsigned int* buffer, size_t theta, MPI_Request &request) const 
+    void QueueReceive(unsigned int* buffer, size_t max_receive_size, MPI_Request &request) const 
     {
         MPI_Irecv(
             buffer,
-            theta / this->block_size,
+            max_receive_size / this->block_size,
             batch_int,
             MPI_ANY_SOURCE,
             MPI_ANY_TAG,
