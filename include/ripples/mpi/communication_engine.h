@@ -40,6 +40,11 @@ class CommunicationEngine
         MPI_Type_free(&(this->batch_int));
     }
 
+    size_t GetSendReceiveBufferSize(const size_t data_size) const
+    {
+        return (size_t)(data_size + (size_t)(data_size % this->block_size == 0 ? 0 : (this->block_size - (data_size % this->block_size))));
+    }
+
     unsigned int GetRank() const
     {
         return this->world_rank;
@@ -66,8 +71,8 @@ class CommunicationEngine
     {
         MPI_Send (
             data,
-            data_size,
-            MPI_INT, 0,
+            data_size / this->block_size,
+            batch_int, 0,
             tag,
             MPI_COMM_WORLD
         );
@@ -82,12 +87,18 @@ class CommunicationEngine
     {
         MPI_Isend (
             data,
-            data_size,
-            MPI_UNSIGNED, 0,
+            data_size / this->block_size,
+            this->batch_int, 
+            0,
             tag,
             MPI_COMM_WORLD,
             &request
         );
+    }
+
+    size_t GetBlockSize() const
+    {
+        return this->block_size;
     }
 
     std::vector<int> DistributeVertices (
@@ -147,12 +158,33 @@ class CommunicationEngine
         this->GetProcessSpecificVertexRRRSets(aggregateSets, linear_sets.data(), countPerProcess.data(), localThetaPrime);
     }
 
-    void QueueReceive(int* buffer, size_t size, MPI_Request &request) const 
+    // void BuildBufferForStreamingSend(std::vector<unsigned int>& buffer) const
+    // {   
+    //     size_t total_data = this->GetSendReceiveBufferSize((size_t)sendData.first);
+
+    //     buffer.resize(total_data);
+
+    //     size_t i = 0;
+
+    //     for (; i < sendData.first; i++)
+    //     {
+    //         buffer[i] = sendData.second[i];
+    //     }
+
+    //     for (; i < total_data; i++)
+    //     {
+    //         buffer[i] = -1; //TODO: Verify that this end of message flag is correct
+    //     }
+
+    //     delete sendData.second;
+    // }
+
+    void QueueReceive(unsigned int* buffer, size_t max_receive_size, MPI_Request &request) const 
     {
         MPI_Irecv(
             buffer,
-            size,
-            MPI_INT,
+            max_receive_size / this->block_size,
+            batch_int,
             MPI_ANY_SOURCE,
             MPI_ANY_TAG,
             MPI_COMM_WORLD,
@@ -295,7 +327,7 @@ class CommunicationEngine
         return total_block_data;
     }
 
-    std::pair<int, int*> LinearizeSingleSeed(const int vertexID, const std::vector<int>& set) const
+    std::pair<size_t, int*> LinearizeSingleSeed(const int vertexID, const std::vector<int>& set) const
     {
         int* linearAggregateSets = new int[set.size()+2];
         size_t offset = 1;
@@ -517,6 +549,8 @@ class CommunicationEngine
         std::vector<unsigned int>& aggregatedSeeds, 
         size_t totalGatherData, 
         unsigned int* localLinearAggregateSets
+        // needs vector of participating processes for 
+        // gatherv
     ) const
     {
         unsigned int* gatherSizes = new unsigned int[this->world_size];
@@ -547,6 +581,9 @@ class CommunicationEngine
 
         aggregatedSeeds.resize(totalData * this->block_size);
 
+        // for the leveled implementation of this communication, we may have to use alltoallv 
+        //  and formulate the communication as a matrix manipulation. Look more into this, create
+        //  some basic tests scripts.
         MPI_Gatherv(
             localLinearAggregateSets,
             total_block_send,

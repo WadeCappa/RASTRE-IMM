@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
            CFG.worker_to_gpu);
     auto start = std::chrono::high_resolution_clock::now();
     console->info("finished initializing graph");
-    seeds = ripples::mpi::GREEDI(
+    seeds = ripples::mpi::run_randgreedi(
         G, CFG, 1.0, se, R, ripples::independent_cascade_tag{},
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     std::cout << "exited" << std::endl;
@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
         se(G, generator, R, workers - gpu_workers, gpu_workers,
            CFG.worker_to_gpu);
     auto start = std::chrono::high_resolution_clock::now();
-    seeds = ripples::mpi::GREEDI(
+    seeds = ripples::mpi::run_randgreedi(
         G, CFG, 1.0, se, R, ripples::linear_threshold_tag{},
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();

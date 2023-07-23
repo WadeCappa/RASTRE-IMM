@@ -31,13 +31,13 @@ class ThresholdBucket
 {
     private:
     ripples::Bitmask<int> localCovered;
-    std::vector<std::pair<int,int>> seeds;
+    std::vector<std::pair<unsigned int, size_t>> seeds;
     double marginalGainThreshold;
     int k;
-    ssize_t theta;
+    size_t theta;
 
     public:
-    ThresholdBucket(ssize_t theta, int deltaZero, int k, double epsilon, size_t numBucket) 
+    ThresholdBucket(size_t theta, size_t deltaZero, int k, double epsilon, size_t numBucket) 
         : localCovered(theta)
     {
         this->theta = theta;
@@ -50,12 +50,12 @@ class ThresholdBucket
         return localCovered.popcount();
     }
 
-    std::vector<std::pair<int,int>> getSeeds()
+    std::vector<std::pair<unsigned int, size_t>> getSeeds()
     {
         return this->seeds;
     }
 
-    int getTotalCovered()
+    size_t getTotalCovered()
     {
         return this->seeds.size();
     }
@@ -67,14 +67,14 @@ class ThresholdBucket
             return false;
         }
        
-        std::vector<int> temp;
-        for (const int e : element.covered) {
+        std::vector<size_t> temp;
+        for (const auto e : element.covered) {
             if (!localCovered.get(e))
                 temp.push_back(e);
         }
 
         if (temp.size() >= this->marginalGainThreshold) {
-            for (const int e : temp) {
+            for (const auto e : temp) {
                 localCovered.set(e);
             }
 
@@ -93,10 +93,10 @@ class BucketController
     std::vector<std::vector<ThresholdBucket*>> threadMap;
 
     int k;
-    ssize_t theta;
+    size_t theta;
     double epsilon;
     
-    int deltaZero = -1;    
+    size_t deltaZero;    
     int fullBuckets = 0;
 
     public:
@@ -108,7 +108,7 @@ class BucketController
             return log2(val) / log2(base);
         }((double)k, (1+this->epsilon)));
 
-        std::cout << "deltazero: " << this->deltaZero << ", number of buckets: " << num_buckets << std::endl;
+        // std::cout << "deltazero: " << this->deltaZero << ", number of buckets: " << num_buckets << std::endl;
 
         for (int i = 0; i < num_buckets + 1; i++)
         {
@@ -120,7 +120,7 @@ class BucketController
     {
         // build mapping of each thread to number of buckets
         int buckets_per_thread = std::ceil((double)this->buckets.size() / ((double)threads));
-        std::cout << "number of buckets; " << this->buckets.size() << ", threads; " << threads << ", buckets per thread; " << buckets_per_thread << std::endl;
+        // std::cout << "number of buckets; " << this->buckets.size() << ", threads; " << threads << ", buckets per thread; " << buckets_per_thread << std::endl;
         this->threadMap.resize(threads);
 
         int bucket_index = 0;
@@ -193,7 +193,7 @@ class BucketController
         return false;
     }
 
-    std::pair<std::vector<unsigned int>, int> GetBestSeeds()
+    std::pair<std::vector<unsigned int>, size_t> GetBestSeeds()
     {
         size_t max_covered = 0;
         int max_covered_index = 0;
@@ -212,12 +212,12 @@ class BucketController
             seeds.push_back(p.first);
         }
 
-        std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets.at(max_covered_index)->getSeeds().size() << std::endl;
+        // std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets.at(max_covered_index)->getSeeds().size() << std::endl;
 
         return std::make_pair(seeds, max_covered);
     }
 
-    BucketController(int k, ssize_t theta, double epsilon)
+    BucketController(int k, size_t theta, double epsilon)
     {
         this->theta = theta;
         this->k = k;
@@ -237,7 +237,7 @@ template <typename GraphTy>
 class StreamingRandGreedIEngine 
 {
     private: 
-    int* buffer;
+    std::vector<unsigned int> buffer;
     MPI_Request request;
     BucketController buckets;
     const CommunicationEngine<GraphTy> &cEngine;
@@ -256,10 +256,10 @@ class StreamingRandGreedIEngine
     std::vector<std::pair<int, Origin>> availability_index;
     std::vector<unsigned int> local_utilities;
 
-    static void GetSeedSet(int* data, std::vector<unsigned int>& seed_set)
+    static void GetSeedSet(std::vector<unsigned int>& receive_buffer, std::vector<unsigned int>& seed_set)
     {
         int negatives = 0;
-        int* e = data;
+        unsigned int* e = receive_buffer.data();
         for (; negatives != 2; e++)
         {
             if (negatives == 1 && *e != -1)
@@ -274,21 +274,21 @@ class StreamingRandGreedIEngine
         }
     }
 
-    static CandidateSet ExtractElement(int* data)
+    CandidateSet ExtractElement(std::vector<unsigned int>& receive_buffer)
     {
         std::vector<unsigned int> received_data;
 
-        for (int* e = data + 1; *(e) != -1; e++) 
+        for (unsigned int* e = receive_buffer.data() + 1; *(e) != -1; e++) 
         {
             received_data.push_back(*e);
         }
 
-        return (CandidateSet){(unsigned int)*data, received_data};
+        return (CandidateSet){receive_buffer[0], received_data};
     }
 
-    void ResetBuffer(int* buffer)
+    void ResetBuffer(std::vector<unsigned int>& receive_buffer)
     {
-        this->cEngine.QueueReceive(buffer, this->theta, this->request);
+        this->cEngine.QueueReceive(receive_buffer.data(), receive_buffer.size(), this->request);
     }
 
     void HandleStatus(const MPI_Status& status)
@@ -304,13 +304,11 @@ class StreamingRandGreedIEngine
         }
     }
 
-    int* ReceiveNextSend(MPI_Status& status)
+    void ReceiveNextSend(MPI_Status& status)
     {
         this->timer.receiveTimer.startTimer();
         MPI_Wait(&(this->request), &status);
         this->timer.receiveTimer.endTimer();
-
-        return this->buffer;
     }
 
     static void WaitToProcess(int &dummy_value, int &buckets_initialized)
@@ -329,12 +327,12 @@ class StreamingRandGreedIEngine
 
     public:
     StreamingRandGreedIEngine(
-        int k, int kprime, size_t theta, 
+        int k, int kprime, size_t theta,
         double epsilon, int number_of_senders, 
         const CommunicationEngine<GraphTy> &cEngine,
         TimerAggregator& timer
     ) 
-        : buckets(k, theta, epsilon), cEngine(cEngine), timer(timer)
+        : buckets(k, theta, epsilon), cEngine(cEngine), timer(timer), buffer(cEngine.GetSendReceiveBufferSize(theta))
     {
         this->active_senders = number_of_senders;
         this->k = k;
@@ -343,8 +341,6 @@ class StreamingRandGreedIEngine
         this->number_of_senders = number_of_senders;
         this->first_values_from_senders = 0;
         this->theta = theta;
-
-        this->buffer = new int[theta];
     
         this->element_matrix = std::vector<std::vector<CandidateSet>>(
             this->number_of_senders, 
@@ -391,7 +387,7 @@ class StreamingRandGreedIEngine
                 {                   
                     MPI_Status status;
                     this->ResetBuffer(this->buffer);
-                    int* data = this->ReceiveNextSend(status);
+                    this->ReceiveNextSend(status);
 
                     this->timer.processingReceiveTimer.startTimer();
 
@@ -405,10 +401,10 @@ class StreamingRandGreedIEngine
                         // std::cout << "got last seed" << std::endl;
 
                         local_utilities[source] = status.MPI_TAG;
-                        this->GetSeedSet(data, local_seed_sets[source]);
+                        this->GetSeedSet(this->buffer, local_seed_sets[source]);
                     }
 
-                    element_matrix[source][tag] = this->ExtractElement(data);
+                    element_matrix[source][tag] = this->ExtractElement(this->buffer);
 
                     this->timer.processingReceiveTimer.endTimer();
 
@@ -440,7 +436,7 @@ class StreamingRandGreedIEngine
                     // std::cout << "handled status" << std::endl;
                 }
 
-                std::cout << "killing processors, waiting for them to exit..." << std::endl;
+                // std::cout << "killing processors, waiting for them to exit..." << std::endl;
             }
             else // processor
             {   
@@ -451,7 +447,7 @@ class StreamingRandGreedIEngine
                 this->buckets.MapBucketsToThreads(threads - 1);
                 this->timer.initBucketTimer.endTimer();
 
-                std::cout << "starting to process elements..." << std::endl;
+                // std::cout << "starting to process elements..." << std::endl;
 
                 this->timer.max_k_globalTimer.startTimer();
                 this->buckets.ProcessElements(threads - 1, availability_index, element_matrix);                
@@ -474,7 +470,7 @@ class StreamingRandGreedIEngine
             }
         }
 
-        std::cout << "number of seeds: " << bestSeeds.first.size() << std::endl;
+        // std::cout << "number of seeds: " << bestSeeds.first.size() << std::endl;
 
         return bestSeeds;
     }

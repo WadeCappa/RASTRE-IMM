@@ -77,18 +77,6 @@
 namespace ripples {
 namespace mpi {
 
-// seeds = MartigaleRound(
-//   timeAggregator,
-//   thetaPrime, tRRRSets, RR, allocator, G, 
-//   CFG, gen, record,
-//   std::forward<diff_model_tag>(model_tag),
-//   std::forward<execution_tag>(ex_tag),
-//   vertexToProcess, world_size, world_rank,
-//   cEngine,
-//   aggregateSets,
-//   old_sampling_sizes
-// );
-
 template <
   typename GraphTy, 
   typename ConfTy, 
@@ -98,7 +86,7 @@ template <
 >
 class RanDIMM
 {
-  private:
+  protected:
   const GraphTy &G;
   const ConfTy &CFG;
   ripples::omp_parallel_tag &ex_tag;
@@ -113,7 +101,6 @@ class RanDIMM
 
   std::map<int, std::vector<int>> aggregateSets;
   std::vector<size_t> old_sampling_sizes;
-  size_t RR_sets;
   RRRsetAllocator<typename GraphTy::vertex_type> allocator;
   TransposeRRRSets<GraphTy> tRRRSets;
   const std::vector<int> vertexToProcess;
@@ -131,172 +118,97 @@ class RanDIMM
     #endif
   }
 
-auto Streaming(const int kprime, const size_t theta)
-{
-  if (this->cEngine.GetRank() == 0) 
+  static std::pair<std::vector<unsigned int>, ssize_t> SolveKCover(
+    const int k,
+    const int kprime,
+    const size_t max_element, 
+    TimerAggregator &timeAggregator,
+    const std::map<int, std::vector<int>>& elements
+  )
   {
-    StreamingRandGreedIEngine<GraphTy> streamingEngine((int)CFG.k, kprime, theta, (double)this->CFG.epsilon_2, this->cEngine.GetSize() - 1, cEngine, this->timeAggregator);
-    return streamingEngine.Stream();
-  }
-  else 
-  {
-    this->timeAggregator.totalSendTimer.startTimer();
-    
-    StreamingMaxKCover<GraphTy> localKCoverEngine((int)CFG.k, kprime, theta, this->timeAggregator, this->cEngine);
+    MaxKCover<GraphTy> localKCoverEngine(k, kprime, max_element, timeAggregator);
     localKCoverEngine.useLazyGreedy();
-    localKCoverEngine.run_max_k_cover(this->aggregateSets);
-
-    this->timeAggregator.totalSendTimer.endTimer();
-
-    return std::make_pair(std::vector<unsigned int>(), 0);
-  }
-}
-
-static std::pair<std::vector<unsigned int>, ssize_t> SolveKCover(
-  const int k,
-  const int kprime,
-  const size_t max_element, 
-  TimerAggregator &timeAggregator,
-  const std::map<int, std::vector<int>>& elements
-)
-{
-  MaxKCover<GraphTy> localKCoverEngine(k, kprime, max_element, timeAggregator);
-  localKCoverEngine.useLazyGreedy();
-  return localKCoverEngine.run_max_k_cover(elements);
-}
-
-auto RandGreedi(const int kprime, const size_t theta)
-{
-  this->timeAggregator.max_k_localTimer.startTimer();
-
-  std::pair<std::vector<unsigned int>, ssize_t> localSeeds = RanDIMM::SolveKCover(
-    (int)CFG.k, kprime, theta, this->timeAggregator, this->aggregateSets
-  );
-
-  this->timeAggregator.max_k_localTimer.endTimer();
-
-  spdlog::get("console")->info("all gather...");
-  this->timeAggregator.allGatherTimer.startTimer();
-
-  std::vector<unsigned int> globalAggregation;
-  size_t totalData = this->cEngine.GatherPartialSolutions(localSeeds, this->aggregateSets, globalAggregation);
-
-  this->timeAggregator.allGatherTimer.endTimer();
-
-  std::pair<std::vector<unsigned int>, size_t> approximated_solution;
-
-  if (this->cEngine.GetRank() == 0) {
-    std::map<int, std::vector<int>> bestKMSeeds;
-
-    spdlog::get("console")->info("unpacking local seeds in global process...");
-
-    this->timeAggregator.allGatherTimer.startTimer();
-    std::vector<std::pair<unsigned int, std::vector<unsigned int>>> local_seeds = cEngine.aggregateLocalKSeeds(bestKMSeeds, globalAggregation.data(), totalData);
-
-    this->timeAggregator.allGatherTimer.endTimer();
-
-    spdlog::get("console")->info("global max_k_cover...");
-    this->timeAggregator.max_k_globalTimer.startTimer();
-
-    approximated_solution = RanDIMM::SolveKCover(
-      (int)CFG.k, kprime, theta, this->timeAggregator, bestKMSeeds
-    );
-
-    // approximated_solution = RanDIMM::SolveKCover(
-    //   (int)CFG.k, kprime, theta, this->timeAggregator, bestKMSeeds
-    // );
-
-    for (const auto & s: local_seeds)
-    {
-      if (s.first > approximated_solution.second)
-      {
-        approximated_solution.second = s.first;
-        approximated_solution.first = s.second;
-      }
-    }
-
-    this->timeAggregator.max_k_globalTimer.endTimer();
+    return localKCoverEngine.run_max_k_cover(elements);
   }
 
-  return approximated_solution;
-}
+  virtual std::pair<std::vector<unsigned int>, size_t> GetBestSeeds(const int kprime, const size_t theta) = 0;
 
-std::pair<std::vector<unsigned int>, int> MartigaleRound(
-  const size_t thetaPrime,
-  const size_t previous_theta
-) 
-{
-  const size_t localThetaPrime = (thetaPrime / this->cEngine.GetSize()) + 1;
-  // delta will always be (theta / 2) / world_size
-
-  std::pair<std::vector<unsigned int>, size_t> approximated_solution;
-
-  auto timeRRRSets = measure<>::exec_time([&]() 
+  std::pair<std::vector<unsigned int>, int> MartigaleRound(
+    const size_t thetaPrime,
+    const size_t previous_theta
+  ) 
   {
-    // size_t delta = localThetaPrime - this->RR_sets;
-    // size_t delta = this->RR_sets == 0 ? thetaPrime / this->cEngine.GetSize() : (thetaPrime / 2) / this->cEngine.GetSize();
-    size_t delta = (thetaPrime - previous_theta) / this->cEngine.GetSize();
+    const size_t localThetaPrime = (thetaPrime / this->cEngine.GetSize()) + 1;
+    // delta will always be (theta / 2) / world_size
 
-    if ((thetaPrime - previous_theta) / this->cEngine.GetSize() < 0)
+    std::pair<std::vector<unsigned int>, size_t> approximated_solution;
+
+    auto timeRRRSets = measure<>::exec_time([&]() 
     {
-      std::cout << "DELTA ERROR" << std::endl;
-      exit(1);
-    }
+      // size_t delta = localThetaPrime - this->RR_sets;
+      // size_t delta = this->RR_sets == 0 ? thetaPrime / this->cEngine.GetSize() : (thetaPrime / 2) / this->cEngine.GetSize();
+      size_t delta = (thetaPrime - previous_theta) / this->cEngine.GetSize();
 
-    record.ThetaPrimeDeltas.push_back(delta);
+      if ((thetaPrime - previous_theta) / this->cEngine.GetSize() < 0)
+      {
+        std::cout << "DELTA ERROR" << std::endl;
+        exit(1);
+      }
 
-    spdlog::get("console")->info("sampling ...");
+      this->record.ThetaPrimeDeltas.push_back(delta);
 
-    this->timeAggregator.samplingTimer.startTimer();
+      // spdlog::get("console")->info("sampling ...");
 
-    // std::cout << this->RR_sets << ", " << delta << ", " << thetaPrime << ", " << localThetaPrime << std::endl;
+      this->timeAggregator.samplingTimer.startTimer();
+
+      // std::cout << this->RR_sets << ", " << delta << ", " << thetaPrime << ", " << localThetaPrime << std::endl;
+      
+      GenerateTransposeRRRSets(
+        this->tRRRSets, previous_theta, delta, 
+        this->G, this->gen, this->record,
+        std::forward<diff_model_tag>(this->model_tag),
+        std::forward<execution_tag>(this->ex_tag)
+      );
+
+      this->timeAggregator.samplingTimer.endTimer();    
+
+      this->timeAggregator.allToAllTimer.startTimer();  
+
+      // spdlog::get("console")->info("distributing samples with AllToAll ...");
+
+      cEngine.AggregateThroughAllToAll(
+        this->tRRRSets,
+        this->vertexToProcess,
+        this->old_sampling_sizes,
+        delta,
+        this->aggregateSets
+      );
     
-    GenerateTransposeRRRSets(
-      this->tRRRSets, this->RR_sets, delta, 
-      this->G, this->gen, this->record,
-      std::forward<diff_model_tag>(model_tag),
-      std::forward<execution_tag>(ex_tag)
-    );
+      this->timeAggregator.allToAllTimer.endTimer();
 
-    this->RR_sets = thetaPrime;
+      // spdlog::get("console")->info("seed selection ...");
 
-    this->timeAggregator.samplingTimer.endTimer();    
+      int kprime = int(CFG.alpha * (double)CFG.k);
 
-    this->timeAggregator.allToAllTimer.startTimer();  
+      // TODO: turn the streaming and randgreedi functions into objects, then make a 
+      //  leveled_execution decorator that uses the same interface, that can wrap 
+      //  around either object. 
 
-    spdlog::get("console")->info("distributing samples with AllToAll ...");
+      // TODO: The plan here is to have two communication engines that use the same 
+      //  interface. One of them for leveled communicaiton, one of them for non-leveled
+      //  communication. Then the SeedApproximationStrategy which is responsible for the 
+      //  step after max-k-cover in the martingale loop can generically use this new
+      //  communication engine to solve for a solution.
 
-    cEngine.AggregateThroughAllToAll(
-      this->tRRRSets,
-      this->vertexToProcess,
-      this->old_sampling_sizes,
-      delta,
-      this->aggregateSets
-    );
-  
-    this->timeAggregator.allToAllTimer.endTimer();
+      approximated_solution = this->GetBestSeeds(kprime, thetaPrime + this->cEngine.GetSize());
+    });
+    
+    this->record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
+    auto timeMostInfluential = measure<>::exec_time([&]() { });
+    this->record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
 
-    spdlog::get("console")->info("seed selection ...");
-
-    int kprime = int(CFG.alpha * (double)CFG.k);
-
-    if (CFG.use_streaming == true) 
-    {
-      approximated_solution = this->Streaming(kprime, thetaPrime + this->cEngine.GetSize());
-    }
-    else 
-    {
-      approximated_solution = this->RandGreedi(kprime, thetaPrime + this->cEngine.GetSize());
-    }    
-
-  });
-  
-  record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
-  auto timeMostInfluential = measure<>::exec_time([&]() { });
-  record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
-
-  return approximated_solution;
-}
+    return approximated_solution;
+  }
 
   public:
   RanDIMM
@@ -326,7 +238,7 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
       timeAggregator(timeAggregator)
   {
     this->allocator = this->GetAllocator();
-    this->RR_sets = 0;
+    this->previous_theta = 0;
 
     for (size_t i = 0; i < vertexToProcess.size(); i++)
     {
@@ -335,6 +247,84 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
         this->aggregateSets.insert({i, std::vector<int>()});
       }
     }
+  }
+
+  auto SolveInfMax()
+  {
+    double LB = 0;
+    double epsilonPrime = 1.4142135623730951 * CFG.epsilon;
+
+    size_t thetaPrime = 0;
+
+    std::pair<std::vector<unsigned int>, int> seeds;
+    std::map<int, std::vector<int>> aggregateSets;
+
+    ////// MARTINGALE LOOP //////
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) 
+    {
+      // Equation 9
+      thetaPrime = ThetaPrime(
+        x, epsilonPrime, this->l, this->CFG.k, this->G.num_nodes(), 
+        std::forward<ripples::omp_parallel_tag>(this->ex_tag)
+      );
+
+      seeds = this->ApproximateSeedSet(thetaPrime);
+
+      // std::cout << "finished iteration " << x << " and aquired utility of " << seeds.second << std::endl;
+
+      // f is the fraction of RRRsets covered by the seeds / the total number of RRRSets (in the current iteration of the martigale loop)
+      // this has to be a global value, if one process succeeds and another fails it will get stuck in communication (the algorithm will fail). 
+      double f;
+
+      if (this->cEngine.GetRank() == 0) {
+        f = (double)(seeds.second) / thetaPrime;
+        // std::cout << "thetaprime: " << thetaPrime << std::endl;
+      }
+      
+      // mpi_broadcast f(s)
+      this->timeAggregator.broadcastTimer.startTimer();
+      this->cEngine.distributeF(&f);
+      this->timeAggregator.broadcastTimer.endTimer();
+
+      // std::cout << "seeds.second: (covered RRRSet IDs) = " << seeds.second << " , thetaPrme: " << thetaPrime << " , f = " << f << std::endl;
+      if (f >= std::pow(2, -x)) {
+        // std::cout << "Fraction " << f << std::endl;
+        LB = (G.num_nodes() * f) / (1 + epsilonPrime);
+        // spdlog::get("console")->info("Lower Bound {}", LB);
+        break;
+      }
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    size_t theta = Theta(this->CFG.epsilon, this->l, this->CFG.k, LB, this->G.num_nodes());
+
+    this->record.ThetaEstimationTotal = end - start;
+
+    this->record.Theta = theta;
+
+    if (this->cEngine.GetRank() == 0)
+    {
+      // spdlog::get("console")->info("Previous ThetaPrime: {}, current Theta: {}", thetaPrime, theta);
+    }
+
+    std::pair<std::vector<typename GraphTy::vertex_type>, int> bestSeeds;
+
+    if (thetaPrime >= theta) 
+    {
+      bestSeeds = seeds; 
+    }
+    else 
+    {
+      bestSeeds = this->ApproximateSeedSet(theta);
+    }
+
+    this->OutputDiagnosticData();
+
+    return bestSeeds.first;
   }
 
   auto ApproximateSeedSet(const size_t theta)
@@ -393,6 +383,143 @@ std::pair<std::vector<unsigned int>, int> MartigaleRound(
   }
 };
 
+template <
+  typename GraphTy, 
+  typename ConfTy, 
+  typename RRRGeneratorTy,
+  typename diff_model_tag, 
+  typename execution_tag
+>
+class Streaming : public RanDIMM<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag>
+{
+  public: 
+  Streaming
+  (
+    const GraphTy &input_G, 
+    const ConfTy &input_CFG,
+    ripples::omp_parallel_tag &e_tag,
+    diff_model_tag &model_tag,
+    const double input_l,
+    RRRGeneratorTy &gen,
+    IMMExecutionRecord &record,
+    const CommunicationEngine<GraphTy> &cEngine,
+    TimerAggregator &timeAggregator
+  ) 
+    : RanDIMM<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag>
+      (input_G, input_CFG, e_tag, model_tag, input_l, gen, record, cEngine, timeAggregator) 
+  {
+
+  }
+
+  protected: 
+  std::pair<std::vector<unsigned int>, size_t> GetBestSeeds(const int kprime, const size_t theta)  
+  {
+    if (this->cEngine.GetRank() == 0) 
+    {
+      StreamingRandGreedIEngine<GraphTy> streamingEngine(this->CFG.k, kprime, theta, (double)this->CFG.epsilon_2, this->cEngine.GetSize() - 1, this->cEngine, this->timeAggregator);
+      return streamingEngine.Stream();
+    }
+    else 
+    {
+      this->timeAggregator.totalSendTimer.startTimer();
+      
+      StreamingMaxKCover<GraphTy> localKCoverEngine(this->CFG.k, kprime, theta, this->timeAggregator, this->cEngine);
+      localKCoverEngine.useLazyGreedy();
+      localKCoverEngine.run_max_k_cover(this->aggregateSets);
+
+      this->timeAggregator.totalSendTimer.endTimer();
+
+      return std::make_pair(std::vector<unsigned int>(), 0);
+    }
+  }
+};
+
+template <
+  typename GraphTy, 
+  typename ConfTy, 
+  typename RRRGeneratorTy,
+  typename diff_model_tag, 
+  typename execution_tag
+>
+class RandGreedi : public RanDIMM<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag>
+{
+  public: 
+  RandGreedi
+  (
+    const GraphTy &input_G, 
+    const ConfTy &input_CFG,
+    ripples::omp_parallel_tag &e_tag,
+    diff_model_tag &model_tag,
+    const double input_l,
+    RRRGeneratorTy &gen,
+    IMMExecutionRecord &record,
+    const CommunicationEngine<GraphTy> &cEngine,
+    TimerAggregator &timeAggregator
+  ) 
+    : RanDIMM<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag>
+      (input_G, input_CFG, e_tag, model_tag, input_l, gen, record, cEngine, timeAggregator) 
+  {
+
+  }
+
+  protected: 
+  std::pair<std::vector<unsigned int>, size_t> GetBestSeeds(const int kprime, const size_t theta)  
+  {
+    this->timeAggregator.max_k_localTimer.startTimer();
+
+    std::pair<std::vector<unsigned int>, ssize_t> localSeeds = this->SolveKCover(
+      this->CFG.k, kprime, theta, this->timeAggregator, this->aggregateSets
+    );
+
+    this->timeAggregator.max_k_localTimer.endTimer();
+
+    // spdlog::get("console")->info("all gather...");
+    this->timeAggregator.allGatherTimer.startTimer();
+
+    std::vector<unsigned int> globalAggregation;
+    size_t totalData = this->cEngine.GatherPartialSolutions(localSeeds, this->aggregateSets, globalAggregation);
+
+    this->timeAggregator.allGatherTimer.endTimer();
+
+    std::pair<std::vector<unsigned int>, size_t> approximated_solution;
+
+    if (this->cEngine.GetRank() == 0) {
+      std::map<int, std::vector<int>> bestKMSeeds;
+
+      // spdlog::get("console")->info("unpacking local seeds in global process...");
+
+      this->timeAggregator.allGatherTimer.startTimer();
+      std::vector<std::pair<unsigned int, std::vector<unsigned int>>> local_seeds = this->cEngine.aggregateLocalKSeeds(bestKMSeeds, globalAggregation.data(), totalData);
+
+      this->timeAggregator.allGatherTimer.endTimer();
+
+      // spdlog::get("console")->info("global max_k_cover...");
+      this->timeAggregator.max_k_globalTimer.startTimer();
+
+      approximated_solution = this->SolveKCover(
+        this->CFG.k, kprime, theta, this->timeAggregator, bestKMSeeds
+      );
+
+      // approximated_solution = RanDIMM::SolveKCover(
+      //   (int)CFG.k, kprime, theta, this->timeAggregator, bestKMSeeds
+      // );
+
+      for (const auto & s: local_seeds)
+      {
+        if (s.first > approximated_solution.second)
+        {
+          approximated_solution.second = s.first;
+          approximated_solution.first = s.second;
+        }
+      }
+
+      this->timeAggregator.max_k_globalTimer.endTimer();
+    }
+
+    return approximated_solution;
+  }
+};
+
 template <typename ex_tag>
 struct MPI_Plus_X {
   // using generate_ex_tag
@@ -438,51 +565,9 @@ std::vector<PRNG> rank_split_generator(const PRNG &gen) {
   return generator;
 }
 
-//! Collect a set of Random Reverse Reachable set.
-//!
-//! \tparam GraphTy The type of the input graph.
-//! \tparam RRRGeneratorTy The type of the RRR generator.
-//! \tparam diff_model_tag Type-Tag to selecte the diffusion model.
-//! \tparam execution_tag Type-Tag to select the execution policy.
-//!
-//! \param G The input graph.  The graph is transoposed.
-//! \param k The size of the seed set.
-//! \param epsilon The parameter controlling the approximation guarantee.
-//! \param l Parameter usually set to 1.
-//! \param generator The rrr sets generator.
-//! \param record Data structure storing timing and event counts.
-//! \param model_tag The diffusion model tag.
-//! \param ex_tag The execution policy tag.
-// template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
-//           typename diff_model_tag, typename execution_tag>
-// std::pair<std::vector<unsigned int>, int> TransposeSampling(
-//   TransposeRRRSets<GraphTy>& tRRRSets,
-//   const GraphTy &G, const ConfTy &CFG, double l,
-//   RRRGeneratorTy &generator, IMMExecutionRecord &record,
-//   diff_model_tag &&model_tag, execution_tag &&ex_tag, 
-//   std::vector<int>& vertexToProcess,
-//   int world_size, int world_rank
-// ) {
-//   using vertex_type = typename GraphTy::vertex_type;
-
-// }
-
-//! The IMM algroithm for Influence Maximization (MPI specialization).
-//!
-//! \tparam GraphTy The type of the input graph.
-//! \tparam PRNG The type of the parallel random number generator.
-//! \tparam diff_model_tag Type-Tag to selecte the diffusion model.
-//!
-//! \param G The input graph.  The graph is transoposed.
-//! \param k The size of the seed set.
-//! \param epsilon The parameter controlling the approximation guarantee.
-//! \param l Parameter usually set to 1.
-//! \param gen The parallel random number generator.
-//! \param model_tag The diffusion model tag.
-//! \param ex_tag The execution policy tag.
 template <typename GraphTy, typename ConfTy, typename diff_model_tag,
           typename RRRGeneratorTy, typename ExTagTrait>
-auto GREEDI(
+auto run_greedimm(
   const GraphTy &G, 
   const ConfTy &CFG, 
   double l_value, 
@@ -498,96 +583,48 @@ auto GREEDI(
   using execution_tag = ripples::omp_parallel_tag;
 
   ////// INITIALIZATION //////
-
   CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine();
   execution_tag ex_tag = typename ExTagTrait::generate_ex_tag{};
 
   TimerAggregator timeAggregator;
 
-  // std::cout << "before initialization" << std::endl;
-  // std::cout << "number of nodes before functions " << G.num_nodes() << std::endl;
-
-  RanDIMM<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> randimm(
+  Streaming<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> randimm(
     G, CFG, ex_tag, model_tag, l_value, gen, record, cEngine, timeAggregator
   );
 
-  double LB = 0;
-  double epsilonPrime = 1.4142135623730951 * CFG.epsilon;
-
-  size_t thetaPrime = 0;
-
-  std::pair<std::vector<unsigned int>, int> seeds;
-  std::map<int, std::vector<int>> aggregateSets;
-  
-  ////// MARTINGALE LOOP //////
-
-  std::cout << "starting martingale loop" << std::endl;
-
-  auto start = std::chrono::high_resolution_clock::now();
-
-  for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) 
-  {
-    // Equation 9
-    thetaPrime = ThetaPrime(
-      x, epsilonPrime, l_value, CFG.k, G.num_nodes(), 
-      std::forward<execution_tag>(ex_tag)
-    );
-
-    seeds = randimm.ApproximateSeedSet(thetaPrime);
-
-    std::cout << "finished iteration " << x << " and aquired utility of " << seeds.second << std::endl;
-
-    // f is the fraction of RRRsets covered by the seeds / the total number of RRRSets (in the current iteration of the martigale loop)
-    // this has to be a global value, if one process succeeds and another fails it will get stuck in communication (the algorithm will fail). 
-    double f;
-
-    if (cEngine.GetRank() == 0) {
-      f = (double)(seeds.second) / thetaPrime;
-      std::cout << "thetaprime: " << thetaPrime << std::endl;
-    }
-    
-    // mpi_broadcast f(s)
-    timeAggregator.broadcastTimer.startTimer();
-    cEngine.distributeF(&f);
-    timeAggregator.broadcastTimer.endTimer();
-
-    // std::cout << "seeds.second: (covered RRRSet IDs) = " << seeds.second << " , thetaPrme: " << thetaPrime << " , f = " << f << std::endl;
-    if (f >= std::pow(2, -x)) {
-      // std::cout << "Fraction " << f << std::endl;
-      LB = (G.num_nodes() * f) / (1 + epsilonPrime);
-      // spdlog::get("console")->info("Lower Bound {}", LB);
-      break;
-    }
-  }
-
-  auto end = std::chrono::high_resolution_clock::now();
-
-  size_t theta = Theta(CFG.epsilon, l_value, CFG.k, LB, G.num_nodes());
-
-  record.ThetaEstimationTotal = end - start;
-
-  record.Theta = theta;
-
-  if (cEngine.GetRank() == 0)
-  {
-    spdlog::get("console")->info("Previous ThetaPrime: {}, current Theta: {}", thetaPrime, theta);
-  }
-
-  std::pair<std::vector<vertex_type>, int> bestSeeds;
-
-  if (thetaPrime >= theta) 
-  {
-    bestSeeds = seeds; 
-  }
-  else 
-  {
-    bestSeeds = randimm.ApproximateSeedSet(theta);
-  }
-
-  randimm.OutputDiagnosticData();
-
-  return bestSeeds.first;
+  return randimm.SolveInfMax();
 }
+
+template <typename GraphTy, typename ConfTy, typename diff_model_tag,
+          typename RRRGeneratorTy, typename ExTagTrait>
+auto run_randgreedi(
+  const GraphTy &G, 
+  const ConfTy &CFG, 
+  double l_value, 
+  RRRGeneratorTy &gen,
+  IMMExecutionRecord &record, 
+  diff_model_tag &&model_tag, 
+  ExTagTrait &&
+) 
+{
+  using vertex_type = typename GraphTy::vertex_type;
+
+  // no sequential version available
+  using execution_tag = ripples::omp_parallel_tag;
+
+  ////// INITIALIZATION //////
+  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine();
+  execution_tag ex_tag = typename ExTagTrait::generate_ex_tag{};
+
+  TimerAggregator timeAggregator;
+
+  RandGreedi<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> randimm(
+    G, CFG, ex_tag, model_tag, l_value, gen, record, cEngine, timeAggregator
+  );
+
+  return randimm.SolveInfMax();
+}
+
 
 }  // namespace mpi
 }  // namespace ripples
