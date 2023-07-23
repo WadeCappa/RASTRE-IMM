@@ -585,7 +585,7 @@ class GPUWalkWorker<GraphTy, PRNGeneratorTy, ItrTy, independent_cascade_tag>
   // }
 
  private:
-  static constexpr size_t batch_size_ = 32;
+  static constexpr size_t batch_size_ = 8;
   config_t conf_;
   PRNGeneratorTy rng_;
   trng::uniform_int_dist u_;

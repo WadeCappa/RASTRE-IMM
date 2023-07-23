@@ -108,7 +108,7 @@ class BucketController
             return log2(val) / log2(base);
         }((double)k, (1+this->epsilon)));
 
-        std::cout << "deltazero: " << this->deltaZero << ", number of buckets: " << num_buckets << std::endl;
+        // std::cout << "deltazero: " << this->deltaZero << ", number of buckets: " << num_buckets << std::endl;
 
         for (int i = 0; i < num_buckets + 1; i++)
         {
@@ -120,7 +120,7 @@ class BucketController
     {
         // build mapping of each thread to number of buckets
         int buckets_per_thread = std::ceil((double)this->buckets.size() / ((double)threads));
-        std::cout << "number of buckets; " << this->buckets.size() << ", threads; " << threads << ", buckets per thread; " << buckets_per_thread << std::endl;
+        // std::cout << "number of buckets; " << this->buckets.size() << ", threads; " << threads << ", buckets per thread; " << buckets_per_thread << std::endl;
         this->threadMap.resize(threads);
 
         int bucket_index = 0;
@@ -212,7 +212,7 @@ class BucketController
             seeds.push_back(p.first);
         }
 
-        std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets.at(max_covered_index)->getSeeds().size() << std::endl;
+        // std::cout << "selected bucket " << max_covered_index << " with size of " << this->buckets.at(max_covered_index)->getSeeds().size() << std::endl;
 
         return std::make_pair(seeds, max_covered);
     }
@@ -436,7 +436,7 @@ class StreamingRandGreedIEngine
                     // std::cout << "handled status" << std::endl;
                 }
 
-                std::cout << "killing processors, waiting for them to exit..." << std::endl;
+                // std::cout << "killing processors, waiting for them to exit..." << std::endl;
             }
             else // processor
             {   
@@ -447,7 +447,7 @@ class StreamingRandGreedIEngine
                 this->buckets.MapBucketsToThreads(threads - 1);
                 this->timer.initBucketTimer.endTimer();
 
-                std::cout << "starting to process elements..." << std::endl;
+                // std::cout << "starting to process elements..." << std::endl;
 
                 this->timer.max_k_globalTimer.startTimer();
                 this->buckets.ProcessElements(threads - 1, availability_index, element_matrix);                
@@ -470,7 +470,7 @@ class StreamingRandGreedIEngine
             }
         }
 
-        std::cout << "number of seeds: " << bestSeeds.first.size() << std::endl;
+        // std::cout << "number of seeds: " << bestSeeds.first.size() << std::endl;
 
         return bestSeeds;
     }

@@ -157,7 +157,7 @@ class RanDIMM
 
       this->record.ThetaPrimeDeltas.push_back(delta);
 
-      spdlog::get("console")->info("sampling ...");
+      // spdlog::get("console")->info("sampling ...");
 
       this->timeAggregator.samplingTimer.startTimer();
 
@@ -174,7 +174,7 @@ class RanDIMM
 
       this->timeAggregator.allToAllTimer.startTimer();  
 
-      spdlog::get("console")->info("distributing samples with AllToAll ...");
+      // spdlog::get("console")->info("distributing samples with AllToAll ...");
 
       cEngine.AggregateThroughAllToAll(
         this->tRRRSets,
@@ -186,7 +186,7 @@ class RanDIMM
     
       this->timeAggregator.allToAllTimer.endTimer();
 
-      spdlog::get("console")->info("seed selection ...");
+      // spdlog::get("console")->info("seed selection ...");
 
       int kprime = int(CFG.alpha * (double)CFG.k);
 
@@ -273,7 +273,7 @@ class RanDIMM
 
       seeds = this->ApproximateSeedSet(thetaPrime);
 
-      std::cout << "finished iteration " << x << " and aquired utility of " << seeds.second << std::endl;
+      // std::cout << "finished iteration " << x << " and aquired utility of " << seeds.second << std::endl;
 
       // f is the fraction of RRRsets covered by the seeds / the total number of RRRSets (in the current iteration of the martigale loop)
       // this has to be a global value, if one process succeeds and another fails it will get stuck in communication (the algorithm will fail). 
@@ -281,7 +281,7 @@ class RanDIMM
 
       if (this->cEngine.GetRank() == 0) {
         f = (double)(seeds.second) / thetaPrime;
-        std::cout << "thetaprime: " << thetaPrime << std::endl;
+        // std::cout << "thetaprime: " << thetaPrime << std::endl;
       }
       
       // mpi_broadcast f(s)
@@ -308,7 +308,7 @@ class RanDIMM
 
     if (this->cEngine.GetRank() == 0)
     {
-      spdlog::get("console")->info("Previous ThetaPrime: {}, current Theta: {}", thetaPrime, theta);
+      // spdlog::get("console")->info("Previous ThetaPrime: {}, current Theta: {}", thetaPrime, theta);
     }
 
     std::pair<std::vector<typename GraphTy::vertex_type>, int> bestSeeds;
@@ -473,7 +473,7 @@ class RandGreedi : public RanDIMM<GraphTy, ConfTy, RRRGeneratorTy, diff_model_ta
 
     this->timeAggregator.max_k_localTimer.endTimer();
 
-    spdlog::get("console")->info("all gather...");
+    // spdlog::get("console")->info("all gather...");
     this->timeAggregator.allGatherTimer.startTimer();
 
     std::vector<unsigned int> globalAggregation;
@@ -486,14 +486,14 @@ class RandGreedi : public RanDIMM<GraphTy, ConfTy, RRRGeneratorTy, diff_model_ta
     if (this->cEngine.GetRank() == 0) {
       std::map<int, std::vector<int>> bestKMSeeds;
 
-      spdlog::get("console")->info("unpacking local seeds in global process...");
+      // spdlog::get("console")->info("unpacking local seeds in global process...");
 
       this->timeAggregator.allGatherTimer.startTimer();
       std::vector<std::pair<unsigned int, std::vector<unsigned int>>> local_seeds = this->cEngine.aggregateLocalKSeeds(bestKMSeeds, globalAggregation.data(), totalData);
 
       this->timeAggregator.allGatherTimer.endTimer();
 
-      spdlog::get("console")->info("global max_k_cover...");
+      // spdlog::get("console")->info("global max_k_cover...");
       this->timeAggregator.max_k_globalTimer.startTimer();
 
       approximated_solution = this->SolveKCover(
