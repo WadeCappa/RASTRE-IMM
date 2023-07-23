@@ -2,13 +2,13 @@
 
 #SBATCH -A m1641
 #SBATCH -C cpu
-#SBATCH -t 01:00:00
-#SBATCH -q regular
-#SBATCH -N 513
+#SBATCH -t 24:00:00
+#SBATCH -q preempt
+#SBATCH -N 1
 #SBATCH --ntasks-per-node=1
-#SBATCH -J m513_orkut_big_LT
-#SBATCH -o /global/homes/w/wadecap/results/jobs/orkut_big/m513_orkut_big_LT.o
-#SBATCH -e /global/homes/w/wadecap/results/jobs/orkut_big/m513_orkut_big_LT.e
+#SBATCH -J building_friendster_LT
+#SBATCH -o /global/homes/w/wadecap/building_friendster_LT.o
+#SBATCH -e /global/homes/w/wadecap/building_friendster_LT.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -16,7 +16,7 @@
 module use /global/common/software/m3169/perlmutter/modulefiles
 
 #OpenMP settings:
-export OMP_NUM_THREADS=64
+export OMP_NUM_THREADS=128
 export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 513 ./build/release/tools/mpi-greedimm -i /global/cfs/cdirs/m1641/network-data/Binaries/orkut_big_LT_binary.txt  -w -k 100 -p -d LT -e 0.13 -o /global/homes/w/wadecap/results/jobs/orkut_big/m513_orkut_big_LT.json --run-streaming=true --epsilon-2=0.077 --reload-binary
+srun -n 1 ~/ripples/build/release/tools/dump-graph -i /global/cfs/cdirs/m1641/network-data/test_data/com-friendster.ungraph.txt --distribution uniform -d LT -o /global/homes/w/wadecap/friendster_LT_binary.txt --scale-factor 0.1 --dump-binary
