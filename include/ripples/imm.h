@@ -78,6 +78,7 @@ struct IMMConfiguration : public TIMConfiguration {
   bool use_streaming = false;
   double epsilon_2 = 0.13; 
   double alpha = 1;
+  bool use_diimm = false;
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
 
@@ -109,6 +110,9 @@ struct IMMConfiguration : public TIMConfiguration {
         ->group("Streaming-Engine Options");
     app.add_option("--alpha", alpha,
                 "Set the fraction of local seeds to send to the final selection step, defaults to 1")
+        ->group("Streaming-Engine Options");
+    app.add_option("--DIiMM", use_diimm,
+                "Use the 2022 DIiMM algorithm to approximate influence maximization")
         ->group("Streaming-Engine Options");
 
   }

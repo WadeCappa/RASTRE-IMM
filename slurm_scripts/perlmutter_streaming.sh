@@ -4,11 +4,11 @@
 #SBATCH -C cpu
 #SBATCH -t 00:30:00
 #SBATCH -q regular
-#SBATCH -N 257
+#SBATCH -N 9
 #SBATCH --ntasks-per-node=1
-#SBATCH -J m257_livejournal_LT
-#SBATCH -o /global/homes/w/wadecap/strong_scaling/livejournal/m257_livejournal_LT.o
-#SBATCH -e /global/homes/w/wadecap/strong_scaling/livejournal/m257_livejournal_LT.e
+#SBATCH -J m9_orkut_big_LT
+#SBATCH -o /global/homes/w/wadecap/results/strong_scaling/orkut_big/m9_orkut_big_LT.o
+#SBATCH -e /global/homes/w/wadecap/results/strong_scaling/orkut_big/m9_orkut_big_LT.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 257 ./build/release/tools/mpi-greedimm -i /global/cfs/cdirs/m1641/network-data/Binaries/livejournal_LT_binary.txt  -w -k 100 -p -d LT -e 0.13 -o /global/homes/w/wadecap/strong_scaling/livejournal/m257_livejournal_LT.json --run-streaming=true --epsilon-2=0.077 --reload-binary
+srun -n 9 ./build/release/tools/mpi-greedimm -i /global/cfs/cdirs/m1641/network-data/Binaries/orkut_big_LT_binary.txt  -w -k 100 -p -d LT -e 0.13 -o /global/homes/w/wadecap/results/strong_scaling/orkut_big/m9_orkut_big_LT.json --run-streaming=true --epsilon-2=0.077 --reload-binary -u

@@ -28,7 +28,7 @@ private:
 
     public:
         NextMostInfluentialFinder(
-            int theta
+            size_t theta
         ) : covered(theta)
         {}
 
@@ -54,7 +54,7 @@ private:
             return covered.popcount();
         }
 
-        virtual ssize_t findNextInfluential () = 0;
+        virtual size_t findNextInfluential () = 0;
 
         virtual NextMostInfluentialFinder* setSubset (
             const std::vector<unsigned int>& subset_of_selection_sets,
@@ -90,7 +90,7 @@ private:
         }
 
     public:
-        LazyGreedy(int theta) : NextMostInfluentialFinder(theta)
+        LazyGreedy(size_t theta) : NextMostInfluentialFinder(theta)
         {}
 
         ~LazyGreedy()
@@ -115,7 +115,7 @@ private:
             return this;
         }
 
-        ssize_t findNextInfluential() override
+        size_t findNextInfluential() override
         {
             std::pair<int, std::vector<int>*> l = this->heap->front();
             std::pop_heap(this->heap->begin(), this->heap->end(), this->cmp);
@@ -181,7 +181,7 @@ private:
     {
     public:
         NaiveGreedy(
-            int theta
+            size_t theta
         ) : NextMostInfluentialFinder(theta)
         {}
 
@@ -199,7 +199,7 @@ private:
             return this;
         }
 
-        ssize_t findNextInfluential() override
+        size_t findNextInfluential() override
         {
             int max = 0;
             int max_key = -1;
@@ -291,7 +291,7 @@ private:
     //         return this;
     //     }
 
-    //     ssize_t findNextInfluential() override
+    //     size_t findNextInfluential() override
     //     {
     //         int best_score = -1;
     //         int max_key = -1;
@@ -342,7 +342,7 @@ protected:
     int k;
     int kprime;
     double epsilon;
-    const int theta;
+    const size_t theta;
     bool usingStochastic = false;
     NextMostInfluentialFinder* finder = 0;
     TimerAggregator &timer;
@@ -377,7 +377,7 @@ protected:
     }
 
 public:
-    MaxKCoverBase(int k, int kprime, int theta, TimerAggregator &timer) 
+    MaxKCoverBase(int k, int kprime, size_t theta, TimerAggregator &timer) 
         : timer(timer), theta(theta)
     {
         this->k = k;
@@ -416,18 +416,18 @@ public:
     //     return *this;
     // }
 
-    virtual std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
+    virtual std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
 };
 
 template <typename GraphTy>
 class MaxKCover : public MaxKCoverBase<GraphTy>
 {
     public:
-    MaxKCover(int k, int kprime, int theta, TimerAggregator &timer) 
+    MaxKCover(int k, int kprime, size_t theta, TimerAggregator &timer) 
         : MaxKCoverBase<GraphTy>(k, kprime, theta, timer)
     {}
 
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
+    std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
     {
         this->finder->Setup(data);
         std::vector<unsigned int> res(this->k, -1);
@@ -484,18 +484,33 @@ private:
 
     void InsertNextSeedIntoSendBuffer (
         const unsigned int current_seed, 
-        const unsigned int vertex_id, 
-        const std::vector<int>& RRRSetIDs 
+        const unsigned int vertex_id,
+        const std::vector<int>& RRRSetIDs
     )
     {
-        std::pair<int, int*> sendData = this->cEngine.LinearizeSingleSeed(vertex_id, RRRSetIDs);
+        // TODO: this code is slow, can potentially be sped up (marginally) by skipping the delete step, and giving
+        //  the communciation engine the vector buffer itself instead of making it create it's own temp buffer.
+        std::pair<size_t, int*> sendData = this->cEngine.LinearizeSingleSeed(vertex_id, RRRSetIDs);
 
-        this->send_buffers[current_seed].resize(sendData.first);
+        // this->cEngine.BuildBufferForStreamingSend(send_buffers[current_seed]);
+
+        size_t total_data = this->cEngine.GetSendReceiveBufferSize(sendData.first);
+
+        this->send_buffers[current_seed].resize(total_data);
         
-        for (size_t i = 0; i < sendData.first; i++)
+        size_t i = 0;
+
+        for (; i < sendData.first; i++)
         {
             this->send_buffers[current_seed][i] = sendData.second[i];
         }
+
+        for (; i < total_data; i++)
+        {
+            this->send_buffers[current_seed][i] = -1; //TODO: Verify that this end of message flag is correct
+        }
+
+        // this->send_buffers[current_seed][0]
 
         delete sendData.second;
 
@@ -517,7 +532,7 @@ private:
             RRRSetIDs
         );
 
-        std::vector<unsigned int> newBuffer = std::vector<unsigned int>(this->send_buffers[current_seed].size() + local_seed_set.size() + 1);
+        std::vector<unsigned int> newBuffer = std::vector<unsigned int>(this->send_buffers[current_seed].size() + this->cEngine.GetBlockSize()); // TODO: get ceiling on division, mupliply by number of blocks required.
 
         int start = 0;
         for (; this->send_buffers[current_seed][start] != -1; start++)
@@ -547,13 +562,13 @@ private:
     StreamingMaxKCover(
         int k, 
         int kprime, 
-        int theta,
+        size_t theta,
         TimerAggregator &timer,
         const CommunicationEngine<GraphTy> &cEngine
     ) : MaxKCoverBase<GraphTy>(k, kprime, theta, timer), cEngine(cEngine), send_buffers(kprime)
     {}
 
-    std::pair<std::vector<unsigned int>, ssize_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
+    std::pair<std::vector<unsigned int>, size_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
     {
         this->finder->Setup(data);
 
