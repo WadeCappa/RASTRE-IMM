@@ -322,7 +322,10 @@ class RanDIMM
       bestSeeds = this->ApproximateSeedSet(theta);
     }
 
-    this->OutputDiagnosticData();
+    if (this->CFG.output_diagnostics == true)
+    {
+      this->OutputDiagnosticData();
+    }
 
     return bestSeeds.first;
   }

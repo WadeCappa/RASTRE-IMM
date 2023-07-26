@@ -79,6 +79,7 @@ struct IMMConfiguration : public TIMConfiguration {
   double epsilon_2 = 0.13; 
   double alpha = 1;
   bool use_diimm = false;
+  bool output_diagnostics = false;
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
 
@@ -113,6 +114,9 @@ struct IMMConfiguration : public TIMConfiguration {
         ->group("Streaming-Engine Options");
     app.add_option("--DIiMM", use_diimm,
                 "Use the 2022 DIiMM algorithm to approximate influence maximization")
+        ->group("Streaming-Engine Options");
+    app.add_option("--verbose", output_diagnostics,
+                "Output more granular runtime data")
         ->group("Streaming-Engine Options");
 
   }
