@@ -73,6 +73,7 @@
 #include <random>
 
 #include "ripples/mpi/streaming_engine.h"
+#include "ripples/sampler_context.h"
 
 namespace ripples {
 namespace mpi {
@@ -577,6 +578,7 @@ auto run_greedimm(
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
   diff_model_tag &&model_tag, 
+  unsigned int levels,
   ExTagTrait &&
 ) 
 {
@@ -607,6 +609,7 @@ auto run_randgreedi(
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
   diff_model_tag &&model_tag, 
+  unsigned int levels,
   ExTagTrait &&
 ) 
 {
@@ -625,8 +628,11 @@ auto run_randgreedi(
     G, CFG, ex_tag, model_tag, l_value, gen, record, cEngine, timeAggregator
   );
 
+  SamplerContext sampler(model_tag);
+
   return randimm.SolveInfMax();
 }
+
 
 
 }  // namespace mpi

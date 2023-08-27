@@ -1,0 +1,6 @@
+
+
+class ApproximatorContext {
+    public:
+    private:
+}

@@ -1,0 +1,6 @@
+
+
+class ApproximationStrategy {
+    private:
+    public:
+}

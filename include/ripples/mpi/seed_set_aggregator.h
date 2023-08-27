@@ -1,0 +1,6 @@
+
+
+class SeedSetAggregator {
+    private:
+    public:
+}
