@@ -73,7 +73,10 @@
 #include <random>
 
 #include "ripples/mpi/streaming_engine.h"
+#include "ripples/mpi/approximator_context.h"
+#include "ripples/mpi/seed_set_aggregator.h"
 #include "ripples/sampler_context.h"
+#include "ripples/mpi/martingale_runner.h"
 
 namespace ripples {
 namespace mpi {
@@ -578,7 +581,7 @@ auto run_greedimm(
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
   diff_model_tag &&model_tag, 
-  unsigned int levels,
+  // unsigned int levels,
   ExTagTrait &&
 ) 
 {
@@ -609,7 +612,7 @@ auto run_randgreedi(
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
   diff_model_tag &&model_tag, 
-  unsigned int levels,
+  // unsigned int levels,
   ExTagTrait &&
 ) 
 {
@@ -622,15 +625,33 @@ auto run_randgreedi(
   CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine();
   execution_tag ex_tag = typename ExTagTrait::generate_ex_tag{};
 
-  TimerAggregator timeAggregator;
+  TransposeRRRSets<GraphTy> tRRRSets(G.num_nodes());
 
-  RandGreedi<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> randimm(
-    G, CFG, ex_tag, model_tag, l_value, gen, record, cEngine, timeAggregator
+  TimerAggregator timeAggregator;
+  std::vector<int> vertexToProcess(cEngine.DistributeVertices(CFG.use_streaming, G));
+
+  // RandGreedi<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> randimm(
+  //   G, CFG, ex_tag, model_tag, l_value, gen, record, cEngine, timeAggregator
+  // );
+
+  DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> sampler(
+    cEngine.GetSize(),
+    G,
+    gen,
+    record,
+    model_tag
   );
 
-  SamplerContext sampler(model_tag);
+  AllToAllSeedAggregator<GraphTy> aggregator(G.num_nodes(), cEngine, vertexToProcess);
 
-  return randimm.SolveInfMax();
+  ApproximatorContext approximator;
+
+  MartingaleRunner<GraphTy, ConfTy, RRRGeneratorTy> runner(
+    sampler, aggregator, approximator, G, CFG, l_value, gen, record, cEngine, timeAggregator
+  );
+
+  // return randimm.SolveInfMax();
+  return runner.approximateInfMax();
 }
 
 

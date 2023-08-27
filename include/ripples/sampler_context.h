@@ -1,46 +1,59 @@
 #include "ripples/generate_rrr_sets.h"
+#include "ripples/imm_execution_record.h"
+#include "ripples/mpi/find_most_influential.h"
+#include "ripples/utility.h"
+#include "ripples/imm_execution_record.h"
+#include "ripples/mpi/imm.h"
 
+template <typename GraphTy>
 class SamplerContext {
     private:
 
     public:
-    void addNewSamples(const size_t theta) = 0;
-}
+    virtual void addNewSamples(
+        TransposeRRRSets<GraphTy> &tRRRSets, 
+        const size_t counterStart, 
+        const size_t delta
+    ) = 0;
+};
 
-class DefaultSampler : public SamplerContext {
+template <
+    typename GraphTy,
+    typename diff_model_tag,
+    typename RRRGeneratorTy,
+    typename execution_tag
+>
+class DefaultSampler : public SamplerContext<GraphTy> {
     private:
-    ripples::omp_parallel_tag &ex_tag;
-    const ripples::omp_parallel_tag e_tag = ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{};
+    ripples::omp_parallel_tag ex_tag;
+    diff_model_tag &model_tag;
 
-    size_t previous_theta;
     const unsigned int world_size;
-    TransposeRRRSets<GraphTy> &tRRRSets;
     const GraphTy &graph;
     RRRGeneratorTy &gen;
-    IMMExecutionRecord &record;
+    ripples::IMMExecutionRecord &record;
 
     public:
     DefaultSampler(
-        TransposeRRRSets<GraphTy> &tRRRSets,
         unsigned int world_size,
         const GraphTy &input_G, 
         RRRGeneratorTy &gen,
-        IMMExecutionRecord &record,
+        ripples::IMMExecutionRecord &record,
         diff_model_tag &model_tag
-    ) : tRRRSets(tRRRSets), world_size(world_size), graph(input_G), gen(gen), record(record) {
-        this->previous_theta = 0;
+    ) : world_size(world_size), graph(input_G), gen(gen), record(record), model_tag(model_tag) {
     }
 
-    void addNewSamples(const size_t theta) override {
-        size_t delta = (theta - previous_theta) / this->world_size;
-
+    // TODO: see if you can add a const tag to this method
+    void addNewSamples(
+            TransposeRRRSets<GraphTy> &tRRRSets, 
+            const size_t counterStart, 
+            const size_t delta
+        ) override {
         GenerateTransposeRRRSets(
-            this->tRRRSets, this->previous_theta, delta, 
+            tRRRSets, counterStart, delta, 
             this->graph, this->gen, this->record,
             std::forward<diff_model_tag>(this->model_tag),
             std::forward<execution_tag>(this->ex_tag)
         );
-
-        this->previous_theta = theta;
     }
-}
+};
