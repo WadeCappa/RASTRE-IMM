@@ -7,7 +7,7 @@ class RipplesConan(ConanFile):
                'nvidia_cub' : [True, False]}
     default_options = {'memkind' : False,
                        'metal' : False,
-                       'nvidia_cub' : False}
+                       'nvidia_cub' : True}
     generators = 'Waf'
 
     def configure(self):
