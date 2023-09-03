@@ -445,8 +445,7 @@ class CommunicationEngine
         }
     }
 
-    std::vector<std::pair<unsigned int, std::vector<unsigned int>>> aggregateLocalKSeeds
-    (
+    std::vector<std::pair<unsigned int, std::vector<unsigned int>>> aggregateLocalKSeeds (
         std::map<int, std::vector<int>> &bestMKSeeds, 
         unsigned int* data, 
         size_t totalData

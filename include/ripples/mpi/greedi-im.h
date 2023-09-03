@@ -74,7 +74,7 @@
 
 #include "ripples/mpi/streaming_engine.h"
 #include "ripples/mpi/approximator_context.h"
-#include "ripples/mpi/seed_set_aggregator.h"
+#include "ripples/mpi/ownership_manager.h"
 #include "ripples/sampler_context.h"
 #include "ripples/mpi/martingale_runner.h"
 
@@ -134,8 +134,6 @@ class RanDIMM
     localKCoverEngine.useLazyGreedy();
     return localKCoverEngine.run_max_k_cover(elements);
   }
-
-  virtual std::pair<std::vector<unsigned int>, size_t> GetBestSeeds(const int kprime, const size_t theta) = 0;
 
   std::pair<std::vector<unsigned int>, int> MartigaleRound(
     const size_t thetaPrime,
@@ -642,12 +640,12 @@ auto run_randgreedi(
     model_tag
   );
 
-  AllToAllSeedAggregator<GraphTy> aggregator(G.num_nodes(), cEngine, vertexToProcess);
+  AllToAllOwnershipManager<GraphTy> ownershipManager(G.num_nodes(), cEngine, vertexToProcess);
 
   ApproximatorContext approximator;
 
   MartingaleRunner<GraphTy, ConfTy, RRRGeneratorTy> runner(
-    sampler, aggregator, approximator, G, CFG, l_value, gen, record, cEngine, timeAggregator
+    sampler, ownershipManager, approximator, G, CFG, l_value, gen, record, cEngine, timeAggregator
   );
 
   // return randimm.SolveInfMax();

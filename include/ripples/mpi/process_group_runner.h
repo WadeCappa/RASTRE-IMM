@@ -1,6 +1,0 @@
-
-
-class ProcessGroupRunner {
-    private:
-    public:
-}

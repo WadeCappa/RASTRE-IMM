@@ -15,7 +15,7 @@ class MartingaleRunner {
     private:
     SamplerContext<GraphTy> &sampler;
     const ApproximatorContext &approximator;
-    SeedSetAggregator<GraphTy> &aggregator;
+    SeedSetAggregator<GraphTy> &ownershipManager;
 
     const GraphTy &G;
     const ConfTy &CFG;
@@ -44,7 +44,7 @@ class MartingaleRunner {
         #endif
     }
 
-    std::pair<std::vector<unsigned int>, int> martingaleRound(
+    std::pair<std::vector<unsigned int>, int> runMartingaleRound(
         const size_t thetaPrime,
         const size_t previousTheta
     ) {
@@ -77,7 +77,7 @@ class MartingaleRunner {
             this->timeAggregator.allToAllTimer.startTimer();  
 
             // spdlog::get("console")->info("distributing samples with AllToAll ...");
-            this->aggregator.aggregateSeedSets(this->tRRRSets, delta, this->aggregateSets);
+            this->ownershipManager.aggregateSeedSets(this->tRRRSets, delta, this->aggregateSets);
             
             this->timeAggregator.allToAllTimer.endTimer();
 
@@ -95,14 +95,14 @@ class MartingaleRunner {
         return approximated_solution;
     }
 
-    std::pair<std::vector<unsigned int>, unsigned int> runSeedSelection(size_t theta) {
+    std::pair<std::vector<unsigned int>, unsigned int> runMartingaleRound(size_t theta) {
         if (this->previousTheta > theta)
         {
             std::cout << "invalid theta value, smaller than previous theta. Theta = " << theta << ", previous theta = " << this->previousTheta << std::endl;
             exit(1);
         }
 
-        auto res = this->martingaleRound(
+        auto res = this->runMartingaleRound(
             theta, this->previousTheta
         );
 
@@ -141,7 +141,7 @@ class MartingaleRunner {
     public:
     MartingaleRunner(
         SamplerContext<GraphTy> &sampler,
-        SeedSetAggregator<GraphTy> &aggregator,
+        OwnershipManager<GraphTy> &ownershipManager,
         const ApproximatorContext &approximator,
 
         const GraphTy &input_G, 
@@ -154,7 +154,7 @@ class MartingaleRunner {
     ) 
         : 
             approximator(approximator), 
-            aggregator(aggregator), 
+            ownershipManager(ownershipManager), 
             sampler(sampler),
 
             G(input_G),
@@ -200,9 +200,9 @@ class MartingaleRunner {
 
             std::cout << "global theta: " << thetaPrime << std::endl;
 
-            seeds = this->runSeedSelection(thetaPrime);
+            seeds = this->runMartingaleRound(thetaPrime);
 
-            // f is the fraction of RRRsets covered by the seeds / the total number of RRRSets (in the current iteration of the martigale loop)
+            // f is the fraction of RRRsets covered by the seeds / the total number of RRRSets (in the current iteration of the martingale loop)
             // this has to be a global value, if one process succeeds and another fails it will get stuck in communication (the algorithm will fail). 
             double f;
 
@@ -246,7 +246,7 @@ class MartingaleRunner {
         }
         else 
         {
-            bestSeeds = this->runSeedSelection(theta);
+            bestSeeds = this->runMartingaleRound(theta);
         }
 
         // if (this->CFG.output_diagnostics == true)
