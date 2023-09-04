@@ -4,10 +4,10 @@ template <typename GraphTy>
 class OwnershipManager {
     private:
     public:
-    virtual void aggregateSeedSets(
+    virtual void redistributeSeedSets(
         const TransposeRRRSets<GraphTy> &tRRRSets, 
-        size_t delta, 
-        std::map<int, std::vector<int>> &aggregateSets
+        std::map<int, std::vector<int>> &aggregateSets,
+        const size_t delta
     ) = 0;
 };
 
@@ -30,8 +30,8 @@ class AllToAllOwnershipManager : public OwnershipManager<GraphTy> {
     
     void redistributeSeedSets(
         const TransposeRRRSets<GraphTy> &tRRRSets, 
-        const size_t delta, 
-        std::map<int, std::vector<int>> &aggregateSets
+        std::map<int, std::vector<int>> &aggregateSets,
+        const size_t delta
     ) override {
         this->cEngine.AggregateThroughAllToAll(
             tRRRSets,

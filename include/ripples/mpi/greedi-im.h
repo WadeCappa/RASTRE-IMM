@@ -135,6 +135,8 @@ class RanDIMM
     return localKCoverEngine.run_max_k_cover(elements);
   }
 
+  virtual std::pair<std::vector<unsigned int>, size_t> GetBestSeeds(const int kprime, const size_t theta) = 0;
+
   std::pair<std::vector<unsigned int>, int> MartigaleRound(
     const size_t thetaPrime,
     const size_t previous_theta
@@ -642,7 +644,23 @@ auto run_randgreedi(
 
   AllToAllOwnershipManager<GraphTy> ownershipManager(G.num_nodes(), cEngine, vertexToProcess);
 
-  ApproximatorContext approximator;
+  // NOTE: For testing, it is assumed that M = 16 and each group is of size 4. Let there be 5 groups. 
+  std::vector<ApproximatorGroup> groups;
+
+  MPI_Comm first_level_world_group;
+  MPI_Comm_split(MPI_COMM_WORLD, cEngine.GetRank() % 4, 0, &first_level_world_group);
+  LazyLazyApproximatorGroup<GraphTy, ConfTy> firstGroup(first_level_world_group, vertexToProcess, timeAggregator, CFG, cEngine);
+  groups.push_back(firstGroup);
+
+  MPI_Comm second_level_world_group;
+  // todo: bad logic here, 
+  MPI_Comm_split(MPI_COMM_WORLD, cEngine.GetRank() % 4 == 0 ? 0 : MPI_UNDEFINED, 0, &second_level_world_group);
+  if (cEngine.GetRank() % 4 == 0) {
+    LazyLazyApproximatorGroup<GraphTy, ConfTy> secondGroup(second_level_world_group, vertexToProcess, timeAggregator, CFG, cEngine);
+    groups.push_back(secondGroup);
+  }
+
+  ApproximatorContext approximator(groups);
 
   MartingaleRunner<GraphTy, ConfTy, RRRGeneratorTy> runner(
     sampler, ownershipManager, approximator, G, CFG, l_value, gen, record, cEngine, timeAggregator

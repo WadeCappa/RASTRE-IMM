@@ -15,7 +15,7 @@ class MartingaleRunner {
     private:
     SamplerContext<GraphTy> &sampler;
     const ApproximatorContext &approximator;
-    SeedSetAggregator<GraphTy> &ownershipManager;
+    OwnershipManager<GraphTy> &ownershipManager;
 
     const GraphTy &G;
     const ConfTy &CFG;
@@ -26,7 +26,7 @@ class MartingaleRunner {
     const double l;
     size_t previousTheta;
 
-    std::map<int, std::vector<int>> aggregateSets;
+    std::map<int, std::vector<int>> localSolutionSpace;
     std::vector<size_t> old_sampling_sizes;
     ripples::RRRsetAllocator<typename GraphTy::vertex_type> allocator;
     TransposeRRRSets<GraphTy> tRRRSets;
@@ -77,7 +77,8 @@ class MartingaleRunner {
             this->timeAggregator.allToAllTimer.startTimer();  
 
             // spdlog::get("console")->info("distributing samples with AllToAll ...");
-            this->ownershipManager.aggregateSeedSets(this->tRRRSets, delta, this->aggregateSets);
+            // TODO: Rename to redistirbuteSeedSets
+            this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->localSolutionSpace, delta);
             
             this->timeAggregator.allToAllTimer.endTimer();
 
@@ -85,7 +86,7 @@ class MartingaleRunner {
 
             int kprime = int(CFG.alpha * (double)CFG.k);
 
-            approximated_solution = this->approximator.getBestSeeds(kprime, thetaPrime + this->cEngine.GetSize());
+            approximated_solution = this->approximator.getBestSeeds(this->localSolutionSpace, kprime, thetaPrime + this->cEngine.GetSize());
         });
         
         this->record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
@@ -174,7 +175,7 @@ class MartingaleRunner {
         {
             if (vertexToProcess[i] == this->cEngine.GetRank())
             {
-                this->aggregateSets.insert({i, std::vector<int>()});
+                this->localSolutionSpace.insert({i, std::vector<int>()});
             }
         }
     }
