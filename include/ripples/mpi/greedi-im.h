@@ -74,7 +74,7 @@
 
 #include "ripples/mpi/streaming_engine.h"
 #include "ripples/mpi/approximator_context.h"
-#include "ripples/mpi/seed_set_aggregator.h"
+#include "ripples/mpi/ownership_manager.h"
 #include "ripples/sampler_context.h"
 #include "ripples/mpi/martingale_runner.h"
 
@@ -642,12 +642,28 @@ auto run_randgreedi(
     model_tag
   );
 
-  AllToAllSeedAggregator<GraphTy> aggregator(G.num_nodes(), cEngine, vertexToProcess);
+  AllToAllOwnershipManager<GraphTy> ownershipManager(G.num_nodes(), cEngine, vertexToProcess);
 
-  ApproximatorContext approximator;
+  // NOTE: For testing, it is assumed that M = 16 and each group is of size 4. Let there be 5 groups. 
+  std::vector<ApproximatorGroup> groups;
+
+  MPI_Comm first_level_world_group;
+  MPI_Comm_split(MPI_COMM_WORLD, std::floor(cEngine.GetRank() / 4), 0, &first_level_world_group);
+  LazyLazyApproximatorGroup<GraphTy, ConfTy> firstGroup(first_level_world_group, vertexToProcess, timeAggregator, CFG, cEngine);
+  groups.push_back(firstGroup);
+
+  MPI_Comm second_level_world_group;
+  // todo: bad logic here, 
+  MPI_Comm_split(MPI_COMM_WORLD, cEngine.GetRank() % 4 == 0 ? 0 : MPI_UNDEFINED, 0, &second_level_world_group);
+  if (cEngine.GetRank() % 4 == 0) {
+    LazyLazyApproximatorGroup<GraphTy, ConfTy> secondGroup(second_level_world_group, vertexToProcess, timeAggregator, CFG, cEngine);
+    groups.push_back(secondGroup);
+  }
+
+  ApproximatorContext approximator(groups);
 
   MartingaleRunner<GraphTy, ConfTy, RRRGeneratorTy> runner(
-    sampler, aggregator, approximator, G, CFG, l_value, gen, record, cEngine, timeAggregator
+    sampler, ownershipManager, approximator, G, CFG, l_value, gen, record, cEngine, timeAggregator
   );
 
   // return randimm.SolveInfMax();
