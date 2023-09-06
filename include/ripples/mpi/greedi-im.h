@@ -648,7 +648,7 @@ auto run_randgreedi(
   std::vector<ApproximatorGroup> groups;
 
   MPI_Comm first_level_world_group;
-  MPI_Comm_split(MPI_COMM_WORLD, cEngine.GetRank() % 4, 0, &first_level_world_group);
+  MPI_Comm_split(MPI_COMM_WORLD, std::floor(cEngine.GetRank() / 4), 0, &first_level_world_group);
   LazyLazyApproximatorGroup<GraphTy, ConfTy> firstGroup(first_level_world_group, vertexToProcess, timeAggregator, CFG, cEngine);
   groups.push_back(firstGroup);
 
