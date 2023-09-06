@@ -358,9 +358,9 @@ class GPUWalkWorker<GraphTy, PRNGeneratorTy, ItrTy, linear_threshold_tag>
     cuda_set_device(cuda_ctx_->gpu_id);
     size_t offset = 0;
     auto batch_size = conf_.num_gpu_threads();
-    while ((offset = mpmc_head.fetch_add(batch_size_)) < delta)  {
+    while ((offset = mpmc_head.fetch_add(batch_size)) < delta)  {
       size_t first = current + offset;
-      size_t last = first + batch_size_;
+      size_t last = first + batch_size;
 
       if (last > delta + current) last = delta + current;
       batchTranspose(tRRRSets, first, last);
@@ -384,12 +384,12 @@ class GPUWalkWorker<GraphTy, PRNGeneratorTy, ItrTy, linear_threshold_tag>
   //     AddTransposeRRRSet(tRRRSets, this->G_, root, local_rng, diff_model_tag{}, first);
   //   }
 
-  void batchTranspose(TransposeRRRSets<GraphTy> &tRRRSets, ItrTy first, ItrTy last) {
+  void batchTranspose(TransposeRRRSets<GraphTy> &tRRRSets, size_t first, size_t last) {
 #if CUDA_PROFILE
     auto &p(prof_bd.back());
     auto start = std::chrono::high_resolution_clock::now();
 #endif
-    auto size = std::distance(first, last);
+    auto size = last - first;
 
     cuda_lt_kernel(conf_.max_blocks_, conf_.block_size_, size,
                    this->G_.num_nodes(), d_trng_state_, d_lt_res_mask_,
@@ -424,7 +424,7 @@ class GPUWalkWorker<GraphTy, PRNGeneratorTy, ItrTy, linear_threshold_tag>
   }
 
 
-  void batch_lt_build_transpose(TransposeRRRSets<GraphTy> &tRRRSets, ItrTy first, size_t batch_size) {
+  void batch_lt_build_transpose(TransposeRRRSets<GraphTy> &tRRRSets, size_t first, size_t batch_size) {
 #if CUDA_PROFILE
     auto &p(prof_bd.back());
 #endif
@@ -691,12 +691,12 @@ class GPUWalkWorker<GraphTy, PRNGeneratorTy, ItrTy, independent_cascade_tag>
       *d_ic_predecessors_;
   PRNGeneratorTy *d_trng_state_;
 
-  void batchTranspose(TransposeRRRSets<GraphTy> &tRRRSets, ItrTy first, ItrTy last) {
+  void batchTranspose(TransposeRRRSets<GraphTy> &tRRRSets, size_t first, size_t last) {
 #if CUDA_PROFILE
     auto &p(prof_bd.back());
     auto start = std::chrono::high_resolution_clock::now();
 #endif
-    auto size = std::distance(first, last);
+    auto size = last - first;
     for (size_t wi = 0; wi < size; ++wi) {
 #if CUDA_PROFILE
       auto t0 = std::chrono::high_resolution_clock::now();
@@ -736,7 +736,7 @@ class GPUWalkWorker<GraphTy, PRNGeneratorTy, ItrTy, independent_cascade_tag>
 #endif
   }
 
-  void ic_build_transpose(TransposeRRRSets<GraphTy> &tRRRSets, ItrTy dst) {
+  void ic_build_transpose(TransposeRRRSets<GraphTy> &tRRRSets, size_t dst) {
     // auto &rrr_set(*dst);
     for (vertex_t i = 0; i < this->G_.num_nodes(); ++i)
       if (ic_predecessors_[i] != -1) tRRRSets.addToSet(int(i), dst);
