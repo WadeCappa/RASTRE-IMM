@@ -201,12 +201,13 @@ class CommunicationEngine
     size_t GatherPartialSolutions(
         const std::pair<std::vector<unsigned int>, ssize_t> &localSeeds,
         const std::map<int, std::vector<int>> &aggregateSets,
-        std::vector<unsigned int> &globalAggregation
+        std::vector<unsigned int> &globalAggregation,
+        const MPI_Comm &commWorld
     ) const
     {
         std::vector<unsigned int> linearAggregateSets;
         size_t totalLinearLocalSeedsData = this->linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second);
-        return this->aggregateAggregateSets(globalAggregation, totalLinearLocalSeedsData, linearAggregateSets.data());
+        return this->aggregateAggregateSets(globalAggregation, totalLinearLocalSeedsData, linearAggregateSets.data(), commWorld);
     }
 
     // Returns total count, modifies the countPerProcess vector;
@@ -547,9 +548,8 @@ class CommunicationEngine
     size_t aggregateAggregateSets(
         std::vector<unsigned int>& aggregatedSeeds, 
         size_t totalGatherData, 
-        unsigned int* localLinearAggregateSets
-        // needs vector of participating processes for 
-        // gatherv
+        unsigned int* localLinearAggregateSets,
+        const MPI_Comm &commWorld
     ) const
     {
         unsigned int* gatherSizes = new unsigned int[this->world_size];
@@ -560,7 +560,7 @@ class CommunicationEngine
 
         MPI_Gather(
             &total_block_send, 1, MPI_INT,
-            gatherSizes, 1, MPI_INT, 0, MPI_COMM_WORLD
+            gatherSizes, 1, MPI_INT, 0, commWorld
         );
 
         std::vector<unsigned int> displacements;
@@ -592,7 +592,7 @@ class CommunicationEngine
             (int*)displacements.data(),
             this->batch_int,
             0,
-            MPI_COMM_WORLD
+            commWorld
         );
 
         delete gatherSizes;

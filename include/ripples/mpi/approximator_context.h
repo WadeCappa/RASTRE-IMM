@@ -28,14 +28,6 @@ class ApproximatorContext {
         const unsigned int kprime,
         const size_t theta
     ) const {
-        // here is the flow; 
-            // from each group object in order; 
-                // gather_v first
-                // then you run seed selection. 
-            // each group returns their best seeds. 
-            // if you are not the group's leader, then you are on the last group in this->groups, you are done looping, exit
-            // otherwise you have data returned by group->approximate, feed this into the next group
-        
         std::map<int, std::vector<int>> currentData = localSolutionSpace; 
         std::pair<std::vector<unsigned int>, ssize_t> localCandidateSet;
         for (const auto & group : groups) {

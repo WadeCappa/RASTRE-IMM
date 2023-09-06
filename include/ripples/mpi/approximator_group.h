@@ -117,7 +117,7 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
         this->timeAggregator.allGatherTimer.startTimer();
 
         std::vector<unsigned int> globalAggregation;
-        size_t totalData = this->cEngine.GatherPartialSolutions(workingCandidateSet, localSolutionSpace, globalAggregation);
+        size_t totalData = this->cEngine.GatherPartialSolutions(workingCandidateSet, localSolutionSpace, globalAggregation, this->groupWorld);
 
         this->timeAggregator.allGatherTimer.endTimer();
 
@@ -126,7 +126,9 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
         std::vector<std::pair<unsigned int, std::vector<unsigned int>>> candidateSets;
 
         // TODO: use group rank
-        if (this->cEngine.GetRank() == 0) {
+        int groupRank;
+        MPI_Comm_rank(this->groupWorld, &groupRank);
+        if (groupRank == 0) {
 
             // spdlog::get("console")->info("unpacking local seeds in global process...");
 
