@@ -86,7 +86,11 @@ class MartingaleRunner {
 
             int kprime = int(CFG.alpha * (double)CFG.k);
 
-            approximated_solution = this->approximator.getBestSeeds(this->localSolutionSpace, kprime, thetaPrime + this->cEngine.GetSize());
+            approximated_solution = this->approximator.getBestSeeds(
+                this->localSolutionSpace, 
+                kprime, 
+                thetaPrime + this->cEngine.GetSize()
+            );
         });
         
         this->record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
