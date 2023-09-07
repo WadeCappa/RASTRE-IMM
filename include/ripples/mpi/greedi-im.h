@@ -572,6 +572,22 @@ std::vector<PRNG> rank_split_generator(const PRNG &gen) {
   return generator;
 }
 
+
+template <typename GraphTy, typename ConfTy, typename diff_model_tag,
+          typename RRRGeneratorTy, typename ExTagTrait>
+MartingaleRunner getRunner(
+  const GraphTy &G, 
+  const ConfTy &CFG, 
+  double l_value, 
+  RRRGeneratorTy &gen,
+  IMMExecutionRecord &record, 
+  diff_model_tag &&model_tag, 
+  // unsigned int levels,
+  ExTagTrait &&
+) {
+
+}
+
 template <typename GraphTy, typename ConfTy, typename diff_model_tag,
           typename RRRGeneratorTy, typename ExTagTrait>
 auto run_greedimm(

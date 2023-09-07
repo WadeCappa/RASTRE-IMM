@@ -1,6 +1,6 @@
 
 typedef struct solutionCandidateSets {
-    std::map<int, std::vector<int>> allKMSeeds;
+    std::map<int, std::vector<int>> solutionSpace;
     std::vector<std::pair<unsigned int, std::vector<unsigned int>>> localCandidateSets;
 } SolutionCandidateSets ;
 

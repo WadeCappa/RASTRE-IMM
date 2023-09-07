@@ -33,7 +33,7 @@ class ApproximatorContext {
         for (const auto & group : groups) {
             SolutionCandidateSets candidates = group.approximate(currentData, localCandidateSet, kprime, theta);
             localCandidateSet = getBestCandidate(candidates.localCandidateSets); 
-            currentData = candidates.allKMSeeds;
+            currentData = candidates.solutionSpace;
         }
 
         return localCandidateSet; 

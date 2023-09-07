@@ -4,11 +4,11 @@
 #SBATCH -C cpu
 #SBATCH -t 00:30:00
 #SBATCH -q regular
-#SBATCH -N 512
+#SBATCH -N 16
 #SBATCH --ntasks-per-node=1
-#SBATCH -J m512_lazy_livejournal
-#SBATCH -o /global/cfs/cdirs/m1641/network-results/fixed_alltoall/livejournal/m512_lazy_livejournal.o
-#SBATCH -e /global/cfs/cdirs/m1641/network-results/fixed_alltoall/livejournal/m512_lazy_livejournal.e
+#SBATCH -J m16_leveled_github_IC
+#SBATCH -o /global/homes/w/wadecap/results/jobs/testing_leveled/github/m16_leveled_github_IC.o
+#SBATCH -e /global/homes/w/wadecap/results/jobs/testing_leveled/github/m16_leveled_github_IC.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 512 ./build/release/tools/mpi-randgreedi -i /global/cfs/cdirs/m1641/network-data/Binaries/livejournal_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/cfs/cdirs/m1641/network-results/fixed_alltoall/livejournal/m512_lazy_livejournal.json --run-streaming=false --reload-binary 
+srun -n 16 ./build/release/tools/mpi-randgreedi -i /global/cfs/cdirs/m1641/network-data/Binaries/github_IC_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/homes/w/wadecap/results/jobs/testing_leveled/github/m16_leveled_github_IC.json --run-streaming=false --reload-binary -u
