@@ -19,7 +19,6 @@ class CommunicationEngine
 {
     private: 
     const int block_size = (1024 / sizeof(unsigned int)); // 256 ints per block
-    MPI_Datatype batch_int;
 
     const unsigned int world_size;
     const unsigned int world_rank;
@@ -31,13 +30,12 @@ class CommunicationEngine
         const unsigned int world_rank
     ) : world_size(world_size), world_rank(world_rank)
     {
-        MPI_Type_contiguous( this->block_size, MPI_INT, &(this->batch_int) );
-        MPI_Type_commit(&(this->batch_int));
+        // TODO: Extract all MPI_Datatype operations into constructor and deconstructor. Last time you tried
+        //  this you got MPI_DATATYPE_NULL errors from mpich. Figure out how to prevent this.
     }
 
     ~CommunicationEngine() 
     {
-        MPI_Type_free(&(this->batch_int));
     }
 
     size_t GetSendReceiveBufferSize(const size_t data_size) const
@@ -69,6 +67,10 @@ class CommunicationEngine
         const unsigned int tag
     ) const
     {
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
+
         MPI_Send (
             data,
             data_size / this->block_size,
@@ -76,6 +78,7 @@ class CommunicationEngine
             tag,
             MPI_COMM_WORLD
         );
+        MPI_Type_free(&(batch_int));
     }
 
     void QueueNextSeed(
@@ -85,15 +88,19 @@ class CommunicationEngine
         MPI_Request &request
     ) const
     {
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
         MPI_Isend (
             data,
             data_size / this->block_size,
-            this->batch_int, 
+            batch_int, 
             0,
             tag,
             MPI_COMM_WORLD,
             &request
         );
+        MPI_Type_free(&(batch_int));
     }
 
     size_t GetBlockSize() const
@@ -181,6 +188,9 @@ class CommunicationEngine
 
     void QueueReceive(unsigned int* buffer, size_t max_receive_size, MPI_Request &request) const 
     {
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
         MPI_Irecv(
             buffer,
             max_receive_size / this->block_size,
@@ -190,6 +200,7 @@ class CommunicationEngine
             MPI_COMM_WORLD,
             &request
         );
+        MPI_Type_free(&(batch_int));
     }
 
     void WaitForSend(MPI_Request &request) const 
@@ -515,17 +526,21 @@ class CommunicationEngine
         buildPrefixSum(receivePrefixSum, receiveSizes, this->world_size);
 
         // call alltoall_v
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
         MPI_Alltoallv(
             linearizedData, 
             (int*)countPerProcess, 
             (int*)sendPrefixSum.data(), 
-            this->batch_int, 
+            batch_int, 
             linearizedLocalData, 
             (int*)receiveSizes, 
             (int*)receivePrefixSum.data(),
-            this->batch_int,
+            batch_int,
             MPI_COMM_WORLD
         );
+        MPI_Type_free(&(batch_int));
 
         for (int i = 0; i < this->world_size; i++) {
             receiveSizes[i] *= this->block_size;
@@ -583,17 +598,21 @@ class CommunicationEngine
         // for the leveled implementation of this communication, we may have to use alltoallv 
         //  and formulate the communication as a matrix manipulation. Look more into this, create
         //  some basic tests scripts.
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
         MPI_Gatherv(
             localLinearAggregateSets,
             total_block_send,
-            this->batch_int,
+            batch_int,
             (int*)aggregatedSeeds.data(),
             (int*)gatherSizes,
             (int*)displacements.data(),
-            this->batch_int,
+            batch_int,
             0,
             commWorld
         );
+        MPI_Type_free(&(batch_int));
 
         delete gatherSizes;
         return totalData * this->block_size;

@@ -2,7 +2,7 @@
 
 #SBATCH -A m1641
 #SBATCH -C cpu
-#SBATCH -t 00:02:00
+#SBATCH -t 00:01:00
 #SBATCH -q regular 
 #SBATCH -N 16
 #SBATCH --ntasks-per-node=1

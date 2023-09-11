@@ -1,5 +1,4 @@
 #include "ripples/generate_rrr_sets.h"
-#include "ripples/imm_execution_record.h"
 #include "ripples/mpi/find_most_influential.h"
 #include "ripples/utility.h"
 #include "ripples/mpi/imm.h"
@@ -9,17 +8,18 @@
 template <
     typename GraphTy,
     typename ConfTy,
-    typename RRRGeneratorTy
+    typename RRRGeneratorTy,
+    typename diff_model_tag,
+    typename execution_tag
 >
-class MartingaleRunner {
+class MartingaleContext {
     private:
-    SamplerContext<GraphTy> &sampler;
-    const ApproximatorContext &approximator;
+    DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> &sampler;
+    const ApproximatorContext<GraphTy, ConfTy> &approximator;
     OwnershipManager<GraphTy> &ownershipManager;
 
     const GraphTy &G;
     const ConfTy &CFG;
-    RRRGeneratorTy &gen;
     ripples::IMMExecutionRecord &record;
     const CommunicationEngine<GraphTy> &cEngine;
 
@@ -70,7 +70,7 @@ class MartingaleRunner {
 
             this->timeAggregator.samplingTimer.startTimer();
 
-            // std::cout << this->RR_sets << ", " << delta << ", " << thetaPrime << ", " << localThetaPrime << std::endl;
+            std::cout << "before sampling, " << this->previousTheta << ", " << delta << std::endl;
             this->sampler.addNewSamples(this->tRRRSets, this->previousTheta, delta);
             this->timeAggregator.samplingTimer.endTimer();    
 
@@ -78,14 +78,18 @@ class MartingaleRunner {
 
             // spdlog::get("console")->info("distributing samples with AllToAll ...");
             // TODO: Rename to redistirbuteSeedSets
+            std::cout << "before redistribution" << std::endl;
             this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->localSolutionSpace, delta);
             
             this->timeAggregator.allToAllTimer.endTimer();
+
+            std::cout << "local solution space size: " << this->localSolutionSpace.size() << std::endl;
 
             // spdlog::get("console")->info("seed selection ...");
 
             int kprime = int(CFG.alpha * (double)CFG.k);
 
+            std::cout << "before seed selection" << std::endl;
             approximated_solution = this->approximator.getBestSeeds(
                 this->localSolutionSpace, 
                 kprime, 
@@ -144,15 +148,14 @@ class MartingaleRunner {
     }
 
     public:
-    MartingaleRunner(
-        SamplerContext<GraphTy> &sampler,
+    MartingaleContext(
+        DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> &sampler,
         OwnershipManager<GraphTy> &ownershipManager,
-        const ApproximatorContext &approximator,
+        const ApproximatorContext<GraphTy, ConfTy> &approximator,
 
         const GraphTy &input_G, 
         const ConfTy &input_CFG,
         const double input_l,
-        RRRGeneratorTy &gen,
         ripples::IMMExecutionRecord &record,
         const CommunicationEngine<GraphTy> &cEngine,
         TimerAggregator &timeAggregator
@@ -168,7 +171,6 @@ class MartingaleRunner {
             l(input_l * (1 + 1 / std::log2(G.num_nodes()))),
             vertexToProcess(cEngine.DistributeVertices(input_CFG.use_streaming, input_G)),
             old_sampling_sizes(input_G.num_nodes(), 0),
-            gen(gen),
             record(record),
             cEngine(cEngine),
             timeAggregator(timeAggregator) {

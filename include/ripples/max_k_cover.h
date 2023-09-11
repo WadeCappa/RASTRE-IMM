@@ -91,7 +91,8 @@ private:
 
     public:
         LazyGreedy(size_t theta) : NextMostInfluentialFinder(theta)
-        {}
+        {
+        }
 
         ~LazyGreedy()
         {
@@ -117,11 +118,12 @@ private:
 
         size_t findNextInfluential() override
         {
+            // std::cout << "entered into finder" << std::endl;
             std::pair<int, std::vector<int>*> l = this->heap->front();
             std::pop_heap(this->heap->begin(), this->heap->end(), this->cmp);
             this->heap->pop_back();
 
-            // std::cout << "covered is size " << covered.size() << std::endl;
+            // std::cout << "found " << l.first << " from heap " << std::endl;
 
             std::vector<int> new_set;
 
@@ -425,7 +427,8 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
     public:
     MaxKCover(int k, int kprime, size_t theta, TimerAggregator &timer) 
         : MaxKCoverBase<GraphTy>(k, kprime, theta, timer)
-    {}
+    {
+    }
 
     std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
     {
@@ -438,8 +441,11 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
         for (const auto & l : data) { all_vertices.push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
+        std::cout << "solving max k cover for " << data.size() << " elements" << std::endl;
+
         for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
         {
+            // std::cout << "working on seed " <<  currentSeed  << "..." << std::endl;
             if (this->usingStochastic)
             {
                 this->reorganizeVertexSet(all_vertices, subset_size, res);
@@ -447,8 +453,8 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
             }
 
             this->timer.max_k_localTimer.startTimer();
-
             res[currentSeed] = this->finder->findNextInfluential();
+            this->timer.max_k_localTimer.endTimer();
         }
 
         return std::make_pair(res, this->finder->GetUtility());
