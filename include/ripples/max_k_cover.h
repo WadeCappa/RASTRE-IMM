@@ -441,8 +441,6 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
         for (const auto & l : data) { all_vertices.push_back(l.first); }
         this->finder->setSubset(all_vertices, subset_size);
 
-        std::cout << "solving max k cover for " << data.size() << " elements" << std::endl;
-
         for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
         {
             // std::cout << "working on seed " <<  currentSeed  << "..." << std::endl;

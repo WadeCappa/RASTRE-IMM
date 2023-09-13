@@ -136,7 +136,6 @@ class LazyLazyApproximatorGroup {
         // spdlog::get("console")->info("all gather...");
         this->timeAggregator.allGatherTimer.startTimer();
 
-        std::cout << "aggregating current best solution of " << currentState.bestSolution.first.size() << " and utility of " << currentState.bestSolution.second << std::endl;
         std::vector<unsigned int> globalAggregation;
         size_t totalData = this->cEngine.GatherPartialSolutions(
             currentState.bestSolution,
@@ -169,7 +168,8 @@ class LazyLazyApproximatorGroup {
             // spdlog::get("console")->info("global max_k_cover...");
             this->timeAggregator.max_k_globalTimer.startTimer();
 
-            std::cout << "solving for group globally" << std::endl;
+            std::cout << "global process getting solution from " << globalSolutionSpace.size() << " possible solutions " << std::endl;
+
             globalCandidateSet = this->SolveKCover(
                 this->CFG.k, kprime, theta, this->timeAggregator, globalSolutionSpace
             );
@@ -181,8 +181,6 @@ class LazyLazyApproximatorGroup {
 
             this->timeAggregator.max_k_globalTimer.endTimer();
         }
-
-        std::cout << "rank " << this->cEngine.GetRank() << " has returned " << candidateSets.size() << " candidate sets, and a solution space of " << globalSolutionSpace.size() << std::endl;
 
         currentState.solutionSpace = globalSolutionSpace;
         currentState.bestSolution = this->getBestCandidate(candidateSets);

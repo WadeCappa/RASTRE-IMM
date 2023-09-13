@@ -8,23 +8,24 @@ class MartingleBuilder {
         typename GraphTy,
         typename ConfTy>
     static std::vector<MPI_Comm> buildCommGroups(
-        const unsigned int levels,
-        const unsigned int branchingFactor,
+        const unsigned int levels, 
+        const unsigned int branchingFactor, // 4
         const int rank,
-        const int worldSize
+        const int worldSize // 8
     ) {
         std::vector<MPI_Comm> groups;
-        int currentRank = rank;
-        unsigned int currentLevel = 0;
+        int currentRank = rank; 
         unsigned int currentWorldSize = worldSize;
-        bool addingNewGroups = true;
+        bool addingNewGroups = true; 
 
         for (unsigned int level = 0; level < levels; level++) {
-            unsigned int numberOfGroups = std::ceil(currentWorldSize / branchingFactor);
+            unsigned int numberOfGroups = std::ceil(currentWorldSize / branchingFactor); 
 
             MPI_Comm newComm;
             // TODO: This creates lobsided groups when branchingFactor is not a factor of m^(1/levels)
-            int color = std::floor(currentRank / numberOfGroups);
+            int color = rank % numberOfGroups;
+            // std::cout << "level " << level << " has number of groups " << numberOfGroups;
+            // std::cout << " and global rank " << rank << ", local rank " << currentRank << " has color " << color << std::endl;
             MPI_Comm_split(
                 MPI_COMM_WORLD, 
                 addingNewGroups ? color : MPI_UNDEFINED,
@@ -32,17 +33,16 @@ class MartingleBuilder {
                 &newComm
             );
 
-            currentWorldSize = currentWorldSize / branchingFactor;
+            currentWorldSize = numberOfGroups;
 
             if (addingNewGroups) {
                 groups.push_back(newComm);
+                currentRank = color; // 0 -> 0, 2 -> 1
+
                 int groupRank;
                 MPI_Comm_rank(newComm, &groupRank);
-                if (groupRank == 0) {
-                    currentRank = currentRank / branchingFactor;
-                } else {
+                if (groupRank != 0) {
                     addingNewGroups = false;
-                    currentRank = -1;
                 }
             }
         }

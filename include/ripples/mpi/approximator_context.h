@@ -17,7 +17,8 @@ class ApproximatorContext {
         state.solutionSpace = localSolutionSpace;
 
         for (size_t i = 0; i < this->groups.size(); i++) {
-            std::cout << "working on level " << i << std::endl;
+            std::cout << "working on level " << i << " which has solution space of size " << state.solutionSpace.size();
+            std::cout << " and local solutions of " << state.bestSolution.second << std::endl;
             state = this->groups[i]->approximate(state, kprime, theta);
         }
 
