@@ -472,15 +472,20 @@ class CommunicationEngine
         current_seeds.push_back(vertexID);
         bestMKSeeds.insert({ vertexID, std::vector<int>() });
 
-        for (size_t rankDataProcessed = 1, i = 1; i < totalData - 1; i++) {
+        for (size_t i = 1; i < totalData - 1; i++) {
+
+            // std::cout << "processing byte "<< i << " out of " << totalData << std::endl;
             if (*(data + i) == -2) {
                 local_seeds.push_back(std::make_pair(*(data + ++i), std::vector<unsigned int>(current_seeds)));
                 current_seeds.empty();
 
                 i++;
-                while (*(data + i) == -3)
+                while (*(data + i) == -3 && i < totalData)
                 {
                     i++;
+                    if (i >= totalData) {
+                        return local_seeds;
+                    }
                 }
                 
                 vertexID = *(data + i);

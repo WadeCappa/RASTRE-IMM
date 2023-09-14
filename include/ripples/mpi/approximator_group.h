@@ -23,40 +23,6 @@ class ApproximatorGroup {
     ) = 0;
 };
 
-// class DummyApproximatorGroup : public ApproximatorGroup {
-//     public:
-//     DummyApproximatorGroup(
-//         const MPI_Comm groupWorld,
-//         const std::vector<int> &vertexToProcess
-//     ) : ApproximatorGroup(groupWorld, vertexToProcess) {}
-
-//     void approximate(
-//         SolutionState &solutionSets, // modified as side effect
-//         const std::pair<std::vector<unsigned int>, unsigned int> &previousGroupSolution,
-//         const int kprime, 
-//         const size_t theta
-//     ) {
-//         std::cout << "inside dummy approximator" << std::endl;
-
-//         int group_rank; 
-//         MPI_Comm_rank(groupWorld, &group_rank);
-        
-//         if (group_rank == 0) {
-//             solutionSets.solutionSpace = std::map<int, std::vector<int>>{
-//                     {0, std::vector<int>{0,1,2,3,4,5,6,7,8,9}},
-//                     {1, std::vector<int>{0,1,2,3,4,5,6,7,8,9}},
-//                     {2, std::vector<int>{0,1,2,3,4,5,6,7,8,9}}
-//                 };
-//             solutionSets.localCandidateSets = std::vector<std::pair<unsigned int, std::vector<unsigned int>>>{
-//                     std::make_pair(80000, std::vector<unsigned int>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
-//                 };
-//         } else {
-//             solutionSets.solutionSpace = std::map<int, std::vector<int>>();
-//             solutionSets.localCandidateSets = std::vector<std::pair<unsigned int, std::vector<unsigned int>>>();
-//         }
-//     }
-// };
-
 template <typename GraphTy, typename ConfTy>
 class LazyLazyApproximatorGroup {
     private:

@@ -615,18 +615,14 @@ auto run_randgreedi(
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
   diff_model_tag &&model_tag, 
-  // unsigned int levels,
-  // unsigned int group_size,
+  const unsigned int levels,
+  const unsigned int branchingFactor,
   ExTagTrait &&
 ) 
 {
   // no sequential version available
   using execution_tag = ripples::omp_parallel_tag;
   using vertex_type = typename GraphTy::vertex_type;
-
-  // TODO: pass as arguments from cli
-  const unsigned int levels = 2;
-  const unsigned int branchingFactor = 4;
 
   CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine();
   TransposeRRRSets<GraphTy> tRRRSets(G.num_nodes());
