@@ -572,7 +572,7 @@ class CommunicationEngine
         const MPI_Comm &commWorld
     ) const
     {
-        unsigned int* gatherSizes = new unsigned int[this->world_size];
+	std::vector<unsigned int> gatherSizes(this->world_size);
         gatherSizes[0] = -1;
 
         size_t total_block_send = totalGatherData / this->block_size;
@@ -580,7 +580,7 @@ class CommunicationEngine
 
         MPI_Gather(
             &total_block_send, 1, MPI_INT,
-            gatherSizes, 1, MPI_INT, 0, commWorld
+            gatherSizes.data(), 1, MPI_INT, 0, commWorld
         );
 
         std::vector<unsigned int> displacements;
@@ -595,14 +595,11 @@ class CommunicationEngine
                 totalData += (unsigned int)gatherSizes[i];
             }  
 
-            buildPrefixSum(displacements, gatherSizes, this->world_size);
+            buildPrefixSum(displacements, gatherSizes.data(), this->world_size);
         }
 
         aggregatedSeeds.resize(totalData * this->block_size);
 
-        // for the leveled implementation of this communication, we may have to use alltoallv 
-        //  and formulate the communication as a matrix manipulation. Look more into this, create
-        //  some basic tests scripts.
         MPI_Datatype batch_int;
         MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
         MPI_Type_commit(&(batch_int));
@@ -611,7 +608,7 @@ class CommunicationEngine
             total_block_send,
             batch_int,
             (int*)aggregatedSeeds.data(),
-            (int*)gatherSizes,
+            (int*)gatherSizes.data(),
             (int*)displacements.data(),
             batch_int,
             0,
@@ -619,7 +616,6 @@ class CommunicationEngine
         );
         MPI_Type_free(&(batch_int));
 
-        delete gatherSizes;
         return totalData * this->block_size;
     }
 

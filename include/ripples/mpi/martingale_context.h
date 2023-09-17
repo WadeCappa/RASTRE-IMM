@@ -76,11 +76,6 @@ class MartingaleContext {
             this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->localSolutionSpace, delta);
             this->timeAggregator.allToAllTimer.endTimer();
 
-	    size_t emptyCount = this->DEBUG_countEmpty(this->localSolutionSpace);
-	    std::cout << "rank " << this->cEngine.GetRank() << " has " << emptyCount << " empty vertices " << std::endl;
-
-            std::cout << "local solution space size: " << this->localSolutionSpace.size() << std::endl;
-
             int kprime = int(CFG.alpha * (double)CFG.k);
 
             std::cout << "before seed selection using kprime of " << kprime << std::endl;
@@ -299,10 +294,7 @@ class MartingaleContext {
             bestSeeds = this->runMartingaleRound(theta);
         }
 
-        if (this->CFG.output_diagnostics == true)
-        {
-            this->OutputDiagnosticData();
-        }
+        this->OutputDiagnosticData();
 
         return bestSeeds.first;
     }
