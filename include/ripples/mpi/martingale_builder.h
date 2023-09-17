@@ -18,7 +18,7 @@ class MartingleBuilder {
         bool addingNewGroups = true; 
 
         for (unsigned int level = 0; level < levels; level++) {
-            std::cout << "starting level " << level << " at rank " << rank << std::endl;
+            // std::cout << "starting level " << level << " at rank " << rank << std::endl;
             unsigned int numberOfGroups = std::ceil((double)currentWorldSize / (double)branchingFactor); 
 
             if (numberOfGroups == 0) {
@@ -29,8 +29,8 @@ class MartingleBuilder {
             MPI_Comm newComm;
             // TODO: This creates lobsided groups when branchingFactor is not a factor of m^(1/levels)
             int color = rank % numberOfGroups;
-            std::cout << "level " << level << " has number of groups " << numberOfGroups;
-            std::cout << " and rank " << rank << " has color " << color << std::endl;
+            // std::cout << "level " << level << " has number of groups " << numberOfGroups;
+            // std::cout << " and rank " << rank << " has color " << color << std::endl;
             MPI_Comm_split(
                 MPI_COMM_WORLD, 
                 addingNewGroups ? color : MPI_UNDEFINED,

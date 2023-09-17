@@ -359,7 +359,7 @@ class CommunicationEngine
         const TransposeRRRSets<GraphTy> &tRRRSets, 
         const std::vector<int> &vertexToProcessor, 
         const std::vector<unsigned int> &dataStartPartialSum, 
-        size_t total_data, 
+        const size_t total_data, 
         const std::vector<size_t>& old_sizes
     ) const
     {
@@ -367,7 +367,7 @@ class CommunicationEngine
 
         #pragma omp parallel for
         for (int rank = 0; rank < this->world_size; rank++) {
-            LinearizeRank(tRRRSets, linear_sets, vertexToProcessor, dataStartPartialSum, rank, old_sizes);
+            this->LinearizeRank(tRRRSets, linear_sets, vertexToProcessor, dataStartPartialSum, rank, old_sizes);
         }
 
         return linear_sets;
@@ -378,7 +378,7 @@ class CommunicationEngine
         std::vector<unsigned int>& linearTRRRSets, 
         const std::vector<int> &vertexToProcessor, 
         const std::vector<unsigned int> &dataStartPartialSum, 
-        int rank, 
+        const int rank, 
         const std::vector<size_t>& old_sizes
     ) const
     {
@@ -521,6 +521,7 @@ class CommunicationEngine
         size_t totalReceivingBlocks = 0;
         for (int i = 0; i < this->world_size; i++) {
             totalReceivingBlocks += (unsigned int)*(receiveSizes + i);
+	    // std::cout << "rank " << GetRank() << " receiving " << (unsigned int)*(receiveSizes + i) << " blocks from " << i << std::endl;
         }
         
         unsigned int* linearizedLocalData = new unsigned int[totalReceivingBlocks * this->block_size];
@@ -552,14 +553,13 @@ class CommunicationEngine
         }
 
         // TODO: make this not terrible
-        if (this->world_rank == 0)
-        {
-            aggregateSets.insert({0, std::vector<int>()});
-        }   
-        else 
-        {
-            this->AggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
-        }
+	//  for streaming this might crash so you may need to add a dummy value to aggregate sets.
+        //if (this->world_rank == 0)
+        //{
+        //    aggregateSets.insert({0, std::vector<int>()});
+        //}   
+
+    	this->AggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
         
         delete receiveSizes;
         delete linearizedLocalData;
@@ -575,8 +575,8 @@ class CommunicationEngine
         unsigned int* gatherSizes = new unsigned int[this->world_size];
         gatherSizes[0] = -1;
 
-        std::cout << "remainder: " << totalGatherData % this->block_size << std::endl; 
         size_t total_block_send = totalGatherData / this->block_size;
+        // std::cout << "totalGatherData " << totalGatherData << std::endl; 
 
         MPI_Gather(
             &total_block_send, 1, MPI_INT,

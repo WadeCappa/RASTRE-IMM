@@ -54,6 +54,8 @@ class LazyLazyApproximatorGroup {
     ) {
         unsigned int bestUtility = 0;
         std::vector<unsigned int> bestCandidate;
+		
+	// std::cout << "getting best solution from " << allCandidateSets.size() << " options" << std::endl;
 
         for (const auto & e : allCandidateSets) {
             if (e.first > bestUtility) {
@@ -61,8 +63,6 @@ class LazyLazyApproximatorGroup {
                 bestUtility = e.first;
             }
         }
-
-        std::cout << "got best candidate of " << bestUtility << " and size " << bestCandidate.size() << std::endl;
 
         return std::make_pair(bestCandidate, bestUtility);
     }
@@ -82,22 +82,27 @@ class LazyLazyApproximatorGroup {
         const size_t theta
     ) {
         SolutionState currentState;
-        currentState.bestSolution = previousState.bestSolution;
+        currentState.bestSolution.first = previousState.bestSolution.first;
+        currentState.bestSolution.second = previousState.bestSolution.second;
 
         if (currentState.bestSolution.first.size() == 0) {
-            std::cout << "init of local solution" << std::endl;
+            // std::cout << "init of local solution using world size of " << previousState.solutionSpace.size() << std::endl;;
             this->timeAggregator.max_k_localTimer.startTimer();
 
             std::pair<std::vector<unsigned int>, unsigned int> newSeeds = this->SolveKCover(
                 this->CFG.k, kprime, theta, this->timeAggregator, previousState.solutionSpace
             );
 
-            // TODO: Fix this, should not be assigning first to second and second to first
             currentState.bestSolution.second = newSeeds.second;
-            currentState.bestSolution.first = newSeeds.first;
+	    currentState.bestSolution.first = std::vector<unsigned int>(newSeeds.first.begin(), newSeeds.first.end());
 
             this->timeAggregator.max_k_localTimer.endTimer();
         }
+
+        // std::cout << "about to do gather on " << currentState.bestSolution.first.size();
+        // std::cout << " seeds of utility " << currentState.bestSolution.second;
+        // std::cout << " using solution space of size " << previousState.solutionSpace.size();
+        // std::cout << " for rank " << cEngine.GetRank() << std::endl;
 
         // spdlog::get("console")->info("all gather...");
         this->timeAggregator.allGatherTimer.startTimer();
@@ -116,13 +121,12 @@ class LazyLazyApproximatorGroup {
         std::map<int, std::vector<int>> globalSolutionSpace;
         std::vector<std::pair<unsigned int, std::vector<unsigned int>>> candidateSets;
 
-        // TODO: use group rank
+	int globalRank; 
+	MPI_Comm_rank(MPI_COMM_WORLD, &globalRank);
+
         int groupRank;
         MPI_Comm_rank(this->groupWorld, &groupRank);
         if (groupRank == 0) {
-
-            int globalRank; 
-            MPI_Comm_rank(MPI_COMM_WORLD, &globalRank);
 
             std::cout << "global rank " << globalRank << " is group leader" << std::endl;
 
@@ -134,22 +138,27 @@ class LazyLazyApproximatorGroup {
             // spdlog::get("console")->info("global max_k_cover...");
             this->timeAggregator.max_k_globalTimer.startTimer();
 
-            std::cout << "global process getting solution from " << globalSolutionSpace.size() << " possible solutions " << std::endl;
+            // std::cout << "global process getting solution from " << globalSolutionSpace.size() << " possible solutions " << std::endl;
 
             globalCandidateSet = this->SolveKCover(
                 this->CFG.k, kprime, theta, this->timeAggregator, globalSolutionSpace
             );
 
-            candidateSets.push_back(std::make_pair(
-                static_cast<unsigned int>(globalCandidateSet.second),
-                globalCandidateSet.first
-            ));
+//            candidateSets.push_back(std::make_pair(
+//                static_cast<unsigned int>(globalCandidateSet.second),
+//                globalCandidateSet.first
+//            ));
+
+	    currentState.bestSolution.first = globalCandidateSet.first;
+	    currentState.bestSolution.second = globalCandidateSet.second;
 
             this->timeAggregator.max_k_globalTimer.endTimer();
         }
 
         currentState.solutionSpace = globalSolutionSpace;
-        currentState.bestSolution = this->getBestCandidate(candidateSets);
+        // currentState.bestSolution = this->getBestCandidate(candidateSets);
+        // std::cout << "got best candidate of " << currentState.bestSolution.second << " and size " << currentState.bestSolution.first.size() << " for rank " << globalRank << std::endl;
+
         return currentState;
     }
 };

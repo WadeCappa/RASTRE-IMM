@@ -18,11 +18,12 @@ class ApproximatorContext {
 
         for (size_t i = 0; i < this->groups.size(); i++) {
             std::cout << "working on level " << i << " which has solution space of size " << state.solutionSpace.size();
-            std::cout << " and local solutions of " << state.bestSolution.second << std::endl;
+            std::cout << " and local solution utility of " << state.bestSolution.second;
+	    std::cout << " and size of " << state.bestSolution.first.size() << std::endl;
             state = this->groups[i]->approximate(state, kprime, theta);
         }
 
-        std::cout << "returning best approximation" << std::endl;
+        // std::cout << "returning best approximation" << std::endl;
 
         return state.bestSolution;
     }

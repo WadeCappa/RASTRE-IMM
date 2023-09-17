@@ -344,6 +344,7 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
 
     std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
     {
+	std::cout << "finding " << this->k << " seeds from " << data.size()<<  std::endl;
         this->finder->Setup(data);
         std::vector<unsigned int> res(this->k, -1);
 
@@ -367,7 +368,11 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
             this->timer.max_k_localTimer.endTimer();
         }
 
-        return std::make_pair(res, this->finder->GetUtility());
+	auto resUtility = this->finder->GetUtility();
+
+	std::cout << "returning solution of utility " << resUtility << std::endl;
+
+        return std::make_pair(res, resUtility);
     }
 };
 
