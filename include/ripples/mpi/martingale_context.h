@@ -15,7 +15,7 @@ template <
 class MartingaleContext {
     private:
     DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> &sampler;
-    const ApproximatorContext<GraphTy, ConfTy> &approximator;
+    const ApproximatorContext &approximator;
     OwnershipManager<GraphTy> &ownershipManager;
 
     const GraphTy &G;
@@ -189,7 +189,7 @@ class MartingaleContext {
     MartingaleContext(
         DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> &sampler,
         OwnershipManager<GraphTy> &ownershipManager,
-        const ApproximatorContext<GraphTy, ConfTy> &approximator,
+        const ApproximatorContext &approximator,
 
         const GraphTy &input_G, 
         const ConfTy &input_CFG,

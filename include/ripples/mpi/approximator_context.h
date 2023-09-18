@@ -1,12 +1,11 @@
 #include "ripples/mpi/approximator_group.h"
 
-template <typename GraphTy, typename ConfTy>
 class ApproximatorContext {
     private:
-    const std::vector<LazyLazyApproximatorGroup<GraphTy, ConfTy>*> groups;
+    const std::vector<ApproximatorGroup*> groups;
 
     public:
-    ApproximatorContext(const std::vector<LazyLazyApproximatorGroup<GraphTy, ConfTy>*> groups) : groups(groups) {}
+    ApproximatorContext(const std::vector<ApproximatorGroup*> groups) : groups(groups) {}
 
     std::pair<std::vector<unsigned int>, unsigned int> getBestSeeds(
         const std::map<int, std::vector<int>> &localSolutionSpace,

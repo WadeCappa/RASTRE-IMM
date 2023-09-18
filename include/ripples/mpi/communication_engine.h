@@ -18,6 +18,7 @@ template <typename GraphTy>
 class CommunicationEngine
 {
     private: 
+    const bool streaming;
     const int block_size = (1024 / sizeof(unsigned int)); // 256 ints per block
 
     const unsigned int world_size;
@@ -27,8 +28,9 @@ class CommunicationEngine
     CommunicationEngine
     (
         const unsigned int world_size, 
-        const unsigned int world_rank
-    ) : world_size(world_size), world_rank(world_rank)
+        const unsigned int world_rank,
+        const bool streaming
+    ) : world_size(world_size), world_rank(world_rank), streaming(streaming)
     {
         // TODO: Extract all MPI_Datatype operations into constructor and deconstructor. Last time you tried
         //  this you got MPI_DATATYPE_NULL errors from mpich. Figure out how to prevent this.
@@ -554,12 +556,11 @@ class CommunicationEngine
 
         // TODO: make this not terrible
 	//  for streaming this might crash so you may need to add a dummy value to aggregate sets.
-        //if (this->world_rank == 0)
-        //{
-        //    aggregateSets.insert({0, std::vector<int>()});
-        //}   
-
-    	this->AggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
+        if (this->world_rank == 0 && this->streaming == true) {
+           aggregateSets.insert({0, std::vector<int>()});
+        } else {
+            this->AggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
+        }
         
         delete receiveSizes;
         delete linearizedLocalData;
@@ -629,12 +630,12 @@ template <typename GraphTy>
 class CommunicationEngineBuilder
 {
     public:
-    static CommunicationEngine<GraphTy> BuildCommunicationEngine()
+    static CommunicationEngine<GraphTy> BuildCommunicationEngine(const bool streaming)
     {
         int world_size, world_rank;
         MPI_Comm_size(MPI_COMM_WORLD, &world_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-        return CommunicationEngine<GraphTy>(world_size, world_rank);
+        return CommunicationEngine<GraphTy>(world_size, world_rank, streaming);
     }
 };

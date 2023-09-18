@@ -9,29 +9,7 @@ class ApproximatorGroup {
     const MPI_Comm groupWorld;
     const std::vector<int> &vertexToProcess;
 
-    public:
-    ApproximatorGroup(
-        const MPI_Comm groupWorld,
-        const std::vector<int> &vertexToProcess
-    ) : vertexToProcess(vertexToProcess), groupWorld(groupWorld) {}
-
-    virtual void approximate(
-        SolutionState &solutionSets, // modified as side effect
-        const std::pair<std::vector<unsigned int>, unsigned int> &previousGroupSolution,
-        const int kprime, 
-        const size_t theta
-    ) = 0;
-};
-
-template <typename GraphTy, typename ConfTy>
-class LazyLazyApproximatorGroup {
-    private:
-    TimerAggregator &timeAggregator;
-    const ConfTy &CFG;
-    const MPI_Comm groupWorld;
-    const std::vector<int> &vertexToProcess;
-    const CommunicationEngine<GraphTy> &cEngine;
-
+    template <typename GraphTy>
     static std::pair<std::vector<unsigned int>, unsigned int> SolveKCover(
         const int k,
         const int kprime,
@@ -68,19 +46,87 @@ class LazyLazyApproximatorGroup {
     }
 
     public:
+    ApproximatorGroup(
+        MPI_Comm groupWorld,
+        const std::vector<int> &vertexToProcess
+    ) : vertexToProcess(vertexToProcess), groupWorld(groupWorld) {}
+
+    virtual SolutionState approximate(
+        const SolutionState &previousState,
+        const int kprime, 
+        const size_t theta
+    ) = 0;
+};
+
+template <typename GraphTy, typename ConfTy>
+class StreamingApproximatorGroup : public ApproximatorGroup { 
+    private:
+    TimerAggregator &timeAggregator;
+    const ConfTy &CFG;
+    const CommunicationEngine<GraphTy> &cEngine;
+
+    public:
+    StreamingApproximatorGroup(
+        MPI_Comm groupWorld,
+        const std::vector<int> &vertexToProcess,
+        TimerAggregator &timeAggregator,
+        const ConfTy &input_CFG,
+        const CommunicationEngine<GraphTy> &cEngine
+    ) : ApproximatorGroup(groupWorld, vertexToProcess), timeAggregator(timeAggregator), CFG(input_CFG), cEngine(cEngine) {}
+
+    SolutionState approximate(
+        const SolutionState &previousState,
+        const int kprime, 
+        const size_t theta
+    ) override {
+        SolutionState currentState;
+        int worldSize;
+        int groupRank;
+        MPI_Comm_rank(this->groupWorld, &groupRank);
+        MPI_Comm_size(this->groupWorld, &worldSize);
+        if (groupRank == 0) {
+            std::pair<std::vector<unsigned int>, size_t> globalCandidateSet;
+            std::map<int, std::vector<int>> newSolutionSpace;
+            StreamingRandGreedIEngine<GraphTy> streamingEngine(this->CFG.k, kprime, theta, (double)this->CFG.epsilon_2, worldSize - 1, this->cEngine, this->timeAggregator);
+            globalCandidateSet = streamingEngine.Stream(newSolutionSpace);
+
+            currentState.bestSolution = globalCandidateSet;
+            currentState.solutionSpace = newSolutionSpace;
+        } else {
+            this->timeAggregator.totalSendTimer.startTimer();
+            
+            StreamingMaxKCover<GraphTy> localKCoverEngine(this->CFG.k, kprime, theta, this->timeAggregator, this->cEngine);
+            localKCoverEngine.useLazyGreedy();
+            localKCoverEngine.run_max_k_cover(previousState.solutionSpace);
+
+            this->timeAggregator.totalSendTimer.endTimer();
+        }
+
+        return currentState;
+    }
+};
+
+template <typename GraphTy, typename ConfTy>
+class LazyLazyApproximatorGroup : public ApproximatorGroup {
+    private:
+    TimerAggregator &timeAggregator;
+    const ConfTy &CFG;
+    const CommunicationEngine<GraphTy> &cEngine;
+
+    public:
     LazyLazyApproximatorGroup(
         MPI_Comm groupWorld,
         const std::vector<int> &vertexToProcess,
         TimerAggregator &timeAggregator,
         const ConfTy &input_CFG,
         const CommunicationEngine<GraphTy> &cEngine
-    ) : timeAggregator(timeAggregator), CFG(input_CFG), cEngine(cEngine), groupWorld(groupWorld), vertexToProcess(vertexToProcess) {}
+    ) : ApproximatorGroup(groupWorld, vertexToProcess), timeAggregator(timeAggregator), CFG(input_CFG), cEngine(cEngine) {}
 
     SolutionState approximate(
         const SolutionState &previousState,
         const int kprime, 
         const size_t theta
-    ) {
+    ) override {
         SolutionState currentState;
         currentState.bestSolution.first = previousState.bestSolution.first;
         currentState.bestSolution.second = previousState.bestSolution.second;
@@ -89,12 +135,12 @@ class LazyLazyApproximatorGroup {
             // std::cout << "init of local solution using world size of " << previousState.solutionSpace.size() << std::endl;;
             this->timeAggregator.max_k_localTimer.startTimer();
 
-            std::pair<std::vector<unsigned int>, unsigned int> newSeeds = this->SolveKCover(
+            std::pair<std::vector<unsigned int>, unsigned int> newSeeds = this->SolveKCover<GraphTy>(
                 this->CFG.k, kprime, theta, this->timeAggregator, previousState.solutionSpace
             );
 
             currentState.bestSolution.second = newSeeds.second;
-	    currentState.bestSolution.first = std::vector<unsigned int>(newSeeds.first.begin(), newSeeds.first.end());
+            currentState.bestSolution.first = std::vector<unsigned int>(newSeeds.first.begin(), newSeeds.first.end());
 
             this->timeAggregator.max_k_localTimer.endTimer();
         }
@@ -121,8 +167,8 @@ class LazyLazyApproximatorGroup {
         std::map<int, std::vector<int>> globalSolutionSpace;
         std::vector<std::pair<unsigned int, std::vector<unsigned int>>> candidateSets;
 
-	int globalRank; 
-	MPI_Comm_rank(MPI_COMM_WORLD, &globalRank);
+        int globalRank; 
+        MPI_Comm_rank(MPI_COMM_WORLD, &globalRank);
 
         int groupRank;
         MPI_Comm_rank(this->groupWorld, &groupRank);
@@ -140,7 +186,7 @@ class LazyLazyApproximatorGroup {
 
             // std::cout << "global process getting solution from " << globalSolutionSpace.size() << " possible solutions " << std::endl;
 
-            globalCandidateSet = this->SolveKCover(
+            globalCandidateSet = this->SolveKCover<GraphTy>(
                 this->CFG.k, kprime, theta, this->timeAggregator, globalSolutionSpace
             );
 
