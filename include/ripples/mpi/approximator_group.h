@@ -144,19 +144,19 @@ class LazyLazyApproximatorGroup {
                 this->CFG.k, kprime, theta, this->timeAggregator, globalSolutionSpace
             );
 
-//            candidateSets.push_back(std::make_pair(
-//                static_cast<unsigned int>(globalCandidateSet.second),
-//                globalCandidateSet.first
-//            ));
+            candidateSets.push_back(std::make_pair(
+                globalCandidateSet.second,
+                globalCandidateSet.first
+            ));
 
-	    currentState.bestSolution.first = globalCandidateSet.first;
-	    currentState.bestSolution.second = globalCandidateSet.second;
+            // currentState.bestSolution.first = globalCandidateSet.first;
+            // currentState.bestSolution.second = globalCandidateSet.second;
 
             this->timeAggregator.max_k_globalTimer.endTimer();
         }
 
         currentState.solutionSpace = globalSolutionSpace;
-        // currentState.bestSolution = this->getBestCandidate(candidateSets);
+        currentState.bestSolution = this->getBestCandidate(candidateSets);
         // std::cout << "got best candidate of " << currentState.bestSolution.second << " and size " << currentState.bestSolution.first.size() << " for rank " << globalRank << std::endl;
 
         return currentState;
