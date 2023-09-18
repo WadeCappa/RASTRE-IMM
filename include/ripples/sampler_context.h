@@ -5,17 +5,17 @@
 #include "ripples/imm_execution_record.h"
 #include "ripples/mpi/imm.h"
 
-template <typename GraphTy>
-class SamplerContext {
-    private:
+// template <typename GraphTy>
+// class SamplerContext {
+//     private:
 
-    public:
-    virtual void addNewSamples(
-        TransposeRRRSets<GraphTy> &tRRRSets, 
-        const size_t counterStart, 
-        const size_t delta
-    ) = 0;
-};
+//     public:
+//     virtual void addNewSamples(
+//         TransposeRRRSets<GraphTy> &tRRRSets, 
+//         const size_t counterStart, 
+//         const size_t delta
+//     ) = 0;
+// };
 
 template <
     typename GraphTy,
@@ -23,7 +23,7 @@ template <
     typename RRRGeneratorTy,
     typename execution_tag
 >
-class DefaultSampler : public SamplerContext<GraphTy> {
+class DefaultSampler {
     private:
     ripples::omp_parallel_tag ex_tag;
     diff_model_tag &model_tag;
@@ -45,10 +45,11 @@ class DefaultSampler : public SamplerContext<GraphTy> {
 
     // TODO: see if you can add a const tag to this method
     void addNewSamples(
-            TransposeRRRSets<GraphTy> &tRRRSets, 
-            const size_t counterStart, 
-            const size_t delta
-        ) override {
+        TransposeRRRSets<GraphTy> &tRRRSets, 
+        const size_t counterStart, 
+        const size_t delta
+    ) {
+        std::cout << "running genrate rrr sets" << std::endl;
         GenerateTransposeRRRSets(
             tRRRSets, counterStart, delta, 
             this->graph, this->gen, this->record,

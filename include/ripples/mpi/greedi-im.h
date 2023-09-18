@@ -71,12 +71,14 @@
 #include <cstdlib>
 #include <numeric>
 #include <random>
+#include "ripples/imm_execution_record.h"
 
 #include "ripples/mpi/streaming_engine.h"
 #include "ripples/mpi/approximator_context.h"
 #include "ripples/mpi/ownership_manager.h"
 #include "ripples/sampler_context.h"
-#include "ripples/mpi/martingale_runner.h"
+#include "ripples/mpi/martingale_context.h"
+#include "ripples/mpi/martingale_builder.h"
 
 namespace ripples {
 namespace mpi {
@@ -575,21 +577,6 @@ std::vector<PRNG> rank_split_generator(const PRNG &gen) {
 
 template <typename GraphTy, typename ConfTy, typename diff_model_tag,
           typename RRRGeneratorTy, typename ExTagTrait>
-MartingaleRunner getRunner(
-  const GraphTy &G, 
-  const ConfTy &CFG, 
-  double l_value, 
-  RRRGeneratorTy &gen,
-  IMMExecutionRecord &record, 
-  diff_model_tag &&model_tag, 
-  // unsigned int levels,
-  ExTagTrait &&
-) {
-
-}
-
-template <typename GraphTy, typename ConfTy, typename diff_model_tag,
-          typename RRRGeneratorTy, typename ExTagTrait>
 auto run_greedimm(
   const GraphTy &G, 
   const ConfTy &CFG, 
@@ -628,62 +615,44 @@ auto run_randgreedi(
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
   diff_model_tag &&model_tag, 
-  // unsigned int levels,
+  const unsigned int levels,
+  const unsigned int branchingFactor,
   ExTagTrait &&
 ) 
 {
-  using vertex_type = typename GraphTy::vertex_type;
-
   // no sequential version available
   using execution_tag = ripples::omp_parallel_tag;
+  using vertex_type = typename GraphTy::vertex_type;
 
-  ////// INITIALIZATION //////
   CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine();
-  execution_tag ex_tag = typename ExTagTrait::generate_ex_tag{};
-
   TransposeRRRSets<GraphTy> tRRRSets(G.num_nodes());
-
   TimerAggregator timeAggregator;
   std::vector<int> vertexToProcess(cEngine.DistributeVertices(CFG.use_streaming, G));
 
-  // RandGreedi<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> randimm(
-  //   G, CFG, ex_tag, model_tag, l_value, gen, record, cEngine, timeAggregator
-  // );
-
   DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> sampler(
-    cEngine.GetSize(),
-    G,
-    gen,
-    record,
-    model_tag
+      cEngine.GetSize(), G, gen, record, model_tag
   );
 
-  AllToAllOwnershipManager<GraphTy> ownershipManager(G.num_nodes(), cEngine, vertexToProcess);
+  OwnershipManager<GraphTy> ownershipManager(G.num_nodes(), cEngine, vertexToProcess);
 
-  // NOTE: For testing, it is assumed that M = 16 and each group is of size 4. Let there be 5 groups. 
-  std::vector<ApproximatorGroup> groups;
-
-  MPI_Comm first_level_world_group;
-  MPI_Comm_split(MPI_COMM_WORLD, std::floor(cEngine.GetRank() / 4), 0, &first_level_world_group);
-  LazyLazyApproximatorGroup<GraphTy, ConfTy> firstGroup(first_level_world_group, vertexToProcess, timeAggregator, CFG, cEngine);
-  groups.push_back(firstGroup);
-
-  MPI_Comm second_level_world_group;
-  // todo: bad logic here, 
-  MPI_Comm_split(MPI_COMM_WORLD, cEngine.GetRank() % 4 == 0 ? 0 : MPI_UNDEFINED, 0, &second_level_world_group);
-  if (cEngine.GetRank() % 4 == 0) {
-    LazyLazyApproximatorGroup<GraphTy, ConfTy> secondGroup(second_level_world_group, vertexToProcess, timeAggregator, CFG, cEngine);
-    groups.push_back(secondGroup);
-  }
-
-  ApproximatorContext approximator(groups);
-
-  MartingaleRunner<GraphTy, ConfTy, RRRGeneratorTy> runner(
-    sampler, ownershipManager, approximator, G, CFG, l_value, gen, record, cEngine, timeAggregator
+  std::vector<MPI_Comm> groups = MartingleBuilder::buildCommGroups<GraphTy, ConfTy>(
+      levels, branchingFactor, cEngine.GetRank(), cEngine.GetSize()
   );
 
+  std::cout << "number of groups: " << groups.size() << std::endl;
+
+  std::vector<LazyLazyApproximatorGroup<GraphTy, ConfTy>*> approximatorGroups;
+  MartingleBuilder::buildApproximatorGroups(approximatorGroups, groups, CFG, vertexToProcess, timeAggregator, cEngine);
+
+  ApproximatorContext<GraphTy, ConfTy> approximator(approximatorGroups);
+
+  MartingaleContext<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> martingaleContext(
+      sampler, ownershipManager, approximator, G, CFG, l_value, record, cEngine, timeAggregator
+  );
+
+  std::cout << "starting algo" << std::endl;
   // return randimm.SolveInfMax();
-  return runner.approximateInfMax();
+  return martingaleContext.approximateInfMax();
 }
 
 

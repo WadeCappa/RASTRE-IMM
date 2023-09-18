@@ -19,7 +19,6 @@ class CommunicationEngine
 {
     private: 
     const int block_size = (1024 / sizeof(unsigned int)); // 256 ints per block
-    MPI_Datatype batch_int;
 
     const unsigned int world_size;
     const unsigned int world_rank;
@@ -31,13 +30,12 @@ class CommunicationEngine
         const unsigned int world_rank
     ) : world_size(world_size), world_rank(world_rank)
     {
-        MPI_Type_contiguous( this->block_size, MPI_INT, &(this->batch_int) );
-        MPI_Type_commit(&(this->batch_int));
+        // TODO: Extract all MPI_Datatype operations into constructor and deconstructor. Last time you tried
+        //  this you got MPI_DATATYPE_NULL errors from mpich. Figure out how to prevent this.
     }
 
     ~CommunicationEngine() 
     {
-        MPI_Type_free(&(this->batch_int));
     }
 
     size_t GetSendReceiveBufferSize(const size_t data_size) const
@@ -69,6 +67,10 @@ class CommunicationEngine
         const unsigned int tag
     ) const
     {
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
+
         MPI_Send (
             data,
             data_size / this->block_size,
@@ -76,6 +78,7 @@ class CommunicationEngine
             tag,
             MPI_COMM_WORLD
         );
+        MPI_Type_free(&(batch_int));
     }
 
     void QueueNextSeed(
@@ -85,15 +88,19 @@ class CommunicationEngine
         MPI_Request &request
     ) const
     {
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
         MPI_Isend (
             data,
             data_size / this->block_size,
-            this->batch_int, 
+            batch_int, 
             0,
             tag,
             MPI_COMM_WORLD,
             &request
         );
+        MPI_Type_free(&(batch_int));
     }
 
     size_t GetBlockSize() const
@@ -181,6 +188,9 @@ class CommunicationEngine
 
     void QueueReceive(unsigned int* buffer, size_t max_receive_size, MPI_Request &request) const 
     {
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
         MPI_Irecv(
             buffer,
             max_receive_size / this->block_size,
@@ -190,6 +200,7 @@ class CommunicationEngine
             MPI_COMM_WORLD,
             &request
         );
+        MPI_Type_free(&(batch_int));
     }
 
     void WaitForSend(MPI_Request &request) const 
@@ -348,7 +359,7 @@ class CommunicationEngine
         const TransposeRRRSets<GraphTy> &tRRRSets, 
         const std::vector<int> &vertexToProcessor, 
         const std::vector<unsigned int> &dataStartPartialSum, 
-        size_t total_data, 
+        const size_t total_data, 
         const std::vector<size_t>& old_sizes
     ) const
     {
@@ -356,7 +367,7 @@ class CommunicationEngine
 
         #pragma omp parallel for
         for (int rank = 0; rank < this->world_size; rank++) {
-            LinearizeRank(tRRRSets, linear_sets, vertexToProcessor, dataStartPartialSum, rank, old_sizes);
+            this->LinearizeRank(tRRRSets, linear_sets, vertexToProcessor, dataStartPartialSum, rank, old_sizes);
         }
 
         return linear_sets;
@@ -367,7 +378,7 @@ class CommunicationEngine
         std::vector<unsigned int>& linearTRRRSets, 
         const std::vector<int> &vertexToProcessor, 
         const std::vector<unsigned int> &dataStartPartialSum, 
-        int rank, 
+        const int rank, 
         const std::vector<size_t>& old_sizes
     ) const
     {
@@ -461,15 +472,20 @@ class CommunicationEngine
         current_seeds.push_back(vertexID);
         bestMKSeeds.insert({ vertexID, std::vector<int>() });
 
-        for (size_t rankDataProcessed = 1, i = 1; i < totalData - 1; i++) {
+        for (size_t i = 1; i < totalData - 1; i++) {
+
+            // std::cout << "processing byte "<< i << " out of " << totalData << std::endl;
             if (*(data + i) == -2) {
                 local_seeds.push_back(std::make_pair(*(data + ++i), std::vector<unsigned int>(current_seeds)));
                 current_seeds.empty();
 
                 i++;
-                while (*(data + i) == -3)
+                while (*(data + i) == -3 && i < totalData)
                 {
                     i++;
+                    if (i >= totalData) {
+                        return local_seeds;
+                    }
                 }
                 
                 vertexID = *(data + i);
@@ -505,6 +521,7 @@ class CommunicationEngine
         size_t totalReceivingBlocks = 0;
         for (int i = 0; i < this->world_size; i++) {
             totalReceivingBlocks += (unsigned int)*(receiveSizes + i);
+	    // std::cout << "rank " << GetRank() << " receiving " << (unsigned int)*(receiveSizes + i) << " blocks from " << i << std::endl;
         }
         
         unsigned int* linearizedLocalData = new unsigned int[totalReceivingBlocks * this->block_size];
@@ -515,31 +532,34 @@ class CommunicationEngine
         buildPrefixSum(receivePrefixSum, receiveSizes, this->world_size);
 
         // call alltoall_v
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
         MPI_Alltoallv(
             linearizedData, 
             (int*)countPerProcess, 
             (int*)sendPrefixSum.data(), 
-            this->batch_int, 
+            batch_int, 
             linearizedLocalData, 
             (int*)receiveSizes, 
             (int*)receivePrefixSum.data(),
-            this->batch_int,
+            batch_int,
             MPI_COMM_WORLD
         );
+        MPI_Type_free(&(batch_int));
 
         for (int i = 0; i < this->world_size; i++) {
             receiveSizes[i] *= this->block_size;
         }
 
         // TODO: make this not terrible
-        if (this->world_rank == 0)
-        {
-            aggregateSets.insert({0, std::vector<int>()});
-        }   
-        else 
-        {
-            this->AggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
-        }
+	//  for streaming this might crash so you may need to add a dummy value to aggregate sets.
+        //if (this->world_rank == 0)
+        //{
+        //    aggregateSets.insert({0, std::vector<int>()});
+        //}   
+
+    	this->AggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
         
         delete receiveSizes;
         delete linearizedLocalData;
@@ -552,15 +572,15 @@ class CommunicationEngine
         const MPI_Comm &commWorld
     ) const
     {
-        unsigned int* gatherSizes = new unsigned int[this->world_size];
+	std::vector<unsigned int> gatherSizes(this->world_size);
         gatherSizes[0] = -1;
 
-        std::cout << "remainder: " << totalGatherData % this->block_size << std::endl; 
         size_t total_block_send = totalGatherData / this->block_size;
+        // std::cout << "totalGatherData " << totalGatherData << std::endl; 
 
         MPI_Gather(
             &total_block_send, 1, MPI_INT,
-            gatherSizes, 1, MPI_INT, 0, commWorld
+            gatherSizes.data(), 1, MPI_INT, 0, commWorld
         );
 
         std::vector<unsigned int> displacements;
@@ -575,27 +595,27 @@ class CommunicationEngine
                 totalData += (unsigned int)gatherSizes[i];
             }  
 
-            buildPrefixSum(displacements, gatherSizes, this->world_size);
+            buildPrefixSum(displacements, gatherSizes.data(), this->world_size);
         }
 
         aggregatedSeeds.resize(totalData * this->block_size);
 
-        // for the leveled implementation of this communication, we may have to use alltoallv 
-        //  and formulate the communication as a matrix manipulation. Look more into this, create
-        //  some basic tests scripts.
+        MPI_Datatype batch_int;
+        MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
+        MPI_Type_commit(&(batch_int));
         MPI_Gatherv(
             localLinearAggregateSets,
             total_block_send,
-            this->batch_int,
+            batch_int,
             (int*)aggregatedSeeds.data(),
-            (int*)gatherSizes,
+            (int*)gatherSizes.data(),
             (int*)displacements.data(),
-            this->batch_int,
+            batch_int,
             0,
             commWorld
         );
+        MPI_Type_free(&(batch_int));
 
-        delete gatherSizes;
         return totalData * this->block_size;
     }
 
