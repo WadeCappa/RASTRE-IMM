@@ -26,7 +26,7 @@ class MartingaleContext {
     const double l;
     size_t previousTheta;
 
-    std::map<int, std::vector<int>> localSolutionSpace;
+    SolutionState solutionState;
     std::vector<size_t> old_sampling_sizes;
     ripples::RRRsetAllocator<typename GraphTy::vertex_type> allocator;
     TransposeRRRSets<GraphTy> tRRRSets;
@@ -50,8 +50,6 @@ class MartingaleContext {
     ) {
         // delta will always be (theta / 2) / world_size
 
-        std::pair<std::vector<unsigned int>, size_t> approximated_solution;
-
         auto timeRRRSets = ripples::measure<>::exec_time([&]() 
         {
             // size_t delta = localThetaPrime - this->RR_sets;
@@ -60,27 +58,27 @@ class MartingaleContext {
 
             if ((thetaPrime - previousTheta) / this->cEngine.GetSize() < 0)
             {
-                std::cout << "DELTA ERROR" << std::endl;
+                // std::cout << "DELTA ERROR" << std::endl;
                 exit(1);
             }
 
             this->record.ThetaPrimeDeltas.push_back(delta);
 
-            std::cout << "before sampling, " << this->previousTheta << ", " << delta << std::endl;
+            // std::cout << "before sampling, " << this->previousTheta << ", " << delta << std::endl;
             this->timeAggregator.samplingTimer.startTimer();
             this->sampler.addNewSamples(this->tRRRSets, this->previousTheta, delta);
             this->timeAggregator.samplingTimer.endTimer();    
 
-            std::cout << "before redistribution" << std::endl;
+            // std::cout << "before redistribution" << std::endl;
             this->timeAggregator.allToAllTimer.startTimer();  
-            this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->localSolutionSpace, delta);
+            this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->solutionState.solutionSpace, delta);
             this->timeAggregator.allToAllTimer.endTimer();
 
             int kprime = int(CFG.alpha * (double)CFG.k);
 
-            std::cout << "before seed selection using kprime of " << kprime << std::endl;
-            approximated_solution = this->approximator.getBestSeeds(
-                this->localSolutionSpace, 
+            // std::cout << "before seed selection using kprime of " << kprime << std::endl;
+            this->approximator.getBestSeeds(
+                this->solutionState, 
                 kprime, 
                 thetaPrime + this->cEngine.GetSize()
             );
@@ -90,7 +88,7 @@ class MartingaleContext {
         auto timeMostInfluential = ripples::measure<>::exec_time([&]() { });
         this->record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
 
-        return approximated_solution;
+        return this->solutionState.bestSolution;
     }
 
     std::pair<std::vector<unsigned int>, unsigned int> runMartingaleRound(size_t theta) {
@@ -219,7 +217,7 @@ class MartingaleContext {
         {
             if (vertexToProcess[i] == this->cEngine.GetRank())
             {
-                this->localSolutionSpace.insert({i, std::vector<int>()});
+                this->solutionState.solutionSpace.insert({i, std::vector<int>()});
             }
         }
     }
@@ -243,7 +241,7 @@ class MartingaleContext {
                 x, epsilonPrime, this->l, this->CFG.k, this->G.num_nodes()
             );
 
-            std::cout << "global theta: " << thetaPrime << std::endl;
+            // std::cout << "global theta: " << thetaPrime << std::endl;
 
             seeds = this->runMartingaleRound(thetaPrime);
 

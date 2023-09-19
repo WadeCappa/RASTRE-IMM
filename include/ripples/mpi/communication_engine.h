@@ -459,14 +459,14 @@ class CommunicationEngine
         }
     }
 
-    std::vector<std::pair<unsigned int, std::vector<unsigned int>>> aggregateLocalKSeeds (
+    std::vector<std::pair<std::vector<unsigned int>, unsigned int>> aggregateLocalKSeeds (
         std::map<int, std::vector<int>> &bestMKSeeds, 
         unsigned int* data, 
         size_t totalData
     ) const
     {
         // tracks total utility of each local process
-        std::vector<std::pair<unsigned int, std::vector<unsigned int>>> local_seeds;
+        std::vector<std::pair<std::vector<unsigned int>, unsigned int>> local_seeds;
         std::vector<unsigned int> current_seeds;
 
         // cycle over data
@@ -478,7 +478,7 @@ class CommunicationEngine
 
             // std::cout << "processing byte "<< i << " out of " << totalData << std::endl;
             if (*(data + i) == -2) {
-                local_seeds.push_back(std::make_pair(*(data + ++i), std::vector<unsigned int>(current_seeds)));
+                local_seeds.push_back(std::make_pair(std::vector<unsigned int>(current_seeds), *(data + ++i)));
                 current_seeds.empty();
 
                 i++;

@@ -330,7 +330,7 @@ public:
     //     return *this;
     // }
 
-    virtual std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
+    virtual std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
 };
 
 template <typename GraphTy>
@@ -342,7 +342,7 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
     {
     }
 
-    std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
+    std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
     {
 	// std::cout << "finding " << this->k << " seeds from " << data.size()<<  std::endl;
         this->finder->Setup(data);
@@ -489,7 +489,7 @@ private:
     ) : MaxKCoverBase<GraphTy>(k, kprime, theta, timer), cEngine(cEngine), send_buffers(kprime)
     {}
 
-    std::pair<std::vector<unsigned int>, size_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
+    std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
     {
         this->finder->Setup(data);
 

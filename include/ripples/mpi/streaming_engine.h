@@ -276,12 +276,13 @@ class StreamingRandGreedIEngine
 
     CandidateSet ExtractElement(std::vector<unsigned int>& receive_buffer, std::map<int, std::vector<int>> &newSolutionSpace)
     {
+        std::vector<int> &seed_data = newSolutionSpace[receive_buffer[0]];
         for (unsigned int* e = receive_buffer.data() + 1; *(e) != -1; e++) 
         {
-            newSolutionSpace[receive_buffer[0]].push_back(*e);
+            seed_data.push_back(*e);
         }
 
-        return (CandidateSet){receive_buffer[0], newSolutionSpace[receive_buffer[0]]};
+        return (CandidateSet){receive_buffer[0], seed_data};
     }
 
     void ResetBuffer(std::vector<unsigned int>& receive_buffer)
