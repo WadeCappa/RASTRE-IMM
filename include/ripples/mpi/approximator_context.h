@@ -33,6 +33,5 @@ class ApproximatorContext {
         }
 
         inputState.bestSolution = currentState->bestSolution;
-        delete currentState;
     }
 };
