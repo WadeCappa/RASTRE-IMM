@@ -90,9 +90,7 @@ private:
         }
 
     public:
-        LazyGreedy(size_t theta) : NextMostInfluentialFinder(theta)
-        {
-        }
+        LazyGreedy(size_t theta) : NextMostInfluentialFinder(theta) {}
 
         ~LazyGreedy()
         {
@@ -157,7 +155,7 @@ private:
             
             // if marginal of l is better than r's utility, l is the current best     
             if (marginal_gain >= r.second->size()) 
-            {               
+            {
                 for (unsigned int e: *(l.second)) {
                     if (!(this->covered.get(e))) {
                         this->covered.set(e);
@@ -171,6 +169,7 @@ private:
             // else push l's marginal into the heap 
             else {
                 // std::cout << "recursive call, l.first: " << l.first << ", l.second.size(): " << l.second->size() << ", r.second.size(): " << r.second->size() << std::endl;
+                // TODO: Verify that this branch works.
 
                 this->heap->push_back(l);
                 std::push_heap(this->heap->begin(), this->heap->end(), this->cmp);

@@ -5,17 +5,20 @@ class ApproximatorGroup {
     const std::vector<int> &vertexToProcess;
 
     static std::pair<std::vector<unsigned int>, unsigned int> getBestCandidate(
-        const std::vector<std::pair<std::vector<unsigned int>, unsigned int>> &allCandidateSets
+        const std::vector<std::pair<std::vector<unsigned int>, unsigned int>> &allCandidateSets,
+        unsigned int kprime
     ) {
         unsigned int bestUtility = 0;
         std::vector<unsigned int> bestCandidate;
 		
-	// std::cout << "getting best solution from " << allCandidateSets.size() << " options" << std::endl;
-
         for (const auto & e : allCandidateSets) {
             if (e.second > bestUtility) {
                 bestCandidate = e.first;
                 bestUtility = e.second;
+
+                if (e.first.size() > kprime) {
+                    std::cout << "found candidate that was greater than allowed size, size of " << e.first.size() << std::endl;
+                }
             }
         }
 
@@ -127,11 +130,11 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
 
         this->timeAggregator.allGatherTimer.startTimer();
 
-        std::vector<unsigned int> globalAggregation;
+        std::vector<unsigned int> receiveBuffer;
         size_t totalData = this->cEngine.GatherPartialSolutions(
+            receiveBuffer, 
             nextState.bestSolution,
             currentState.solutionSpace, 
-            globalAggregation, 
             this->groupWorld
         );
 
@@ -148,18 +151,21 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
             this->timeAggregator.allGatherTimer.startTimer();
 
             std::vector<std::pair<std::vector<unsigned int>, unsigned int>> candidateSets;
-            candidateSets = this->cEngine.aggregateLocalKSeeds(nextState.solutionSpace, globalAggregation.data(), totalData);
+            this->cEngine.deserializeGatherData(nextState.solutionSpace, candidateSets, receiveBuffer.data(), totalData);
 
             this->timeAggregator.allGatherTimer.endTimer();
 
             // spdlog::get("console")->info("global max_k_cover...");
             this->timeAggregator.max_k_globalTimer.startTimer();
 
-            candidateSets.push_back(this->SolveKCover(
+            auto globalSeeds = this->SolveKCover(
                 this->CFG.k, kprime, theta, this->timeAggregator, nextState.solutionSpace
-            ));
+            );
 
-            nextState.bestSolution = this->getBestCandidate(candidateSets);
+            candidateSets.push_back(globalSeeds);
+            nextState.bestSolution = this->getBestCandidate(candidateSets, kprime);
+
+            // nextState.bestSolution = globalSeeds;
 
             this->timeAggregator.max_k_globalTimer.endTimer();
         } else {
