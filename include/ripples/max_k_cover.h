@@ -90,9 +90,7 @@ private:
         }
 
     public:
-        LazyGreedy(size_t theta) : NextMostInfluentialFinder(theta)
-        {
-        }
+        LazyGreedy(size_t theta) : NextMostInfluentialFinder(theta) {}
 
         ~LazyGreedy()
         {
@@ -157,7 +155,7 @@ private:
             
             // if marginal of l is better than r's utility, l is the current best     
             if (marginal_gain >= r.second->size()) 
-            {               
+            {
                 for (unsigned int e: *(l.second)) {
                     if (!(this->covered.get(e))) {
                         this->covered.set(e);
@@ -171,6 +169,7 @@ private:
             // else push l's marginal into the heap 
             else {
                 // std::cout << "recursive call, l.first: " << l.first << ", l.second.size(): " << l.second->size() << ", r.second.size(): " << r.second->size() << std::endl;
+                // TODO: Verify that this branch works.
 
                 this->heap->push_back(l);
                 std::push_heap(this->heap->begin(), this->heap->end(), this->cmp);
@@ -330,7 +329,7 @@ public:
     //     return *this;
     // }
 
-    virtual std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
+    virtual std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
 };
 
 template <typename GraphTy>
@@ -342,7 +341,7 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
     {
     }
 
-    std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
+    std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
     {
 	// std::cout << "finding " << this->k << " seeds from " << data.size()<<  std::endl;
         this->finder->Setup(data);
@@ -489,7 +488,7 @@ private:
     ) : MaxKCoverBase<GraphTy>(k, kprime, theta, timer), cEngine(cEngine), send_buffers(kprime)
     {}
 
-    std::pair<std::vector<unsigned int>, size_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
+    std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
     {
         this->finder->Setup(data);
 

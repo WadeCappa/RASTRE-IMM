@@ -1,30 +1,37 @@
+typedef struct solutionState {
+    std::map<int, std::vector<int>> solutionSpace;
+    std::pair<std::vector<unsigned int>, unsigned int> bestSolution;
+} SolutionState ;
+
 #include "ripples/mpi/approximator_group.h"
 
-template <typename GraphTy, typename ConfTy>
+
 class ApproximatorContext {
     private:
-    const std::vector<LazyLazyApproximatorGroup<GraphTy, ConfTy>*> groups;
+    const std::vector<ApproximatorGroup*> groups;
 
     public:
-    ApproximatorContext(const std::vector<LazyLazyApproximatorGroup<GraphTy, ConfTy>*> groups) : groups(groups) {}
+    ApproximatorContext(const std::vector<ApproximatorGroup*> groups) : groups(groups) {}
 
-    std::pair<std::vector<unsigned int>, unsigned int> getBestSeeds(
-        const std::map<int, std::vector<int>> &localSolutionSpace,
+    void getBestSeeds(
+        SolutionState &inputState,
         const unsigned int kprime,
         const size_t theta
     ) const {
-        SolutionState state;
-        state.solutionSpace = localSolutionSpace;
+        inputState.bestSolution = std::make_pair(std::vector<unsigned int>(), 0);
+        const SolutionState *currentState = &inputState;
+        std::vector<SolutionState> states(this->groups.size());
 
         for (size_t i = 0; i < this->groups.size(); i++) {
-            std::cout << "working on level " << i << " which has solution space of size " << state.solutionSpace.size();
-            std::cout << " and local solution utility of " << state.bestSolution.second;
-	    std::cout << " and size of " << state.bestSolution.first.size() << std::endl;
-            state = this->groups[i]->approximate(state, kprime, theta);
+            SolutionState *nextState = &(states[i]);
+            // std::cout << "working on level " << i << " which has solution space of size " << state.solutionSpace.size();
+            // std::cout << " and local solution utility of " << state.bestSolution.second;
+            // std::cout << " and size of " << state.bestSolution.first.size() << std::endl;
+
+            this->groups[i]->approximate(*currentState, *nextState, kprime, theta);
+            currentState = nextState;
         }
 
-        // std::cout << "returning best approximation" << std::endl;
-
-        return state.bestSolution;
+        inputState.bestSolution = currentState->bestSolution;
     }
 };

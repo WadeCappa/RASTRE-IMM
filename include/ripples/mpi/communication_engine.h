@@ -18,6 +18,7 @@ template <typename GraphTy>
 class CommunicationEngine
 {
     private: 
+    const bool streaming;
     const int block_size = (1024 / sizeof(unsigned int)); // 256 ints per block
 
     const unsigned int world_size;
@@ -27,8 +28,9 @@ class CommunicationEngine
     CommunicationEngine
     (
         const unsigned int world_size, 
-        const unsigned int world_rank
-    ) : world_size(world_size), world_rank(world_rank)
+        const unsigned int world_rank,
+        const bool streaming
+    ) : world_size(world_size), world_rank(world_rank), streaming(streaming)
     {
         // TODO: Extract all MPI_Datatype operations into constructor and deconstructor. Last time you tried
         //  this you got MPI_DATATYPE_NULL errors from mpich. Figure out how to prevent this.
@@ -210,15 +212,15 @@ class CommunicationEngine
     }
 
     size_t GatherPartialSolutions(
+        std::vector<unsigned int> &receiveBuffer, // modified
         const std::pair<std::vector<unsigned int>, ssize_t> &localSeeds,
-        const std::map<int, std::vector<int>> &aggregateSets,
-        std::vector<unsigned int> &globalAggregation,
+        const std::map<int, std::vector<int>> &solutionSpace,
         const MPI_Comm &commWorld
     ) const
     {
-        std::vector<unsigned int> linearAggregateSets;
-        size_t totalLinearLocalSeedsData = this->linearizeLocalSeeds(linearAggregateSets, aggregateSets, localSeeds.first, localSeeds.second);
-        return this->aggregateAggregateSets(globalAggregation, totalLinearLocalSeedsData, linearAggregateSets.data(), commWorld);
+        std::vector<unsigned int> sendBuffer;
+        size_t totalSendData = this->linearizeLocalSeeds(sendBuffer, solutionSpace, localSeeds.first, localSeeds.second);
+        return this->aggregateAggregateSets(receiveBuffer, totalSendData, sendBuffer.data(), commWorld);
     }
 
     // Returns total count, modifies the countPerProcess vector;
@@ -295,8 +297,8 @@ class CommunicationEngine
 
     
     size_t linearizeLocalSeeds(
-        std::vector<unsigned int>& linearAggregateSets, 
-        const std::map<int, std::vector<int>> &aggregateSets, 
+        std::vector<unsigned int>& sendBuffer, // modified
+        const std::map<int, std::vector<int>> &solutionSpace, 
         const std::vector<unsigned int>& localSeeds, 
         const size_t total_utility
     ) const
@@ -305,35 +307,35 @@ class CommunicationEngine
 
         size_t runningSum = 0;
         for (const auto & seed : localSeeds) {
-            auto seed_set = aggregateSets.at(seed);
+            auto seed_set = solutionSpace.at(seed);
             setsPrefixSum.push_back(std::make_pair(seed, runningSum));
             runningSum += seed_set.size() + 2;
         }
 
-        size_t totalData = runningSum + 1;
+        size_t totalData = runningSum + 3;
         size_t total_block_data = totalData + (this->block_size - (totalData % this->block_size));
 
-        linearAggregateSets.resize(total_block_data);
+        sendBuffer.resize(total_block_data, -1);
 
         #pragma omp parallel for
         for (int setIndex = 0; setIndex < setsPrefixSum.size(); setIndex++) {
-            linearAggregateSets[setsPrefixSum[setIndex].second] = setsPrefixSum[setIndex].first;
+            sendBuffer[setsPrefixSum[setIndex].second] = setsPrefixSum[setIndex].first;
             int offset = setsPrefixSum[setIndex].second + 1;
-            for (const auto & RRRSetID : aggregateSets.at(setsPrefixSum[setIndex].first)) {
-                linearAggregateSets[offset++] = RRRSetID;
+            for (const auto & RRRSetID : solutionSpace.at(setsPrefixSum[setIndex].first)) {
+                sendBuffer[offset++] = RRRSetID;
             }
-            linearAggregateSets[setsPrefixSum[setIndex].second + aggregateSets.at(setsPrefixSum[setIndex].first).size() + 1] = -1;
+            sendBuffer[setsPrefixSum[setIndex].second + solutionSpace.at(setsPrefixSum[setIndex].first).size() + 1] = -1;
         }
 
         // mark end of process seeds
-        linearAggregateSets[totalData - 2] = -2;
+        sendBuffer[totalData - 2] = -2;
 
         // mark total utility of local process
-        linearAggregateSets[totalData - 1] = total_utility;
+        sendBuffer[totalData - 1] = total_utility;
 
         for (int i = totalData; i < total_block_data; i++)
         {
-            linearAggregateSets[i] = -3;
+            sendBuffer[i] = -3;
         }
 
         return total_block_data;
@@ -457,56 +459,44 @@ class CommunicationEngine
         }
     }
 
-    std::vector<std::pair<unsigned int, std::vector<unsigned int>>> aggregateLocalKSeeds (
-        std::map<int, std::vector<int>> &bestMKSeeds, 
+    void deserializeGatherData (
+        std::map<int, std::vector<int>> &newSolutionSpace, // modified
+        std::vector<std::pair<std::vector<unsigned int>, unsigned int>> &candidateSets, // modified
         unsigned int* data, 
         size_t totalData
-    ) const
-    {
-        // tracks total utility of each local process
-        std::vector<std::pair<unsigned int, std::vector<unsigned int>>> local_seeds;
-        std::vector<unsigned int> current_seeds;
+    ) const {
+        size_t position = 0;
 
-        // cycle over data
-        int vertexID = *data;   
-        current_seeds.push_back(vertexID);
-        bestMKSeeds.insert({ vertexID, std::vector<int>() });
+        while (position < totalData) {
+            std::vector<unsigned int> currentCandidateSet;
 
-        for (size_t i = 1; i < totalData - 1; i++) {
+            while (data[position] != -2) {
+                unsigned int currentVertex = data[position];
+                currentCandidateSet.push_back(currentVertex);
+                std::vector<int> &currentRRRSet = newSolutionSpace[currentVertex];
 
-            // std::cout << "processing byte "<< i << " out of " << totalData << std::endl;
-            if (*(data + i) == -2) {
-                local_seeds.push_back(std::make_pair(*(data + ++i), std::vector<unsigned int>(current_seeds)));
-                current_seeds.empty();
-
-                i++;
-                while (*(data + i) == -3 && i < totalData)
-                {
-                    i++;
-                    if (i >= totalData) {
-                        return local_seeds;
-                    }
+                while (data[position] != -1) {
+                    currentRRRSet.push_back(data[position]);
+                    position++;
                 }
-                
-                vertexID = *(data + i);
-                current_seeds.push_back(vertexID);
-                bestMKSeeds.insert({ vertexID, std::vector<int>() });
+            
+                // data[position] == -1, this is the end of current vertex, next element is either -2 or the next vertex
+            
+                position++;
             }
 
-            else if (*(data + i) == -1) {
-                current_seeds.push_back(vertexID);
-                vertexID = *(data + ++i);
-                bestMKSeeds.insert({ vertexID, std::vector<int>() });
-            }
+            // data[position] == -2, this tells us that we have reached the end of currentVertex's RRR sets, 
+            //  and that the next element is the utility
 
-            else {
-                bestMKSeeds[vertexID].push_back(*(data + i));
+            position++;
+            candidateSets.push_back(std::make_pair(currentCandidateSet, data[position]));
+            position++;
+
+            while (data[position] == -3 && position < totalData) {
+                position++;
             }
         }
-
-        return local_seeds;
     }
-
 
     void GetProcessSpecificVertexRRRSets(
         std::map<int, std::vector<int>> &aggregateSets, 
@@ -554,26 +544,25 @@ class CommunicationEngine
 
         // TODO: make this not terrible
 	//  for streaming this might crash so you may need to add a dummy value to aggregate sets.
-        //if (this->world_rank == 0)
-        //{
-        //    aggregateSets.insert({0, std::vector<int>()});
-        //}   
-
-    	this->AggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
+        if (this->world_rank == 0 && this->streaming == true) {
+           aggregateSets.insert({0, std::vector<int>()});
+        } else {
+            this->AggregateTRRRSets(aggregateSets, linearizedLocalData, receiveSizes, RRRIDsPerProcess);
+        }
         
         delete receiveSizes;
         delete linearizedLocalData;
     }
 
     size_t aggregateAggregateSets(
-        std::vector<unsigned int>& aggregatedSeeds, 
-        size_t totalGatherData, 
-        unsigned int* localLinearAggregateSets,
+        std::vector<unsigned int>& receiveBuffer, // modified
+        const size_t totalGatherData, 
+        const unsigned int* sendData,
         const MPI_Comm &commWorld
     ) const
     {
-	std::vector<unsigned int> gatherSizes(this->world_size);
-        gatherSizes[0] = -1;
+        std::vector<unsigned int> gatherSizes(this->world_size);
+        gatherSizes[0] = -1; // TODO: Find out why this is here
 
         size_t total_block_send = totalGatherData / this->block_size;
         // std::cout << "totalGatherData " << totalGatherData << std::endl; 
@@ -586,6 +575,7 @@ class CommunicationEngine
         std::vector<unsigned int> displacements;
         
         // mpi_gatherv for all buffers of linearized aggregateSets. 
+        // TODO: Decipher this moon rune code
         size_t totalData = 0;
         if (gatherSizes[0] == -1) {
             totalData = 1;
@@ -598,16 +588,16 @@ class CommunicationEngine
             buildPrefixSum(displacements, gatherSizes.data(), this->world_size);
         }
 
-        aggregatedSeeds.resize(totalData * this->block_size);
+        receiveBuffer.resize(totalData * this->block_size);
 
         MPI_Datatype batch_int;
         MPI_Type_contiguous( this->block_size, MPI_INT, &(batch_int) );
         MPI_Type_commit(&(batch_int));
         MPI_Gatherv(
-            localLinearAggregateSets,
+            sendData,
             total_block_send,
             batch_int,
-            (int*)aggregatedSeeds.data(),
+            (int*)receiveBuffer.data(),
             (int*)gatherSizes.data(),
             (int*)displacements.data(),
             batch_int,
@@ -629,12 +619,12 @@ template <typename GraphTy>
 class CommunicationEngineBuilder
 {
     public:
-    static CommunicationEngine<GraphTy> BuildCommunicationEngine()
+    static CommunicationEngine<GraphTy> BuildCommunicationEngine(const bool streaming)
     {
         int world_size, world_rank;
         MPI_Comm_size(MPI_COMM_WORLD, &world_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-        return CommunicationEngine<GraphTy>(world_size, world_rank);
+        return CommunicationEngine<GraphTy>(world_size, world_rank, streaming);
     }
 };

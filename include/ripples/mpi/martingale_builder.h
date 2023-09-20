@@ -58,7 +58,7 @@ class MartingleBuilder {
         typename GraphTy,
         typename ConfTy>
     static void buildApproximatorGroups(
-        std::vector<LazyLazyApproximatorGroup<GraphTy, ConfTy>*> &approximatorGroups, // modified
+        std::vector<ApproximatorGroup*> &approximatorGroups, // modified
         const std::vector<MPI_Comm> &commGroups,
         const ConfTy &CFG, 
         const std::vector<int> &vertexToProcess,
