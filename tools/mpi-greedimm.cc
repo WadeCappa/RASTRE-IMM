@@ -62,8 +62,11 @@
 namespace ripples {
 
 template <typename SeedSet>
-auto GetExperimentRecord(const ToolConfiguration<IMMConfiguration> &CFG,
-                         const IMMExecutionRecord &R, const SeedSet &seeds) {
+auto GetExperimentRecord(
+  const ToolConfiguration<IMMConfiguration> &CFG,
+  const IMMExecutionRecord &R, 
+  const SeedSet &seeds,
+  TimerAggregator &timer) {
   // Find out rank, size
   int world_rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -71,7 +74,7 @@ auto GetExperimentRecord(const ToolConfiguration<IMMConfiguration> &CFG,
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
   nlohmann::json experiment{
-      {"Algorithm", CFG.use_streaming ? "GreeDIMM" : "GreeDIMM_Lazy_lazy"},
+      {"Algorithm", "GreeDIMM"},
       {"Input", CFG.IFileName},
       {"Output", CFG.OutputFile},
       {"DiffusionModel", CFG.diffusionModel},
@@ -91,6 +94,7 @@ auto GetExperimentRecord(const ToolConfiguration<IMMConfiguration> &CFG,
       {"Theta", R.Theta},
       {"GenerateRRRSets", R.GenerateRRRSets},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
+      {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size, R.Total.count())},
       {"Seeds", seeds}};
   return experiment;
 }
@@ -145,7 +149,6 @@ int main(int argc, char *argv[]) {
   console->info("Number of Nodes : {}", G.num_nodes());
   console->info("Number of Edges : {}", G.num_edges());
 
-  nlohmann::json executionLog;
 
   std::vector<typename GraphBwd::vertex_type> seeds;
   ripples::IMMExecutionRecord R;
@@ -157,6 +160,7 @@ int main(int argc, char *argv[]) {
 
   auto workers = CFG.streaming_workers;
   auto gpu_workers = CFG.streaming_gpu_workers;
+  TimerAggregator timeAggregator;
   if (CFG.diffusionModel == "IC") {
     ripples::StreamingRRRGenerator<
         decltype(G), decltype(generator),
@@ -167,7 +171,7 @@ int main(int argc, char *argv[]) {
     auto start = std::chrono::high_resolution_clock::now();
     console->info("finished initializing graph");
     seeds = ripples::mpi::run_greedimm(
-        G, CFG, 1.0, se, R, ripples::independent_cascade_tag{},
+        G, CFG, timeAggregator, 1.0, se, R, ripples::independent_cascade_tag{},
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     std::cout << "exited" << std::endl;
     auto end = std::chrono::high_resolution_clock::now();
@@ -181,7 +185,7 @@ int main(int argc, char *argv[]) {
            CFG.worker_to_gpu);
     auto start = std::chrono::high_resolution_clock::now();
     seeds = ripples::mpi::run_greedimm(
-        G, CFG, 1.0, se, R, ripples::linear_threshold_tag{},
+        G, CFG, timeAggregator, 1.0, se, R, ripples::linear_threshold_tag{},
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;
@@ -197,8 +201,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
   G.convertID(seeds.begin(), seeds.end(), seeds.begin());
-  auto experiment = GetExperimentRecord(CFG, R, seeds);
-  executionLog.push_back(experiment);
+  auto experiment = GetExperimentRecord(CFG, R, seeds, timeAggregator);
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   console->info("IMM World Size : {}", world_size);
@@ -209,7 +212,7 @@ int main(int argc, char *argv[]) {
 
   if (world_rank == 0) {
     std::ofstream perf(CFG.OutputFile);
-    perf << executionLog.dump(2);
+    perf << experiment.dump(2);
   }
 
   MPI_Finalize();

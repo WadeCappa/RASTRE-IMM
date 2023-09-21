@@ -134,6 +134,7 @@ template <typename GraphTy, typename ConfTy, typename diff_model_tag,
 auto run_greedimm(
   const GraphTy &G, 
   const ConfTy &CFG, 
+  TimerAggregator &timeAggregator,
   double l_value, 
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
@@ -147,7 +148,6 @@ auto run_greedimm(
 
   CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(CFG.use_streaming);
   TransposeRRRSets<GraphTy> tRRRSets(G.num_nodes());
-  TimerAggregator timeAggregator;
   std::vector<int> vertexToProcess(cEngine.DistributeVertices(CFG.use_streaming, G));
 
   DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> sampler(
@@ -174,6 +174,7 @@ template <typename GraphTy, typename ConfTy, typename diff_model_tag,
 auto run_randgreedi(
   const GraphTy &G, 
   const ConfTy &CFG, 
+  TimerAggregator &timeAggregator,
   double l_value, 
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
@@ -189,7 +190,6 @@ auto run_randgreedi(
 
   CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(CFG.use_streaming);
   TransposeRRRSets<GraphTy> tRRRSets(G.num_nodes());
-  TimerAggregator timeAggregator;
   std::vector<int> vertexToProcess(cEngine.DistributeVertices(CFG.use_streaming, G));
 
   DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> sampler(

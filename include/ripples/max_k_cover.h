@@ -262,9 +262,6 @@ protected:
 
     void reorganizeVertexSet(std::vector<unsigned int>& vertices, size_t size, std::vector<unsigned int>& seedSet)
     {
-        // for i from 0 to n−2 do
-        //     j ← random integer such that i ≤ j < n
-        //     exchange a[i] and a[j]
         std::set<int> seeds(seedSet.begin(), seedSet.end());
 
         for (int i = 0; i < size; i++) 
@@ -322,13 +319,6 @@ public:
         return *this;
     }
 
-    // MaxKCoverBase& useNaiveBitmapGreedy()
-    // {
-    //     this->finder = new NaiveBitMapGreedy(this->theta);
-
-    //     return *this;
-    // }
-
     virtual std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
 };
 
@@ -343,7 +333,6 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
 
     std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
     {
-	// std::cout << "finding " << this->k << " seeds from " << data.size()<<  std::endl;
         this->finder->Setup(data);
         std::vector<unsigned int> res(this->k, -1);
 
@@ -362,15 +351,10 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
                 this->finder->reloadSubset();
             }
 
-            this->timer.max_k_localTimer.startTimer();
             res[currentSeed] = this->finder->findNextInfluential();
-            this->timer.max_k_localTimer.endTimer();
         }
 
-	auto resUtility = this->finder->GetUtility();
-
-	// std::cout << "returning solution of utility " << resUtility << std::endl;
-
+        auto resUtility = this->finder->GetUtility();
         return std::make_pair(res, resUtility);
     }
 };
