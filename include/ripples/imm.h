@@ -79,7 +79,7 @@ struct IMMConfiguration : public TIMConfiguration {
   double epsilon_2 = 0.13; 
   double alpha = 1;
   bool use_diimm = false;
-  bool output_diagnostics = false;
+  bool verbose = false;
   unsigned int number_of_levels = 1;
   unsigned int branching_factor = INT_MAX;
 
@@ -118,7 +118,7 @@ struct IMMConfiguration : public TIMConfiguration {
     app.add_option("--DIiMM", use_diimm,
                 "Use the 2022 DIiMM algorithm to approximate influence maximization")
         ->group("Streaming-Engine Options");
-    app.add_option("--verbose", output_diagnostics,
+    app.add_option("--verbose", verbose,
                 "Output more granular runtime data")
         ->group("Streaming-Engine Options");
     app.add_option("--levels", number_of_levels,

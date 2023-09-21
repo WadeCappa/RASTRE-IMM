@@ -202,8 +202,6 @@ auto run_randgreedi(
       levels, branchingFactor, cEngine.GetRank(), cEngine.GetSize()
   );
 
-  std::cout << "number of groups: " << groups.size() << std::endl;
-
   std::vector<ApproximatorGroup*> approximatorGroups;
   MartingleBuilder::buildApproximatorGroups(approximatorGroups, groups, CFG, vertexToProcess, timeAggregator, cEngine);
 

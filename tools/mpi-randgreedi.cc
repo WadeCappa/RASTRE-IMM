@@ -175,7 +175,6 @@ int main(int argc, char *argv[]) {
         G, CFG, timeAggregator, 1.0, se, R, ripples::independent_cascade_tag{},
         CFG.number_of_levels, CFG.branching_factor,
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
-    std::cout << "exited" << std::endl;
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;
   } else if (CFG.diffusionModel == "LT") {
