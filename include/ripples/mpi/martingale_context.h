@@ -134,44 +134,6 @@ class MartingaleContext {
             std::pow(2.0, x) / (epsilonPrime * epsilonPrime);
     }
 
-  void OutputDiagnosticData()
-  {
-    if (this->CFG.use_streaming == true)
-    {
-      std::cout << " --- SHARED --- " << std::endl; 
-      std::cout << "Samping time: " << this->timeAggregator.samplingTimer.resolveTimer() << std::endl;
-      std::cout << "AlltoAll time: " << this->timeAggregator.allToAllTimer.resolveTimer() << std::endl;
-      std::cout << "Receive Broadcast: " << this->timeAggregator.broadcastTimer.resolveTimer() << std::endl;
-
-      std::cout << " --- SENDER --- " << std::endl; 
-      std::cout << "Select Next Seed: " << this->timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
-      std::cout << "Send Next Seed: " << this->timeAggregator.sendTimer.resolveTimer() << std::endl;
-      std::cout << "Total Send Time: " << this->timeAggregator.totalSendTimer.resolveTimer() << std::endl;
-      
-      std::cout << " --- RECEIVER --- " << std::endl; 
-      std::cout << "Initialize Buckets: " << this->timeAggregator.initBucketTimer.resolveTimer() << std::endl;
-      std::cout << "Receive Next Seed: " << this->timeAggregator.receiveTimer.resolveTimer() << std::endl;
-      std::cout << "Insert Into Buckets: " << this->timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
-      std::cout << "Handling received data (inserting into matrix and copying from buffer): " << this->timeAggregator.processingReceiveTimer.resolveTimer() << std::endl; 
-      std::cout << "Atomic Update (receiver side): " << this->timeAggregator.atomicUpdateTimer.resolveTimer() << std::endl; 
-      std::cout << "Total Global Streaming Time: " << this->timeAggregator.totalGlobalStreamTimer.resolveTimer() << std::endl;
-    } 
-    else  
-    {
-      std::cout << " --- SHARED --- " << std::endl; 
-      std::cout << "Samping time: " << this->timeAggregator.samplingTimer.resolveTimer() << std::endl;
-      std::cout << "f score Broadcast time: " << this->timeAggregator.broadcastTimer.resolveTimer() << std::endl;
-      std::cout << "AlltoAll time: " << this->timeAggregator.allToAllTimer.resolveTimer() << std::endl;
-      std::cout << "AllGather time: " << this->timeAggregator.allGatherTimer.resolveTimer() << std::endl;
-
-      std::cout << " --- LOCAL --- " << std::endl; 
-      std::cout << "Local max-cover time: " << this->timeAggregator.max_k_localTimer.resolveTimer() << std::endl;
-
-      std::cout << " --- GLOBAL --- " << std::endl; 
-      std::cout << "Global max-cover time: " << this->timeAggregator.max_k_globalTimer.resolveTimer() << std::endl;
-    }
-  }
-
     static size_t DEBUG_countEmpty(const std::map<int, std::vector<int>> &localSolutionSpace){
 	size_t emptyCount = 0;
 	for (const auto & e : localSolutionSpace) {
@@ -291,8 +253,6 @@ class MartingaleContext {
         {
             bestSeeds = this->runMartingaleRound(theta);
         }
-
-        this->OutputDiagnosticData();
 
         return bestSeeds.first;
     }
