@@ -117,43 +117,5 @@ class TimerAggregator
 
         return timeReport;
     }
-
-
-    // void OutputDiagnosticData()
-    // {
-    //     if (CFG.use_streaming == true)
-    //     {
-    //         std::cout << " --- SHARED --- " << std::endl; 
-    //         std::cout << "Samping time: " << this->samplingTimer.resolveTimer() << std::endl;
-    //         std::cout << "AlltoAll time: " << this->allToAllTimer.resolveTimer() << std::endl;
-    //         std::cout << "Receive Broadcast: " << this->broadcastTimer.resolveTimer() << std::endl;
-
-    //         std::cout << " --- SENDER --- " << std::endl; 
-    //         std::cout << "Select Next Seed: " << this->max_k_localTimer.resolveTimer() << std::endl;
-    //         std::cout << "Send Next Seed: " << this->sendTimer.resolveTimer() << std::endl;
-    //         std::cout << "Total Send Time: " << this->totalSendTimer.resolveTimer() << std::endl;
-            
-    //         std::cout << " --- RECEIVER --- " << std::endl; 
-    //         std::cout << "Initialize Buckets: " << this->initBucketTimer.resolveTimer() << std::endl;
-    //         std::cout << "Receive Next Seed: " << this->receiveTimer.resolveTimer() << std::endl;
-    //         std::cout << "Insert Into Buckets: " << this->max_k_globalTimer.resolveTimer() << std::endl;
-    //         std::cout << "Handling received data (inserting into matrix and copying from buffer): " << this->processingReceiveTimer.resolveTimer() << std::endl; 
-    //         std::cout << "Atomic Update (receiver side): " << this->atomicUpdateTimer.resolveTimer() << std::endl; 
-    //         std::cout << "Total Global Streaming Time: " << this->totalGlobalStreamTimer.resolveTimer() << std::endl;
-    //     } else {
-    //         std::cout << " --- SHARED --- " << std::endl; 
-    //         std::cout << "Samping time: " << this->samplingTimer.resolveTimer() << std::endl;
-    //         std::cout << "f score Broadcast time: " << this->broadcastTimer.resolveTimer() << std::endl;
-    //         std::cout << "AlltoAll time: " << this->allToAllTimer.resolveTimer() << std::endl;
-    //         std::cout << "AllGather time: " << this->allGatherTimer.resolveTimer() << std::endl;
-
-    //         std::cout << " --- LOCAL --- " << std::endl; 
-    //         std::cout << "Local max-cover time: " << this->max_k_localTimer.resolveTimer() << std::endl;
-
-    //         std::cout << " --- GLOBAL --- " << std::endl; 
-    //         std::cout << "Global max-cover time: " << this->max_k_globalTimer.resolveTimer() << std::endl;
-    //     }
-    // }
-
 };
 
