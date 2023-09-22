@@ -64,19 +64,19 @@ class MartingaleContext {
 
             this->record.ThetaPrimeDeltas.push_back(delta);
 
-            std::cout << "before sampling, " << this->previousTheta << ", " << delta << std::endl;
+            // std::cout << "before sampling, " << this->previousTheta << ", " << delta << std::endl;
             this->timeAggregator.samplingTimer.startTimer();
             this->sampler.addNewSamples(this->tRRRSets, this->previousTheta, delta);
             this->timeAggregator.samplingTimer.endTimer();    
 
-            std::cout << "before redistribution" << std::endl;
+            // std::cout << "before redistribution" << std::endl;
             this->timeAggregator.allToAllTimer.startTimer();  
             this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->solutionState.solutionSpace, delta);
             this->timeAggregator.allToAllTimer.endTimer();
 
             int kprime = int(CFG.alpha * (double)CFG.k);
 
-            std::cout << "before seed selection using kprime of " << kprime << std::endl;
+            // std::cout << "before seed selection using kprime of " << kprime << std::endl;
             this->approximator.getBestSeeds(
                 this->solutionState, 
                 kprime, 
@@ -203,7 +203,7 @@ class MartingaleContext {
                 x, epsilonPrime, this->l, this->CFG.k, this->G.num_nodes()
             );
 
-            std::cout << "global theta: " << thetaPrime << std::endl;
+            // std::cout << "global theta: " << thetaPrime << std::endl;
 
             seeds = this->runMartingaleRound(thetaPrime);
 
@@ -213,7 +213,7 @@ class MartingaleContext {
 
             if (this->cEngine.GetRank() == 0) {
                 f = (double)(seeds.second) / thetaPrime;
-                std::cout << "thetaprime: " << thetaPrime << std::endl;
+                // std::cout << "thetaprime: " << thetaPrime << std::endl;
             }
             
             // mpi_broadcast f(s)
@@ -221,7 +221,7 @@ class MartingaleContext {
             this->cEngine.distributeF(&f);
             this->timeAggregator.broadcastTimer.endTimer();
 
-            std::cout << "seeds.second: (covered RRRSet IDs) = " << seeds.second << " , thetaPrme: " << thetaPrime << " , f = " << f << std::endl;
+            // std::cout << "seeds.second: (covered RRRSet IDs) = " << seeds.second << " , thetaPrme: " << thetaPrime << " , f = " << f << std::endl;
             if (f >= std::pow(2, -x)) {
                 // std::cout << "Fraction " << f << std::endl;
                 LB = (G.num_nodes() * f) / (1 + epsilonPrime);
@@ -240,7 +240,7 @@ class MartingaleContext {
 
         if (this->cEngine.GetRank() == 0)
         {
-            spdlog::get("console")->info("Previous ThetaPrime: {}, current Theta: {}", thetaPrime, theta);
+            // spdlog::get("console")->info("Previous ThetaPrime: {}, current Theta: {}", thetaPrime, theta);
         }
 
         std::pair<std::vector<typename GraphTy::vertex_type>, int> bestSeeds;

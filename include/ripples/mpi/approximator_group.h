@@ -131,7 +131,7 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
         this->timeAggregator.allGatherTimer.startTimer();
 
         std::vector<unsigned int> receiveBuffer;
-        std::cout << "before gather" << std::endl;
+        // std::cout << "before gather" << std::endl;
         size_t totalData = this->cEngine.GatherPartialSolutions(
             receiveBuffer, 
             nextState.bestSolution,
@@ -147,12 +147,12 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
         int groupRank;
         MPI_Comm_rank(this->groupWorld, &groupRank);
         if (groupRank == 0) {
-            std::cout << "global rank " << globalRank << " is group leader" << std::endl;
+            // std::cout << "global rank " << globalRank << " is group leader" << std::endl;
 
             this->timeAggregator.allGatherTimer.startTimer();
 
             std::vector<std::pair<std::vector<unsigned int>, unsigned int>> candidateSets;
-            std::cout << "before deserialization" << std::endl;
+            // std::cout << "before deserialization" << std::endl;
             this->cEngine.deserializeGatherData(nextState.solutionSpace, candidateSets, receiveBuffer.data(), totalData);
 
             this->timeAggregator.allGatherTimer.endTimer();
@@ -160,7 +160,7 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
             // spdlog::get("console")->info("global max_k_cover...");
             this->timeAggregator.max_k_globalTimer.startTimer();
 
-            std::cout << "before global k cover" << std::endl;
+            // std::cout << "before global k cover" << std::endl;
             auto globalSeeds = this->SolveKCover(
                 this->CFG.k, kprime, theta, this->timeAggregator, nextState.solutionSpace
             );
