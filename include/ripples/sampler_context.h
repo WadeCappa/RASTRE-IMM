@@ -49,7 +49,6 @@ class DefaultSampler {
         const size_t counterStart, 
         const size_t delta
     ) {
-        std::cout << "running genrate rrr sets" << std::endl;
         GenerateTransposeRRRSets(
             tRRRSets, counterStart, delta, 
             this->graph, this->gen, this->record,

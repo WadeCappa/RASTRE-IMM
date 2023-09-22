@@ -202,8 +202,6 @@ auto run_randgreedi(
       levels, branchingFactor, cEngine.GetRank(), cEngine.GetSize()
   );
 
-  std::cout << "number of groups: " << groups.size() << std::endl;
-
   std::vector<ApproximatorGroup*> approximatorGroups;
   MartingleBuilder::buildApproximatorGroups(approximatorGroups, groups, CFG, vertexToProcess, timeAggregator, cEngine);
 
@@ -213,7 +211,6 @@ auto run_randgreedi(
       sampler, ownershipManager, approximator, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  std::cout << "starting algo" << std::endl;
   // return randimm.SolveInfMax();
   return martingaleContext.approximateInfMax();
 }
