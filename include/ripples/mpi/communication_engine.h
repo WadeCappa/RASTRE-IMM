@@ -474,19 +474,19 @@ class CommunicationEngine
         while (position < totalData) {
             std::vector<unsigned int> currentCandidateSet;
 
-            while (data[position] != -2) {
+            while (data[position] != CANDIDATE_SET_STOP) {
                 unsigned int currentVertex = data[position++];
                 currentCandidateSet.push_back(currentVertex);
                 std::vector<int> &currentRRRSet = newSolutionSpace[currentVertex];
 
-                while (data[position] != -1) {
+                while (data[position] != RRR_SET_STOP) {
                     currentRRRSet.push_back(data[position]);
                     position++;
                 }
             
                 // data[position] == -1, this is the end of current vertex, next element is either -2 or the next vertex
             
-                while (data[position] == -1) {
+                while (data[position] == RRR_SET_STOP) {
                     position++;
                 }
             }
@@ -496,12 +496,9 @@ class CommunicationEngine
 
             position++;
             candidateSets.push_back(std::make_pair(currentCandidateSet, data[position]));
-            if (currentCandidateSet.size() > 100) {
-                std::cout << "generated candidate set that is too big" << std::endl;
-            }
             position++;
 
-            while (data[position] == -3 && position < totalData) {
+            while (data[position] == BLOCK_STOP && position < totalData) {
                 position++;
             }
         }
