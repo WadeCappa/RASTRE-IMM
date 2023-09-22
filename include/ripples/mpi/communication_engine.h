@@ -24,6 +24,10 @@ class CommunicationEngine
     const unsigned int world_size;
     const unsigned int world_rank;
 
+    static const unsigned int RRR_SET_STOP = -1;
+    static const unsigned int CANDIDATE_SET_STOP = -2;
+    static const unsigned int BLOCK_STOP = -3;
+
     public:
     CommunicationEngine
     (
@@ -324,18 +328,18 @@ class CommunicationEngine
             for (const auto & RRRSetID : solutionSpace.at(setsPrefixSum[setIndex].first)) {
                 sendBuffer[offset++] = RRRSetID;
             }
-            sendBuffer[setsPrefixSum[setIndex].second + solutionSpace.at(setsPrefixSum[setIndex].first).size() + 1] = -1;
+            sendBuffer[setsPrefixSum[setIndex].second + solutionSpace.at(setsPrefixSum[setIndex].first).size() + 1] = this->RRR_SET_STOP;
         }
 
         // mark end of process seeds
-        sendBuffer[totalData - 2] = -2;
+        sendBuffer[totalData - 2] = this->CANDIDATE_SET_STOP;
 
         // mark total utility of local process
         sendBuffer[totalData - 1] = total_utility;
 
         for (int i = totalData; i < total_block_data; i++)
         {
-            sendBuffer[i] = -3;
+            sendBuffer[i] = this->BLOCK_STOP;
         }
 
         return total_block_data;
@@ -471,7 +475,7 @@ class CommunicationEngine
             std::vector<unsigned int> currentCandidateSet;
 
             while (data[position] != -2) {
-                unsigned int currentVertex = data[position];
+                unsigned int currentVertex = data[position++];
                 currentCandidateSet.push_back(currentVertex);
                 std::vector<int> &currentRRRSet = newSolutionSpace[currentVertex];
 
@@ -482,7 +486,9 @@ class CommunicationEngine
             
                 // data[position] == -1, this is the end of current vertex, next element is either -2 or the next vertex
             
-                position++;
+                while (data[position] == -1) {
+                    position++;
+                }
             }
 
             // data[position] == -2, this tells us that we have reached the end of currentVertex's RRR sets, 
@@ -490,6 +496,9 @@ class CommunicationEngine
 
             position++;
             candidateSets.push_back(std::make_pair(currentCandidateSet, data[position]));
+            if (currentCandidateSet.size() > 100) {
+                std::cout << "generated candidate set that is too big" << std::endl;
+            }
             position++;
 
             while (data[position] == -3 && position < totalData) {

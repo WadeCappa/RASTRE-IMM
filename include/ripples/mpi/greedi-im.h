@@ -211,7 +211,6 @@ auto run_randgreedi(
       sampler, ownershipManager, approximator, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  std::cout << "starting algo" << std::endl;
   // return randimm.SolveInfMax();
   return martingaleContext.approximateInfMax();
 }
