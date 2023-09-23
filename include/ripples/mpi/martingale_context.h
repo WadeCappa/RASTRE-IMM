@@ -26,7 +26,7 @@ class MartingaleContext {
     const double l;
     size_t previousTheta;
 
-    SolutionState solutionState;
+    std::map<int, std::vector<int>> solutionSpace;
     std::vector<size_t> old_sampling_sizes;
     ripples::RRRsetAllocator<typename GraphTy::vertex_type> allocator;
     TransposeRRRSets<GraphTy> tRRRSets;
@@ -50,6 +50,8 @@ class MartingaleContext {
     ) {
         // delta will always be (theta / 2) / world_size
 
+        std::pair<std::vector<unsigned int>, unsigned int> bestSeeds;
+
         auto timeRRRSets = ripples::measure<>::exec_time([&]() 
         {
             // size_t delta = localThetaPrime - this->RR_sets;
@@ -71,14 +73,14 @@ class MartingaleContext {
 
             // std::cout << "before redistribution" << std::endl;
             this->timeAggregator.allToAllTimer.startTimer();  
-            this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->solutionState.solutionSpace, delta);
+            this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->solutionSpace, delta);
             this->timeAggregator.allToAllTimer.endTimer();
 
             int kprime = int(CFG.alpha * (double)CFG.k);
 
             // std::cout << "before seed selection using kprime of " << kprime << std::endl;
-            this->approximator.getBestSeeds(
-                this->solutionState, 
+            bestSeeds = this->approximator.getBestSeeds(
+                this->solutionSpace,
                 kprime, 
                 thetaPrime + this->cEngine.GetSize()
             );
@@ -88,7 +90,7 @@ class MartingaleContext {
         auto timeMostInfluential = ripples::measure<>::exec_time([&]() { });
         this->record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
 
-        return this->solutionState.bestSolution;
+        return bestSeeds;
     }
 
     std::pair<std::vector<unsigned int>, unsigned int> runMartingaleRound(size_t theta) {
@@ -179,7 +181,7 @@ class MartingaleContext {
         {
             if (vertexToProcess[i] == this->cEngine.GetRank())
             {
-                this->solutionState.solutionSpace.insert({i, std::vector<int>()});
+                this->solutionSpace.insert({i, std::vector<int>()});
             }
         }
     }
