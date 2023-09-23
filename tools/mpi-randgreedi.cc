@@ -91,7 +91,7 @@ auto GetExperimentRecord(
       {"NumThreads", R.NumThreads},
       {"NumWalkWorkers", CFG.streaming_workers},
       {"NumGPUWalkWorkers", CFG.streaming_gpu_workers},
-      {"Total", R.Total},
+      {"Total", timer.total.resolveTimer()},
       {"ThetaPrimeDeltas", R.ThetaPrimeDeltas},
       {"ThetaEstimation", R.ThetaEstimationTotal},
       {"ThetaEstimationGenerateRRR", R.ThetaEstimationGenerateRRR},
@@ -99,7 +99,7 @@ auto GetExperimentRecord(
       {"Theta", R.Theta},
       {"GenerateRRRSets", R.GenerateRRRSets},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
-      {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size, (double)R.Total.count())},
+      {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size)},
       {"Seeds", seeds}};
   return experiment;
 }

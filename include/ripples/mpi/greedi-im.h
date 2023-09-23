@@ -165,9 +165,11 @@ auto run_greedimm(
       sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  std::cout << "starting algo" << std::endl;
-  // return randimm.SolveInfMax();
-  return martingaleContext.approximateInfMax();
+  timeAggregator.total.startTimer();
+  auto res = martingaleContext.approximateInfMax();
+  timeAggregator.total.endTimer();
+
+  return res;
 }
 
 template <typename GraphTy, typename ConfTy, typename diff_model_tag,
@@ -209,7 +211,6 @@ auto run_randgreedi(
   auto res = martingaleContext.approximateInfMax();
   timeAggregator.total.endTimer();
 
-  // return randimm.SolveInfMax();
   return res;
 }
 

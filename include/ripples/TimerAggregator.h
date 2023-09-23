@@ -87,7 +87,7 @@ class TimerAggregator
     TimerAggregator(){}
     ~TimerAggregator(){}
 
-    nlohmann::json buildLazyLazyTimeJson(const int world_size, const double total_runtime) {
+    nlohmann::json buildLazyLazyTimeJson(const int world_size) {
         nlohmann::json timeReport{
             {"Sampling", this->getWorldTimes(world_size, this->samplingTimer.resolveTimer())}, 
             {"MPI_AllToAll", this->getWorldTimes(world_size, this->allToAllTimer.resolveTimer())}, 
@@ -100,7 +100,7 @@ class TimerAggregator
         return timeReport;
     }
 
-    nlohmann::json buildStreamingTimeJson(const int world_size, const double total_runtime) {
+    nlohmann::json buildStreamingTimeJson(const int world_size) {
         nlohmann::json timeReport{
             {"Sampling", this->getWorldTimes(world_size, this->samplingTimer.resolveTimer())}, 
             {"MPI_AllToAll", this->getWorldTimes(world_size, this->allToAllTimer.resolveTimer())}, 
