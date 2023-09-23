@@ -76,13 +76,17 @@ class MartingaleContext {
         const std::map<int, std::vector<int>> &localSpace = this->solutionSpace;
         size_t localTheta = thetaPrime + this->cEngine.GetSize();
 
+        if (this->approximators.size() == 1) {
+            return this->approximators[0].getBestSeeds(localSpace, kprime, localTheta);
+        }
+
         std::vector<std::future<std::pair<std::vector<unsigned int>, unsigned int>>> executionPaths;
         for (const auto & approximator : this->approximators) {
             executionPaths.push_back(
                 std::async(
                     std::launch::async, 
                     [&approximator, &localSpace, &kprime, &localTheta] {
-                        return approximator.getBestSeeds(localSpace,kprime, localTheta);
+                        return approximator.getBestSeeds(localSpace, kprime, localTheta);
                     }
                 )
             );
