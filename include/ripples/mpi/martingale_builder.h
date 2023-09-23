@@ -1,9 +1,54 @@
 
 
 #include "ripples/generate_rrr_sets.h"
+#include "math.h"
 
 class MartingleBuilder {
     public:
+
+    static std::vector<unsigned int> getBranchingFactors(const std::string &inputString) {
+        std::vector<unsigned int> res;
+
+        std::stringstream inputStringStream(inputString);
+        std::string branchingFactor;
+
+        while (getline(inputStringStream, branchingFactor, '.')) {
+            res.push_back(std::stoi(branchingFactor));
+        }
+
+        if (res.size() == 0) {
+            res.push_back(INT_MAX);
+        }
+
+        return res;
+    }
+
+    template <
+        typename GraphTy,
+        typename ConfTy>
+    static std::vector<ApproximatorContext> buildApproximatorContexts(
+        const std::vector<unsigned int> &branchingFactors,
+        const unsigned int worldSize,
+        const ConfTy &CFG, 
+        TimerAggregator &timeAggregator,
+        const std::vector<int> &vertexToProcess,
+        const CommunicationEngine<GraphTy> &cEngine
+    ) {
+        std::vector<ApproximatorContext> approximators;
+        for (auto branchingFactor : branchingFactors) {
+            int numberOfLevels = (int)(std::ceil((double)std::log(worldSize) / (double)std::log(branchingFactor)));
+            approximators.push_back(MartingleBuilder::buildApproximatorContext<GraphTy, ConfTy>(
+                numberOfLevels,
+                branchingFactor, 
+                CFG, 
+                timeAggregator, 
+                vertexToProcess, 
+                cEngine
+            ));
+        }
+
+        return approximators;
+    }
 
     template <
         typename GraphTy,

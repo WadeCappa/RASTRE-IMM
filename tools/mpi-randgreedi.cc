@@ -75,8 +75,8 @@ auto GetExperimentRecord(
 
   nlohmann::json experiment{
       {"Algorithm", "RandGreediLazylazy"},
-      {"Levels", CFG.number_of_levels},
-      {"BranchingFactor", CFG.branching_factor}, 
+      {"Levels", "Unknown"},
+      {"BranchingFactors", CFG.branching_factors}, 
       {"Input", CFG.IFileName},
       {"Output", CFG.OutputFile},
       {"DiffusionModel", CFG.diffusionModel},
@@ -173,7 +173,6 @@ int main(int argc, char *argv[]) {
     console->info("finished initializing graph");
     seeds = ripples::mpi::run_randgreedi(
         G, CFG, timeAggregator, 1.0, se, R, ripples::independent_cascade_tag{},
-        CFG.number_of_levels, CFG.branching_factor,
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;
@@ -187,7 +186,6 @@ int main(int argc, char *argv[]) {
     auto start = std::chrono::high_resolution_clock::now();
     seeds = ripples::mpi::run_randgreedi(
         G, CFG, timeAggregator, 1.0, se, R, ripples::linear_threshold_tag{},
-        CFG.number_of_levels, CFG.branching_factor,
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;

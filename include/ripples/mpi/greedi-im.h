@@ -180,8 +180,6 @@ auto run_randgreedi(
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
   diff_model_tag &&model_tag, 
-  const unsigned int levels,
-  const unsigned int branchingFactor,
   ExTagTrait &&
 ) 
 {
@@ -199,8 +197,9 @@ auto run_randgreedi(
 
   OwnershipManager<GraphTy> ownershipManager(G.num_nodes(), cEngine, vertexToProcess);
 
-  std::vector<ApproximatorContext> approximators;
-  approximators.push_back(MartingleBuilder::buildApproximatorContext<GraphTy, ConfTy>(levels, branchingFactor, CFG, timeAggregator, vertexToProcess, cEngine));
+  std::vector<unsigned int> branchingFactors = MartingleBuilder::getBranchingFactors(CFG.branching_factors);
+
+  std::vector<ApproximatorContext> approximators = MartingleBuilder::buildApproximatorContexts<GraphTy, ConfTy>(branchingFactors, cEngine.GetSize(), CFG, timeAggregator, vertexToProcess, cEngine);
 
   MartingaleContext<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> martingaleContext(
       sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
