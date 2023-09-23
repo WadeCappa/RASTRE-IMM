@@ -66,6 +66,8 @@ auto GetExperimentRecord(
   const ToolConfiguration<IMMConfiguration> &CFG,
   const IMMExecutionRecord &R, 
   const SeedSet &seeds,
+  const unsigned int levels,
+  const unsigned int optBranchingFactor,
   TimerAggregator &timer) {
   // Find out rank, size
   int world_rank;
@@ -75,8 +77,9 @@ auto GetExperimentRecord(
 
   nlohmann::json experiment{
       {"Algorithm", "RandGreediLazylazy"},
-      {"Levels", CFG.number_of_levels},
-      {"BranchingFactor", CFG.branching_factor}, 
+      {"Levels", levels},
+      {"BranchingFactors", CFG.branching_factors}, 
+      {"OptimalBranchingFactor", optBranchingFactor},
       {"Input", CFG.IFileName},
       {"Output", CFG.OutputFile},
       {"DiffusionModel", CFG.diffusionModel},
@@ -88,7 +91,7 @@ auto GetExperimentRecord(
       {"NumThreads", R.NumThreads},
       {"NumWalkWorkers", CFG.streaming_workers},
       {"NumGPUWalkWorkers", CFG.streaming_gpu_workers},
-      {"Total", R.Total},
+      {"Total", timer.total.resolveTimer()},
       {"ThetaPrimeDeltas", R.ThetaPrimeDeltas},
       {"ThetaEstimation", R.ThetaEstimationTotal},
       {"ThetaEstimationGenerateRRR", R.ThetaEstimationGenerateRRR},
@@ -96,7 +99,7 @@ auto GetExperimentRecord(
       {"Theta", R.Theta},
       {"GenerateRRRSets", R.GenerateRRRSets},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
-      {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size, (double)R.Total.count())},
+      {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size)},
       {"Seeds", seeds}};
   return experiment;
 }
@@ -173,7 +176,6 @@ int main(int argc, char *argv[]) {
     console->info("finished initializing graph");
     seeds = ripples::mpi::run_randgreedi(
         G, CFG, timeAggregator, 1.0, se, R, ripples::independent_cascade_tag{},
-        CFG.number_of_levels, CFG.branching_factor,
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;
@@ -187,7 +189,6 @@ int main(int argc, char *argv[]) {
     auto start = std::chrono::high_resolution_clock::now();
     seeds = ripples::mpi::run_randgreedi(
         G, CFG, timeAggregator, 1.0, se, R, ripples::linear_threshold_tag{},
-        CFG.number_of_levels, CFG.branching_factor,
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;
@@ -203,9 +204,13 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
   G.convertID(seeds.begin(), seeds.end(), seeds.begin());
-  auto experiment = GetExperimentRecord(CFG, R, seeds, timeAggregator);
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+  std::vector<unsigned int> branchingFactors = MartingleBuilder::getBranchingFactors(CFG.branching_factors);
+  unsigned int optimalBranchingFactor = branchingFactors[R.OptimalExecutionPath];
+  auto experiment = GetExperimentRecord(CFG, R, seeds, std::ceil((double)std::log(world_size) / (double)std::log(optimalBranchingFactor)), optimalBranchingFactor, timeAggregator);
+
   console->info("IMM World Size : {}", world_size);
 
   // Find out rank, size

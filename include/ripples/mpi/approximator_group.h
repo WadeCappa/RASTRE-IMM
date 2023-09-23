@@ -33,7 +33,8 @@ class ApproximatorGroup {
 
     virtual void approximate(
         const SolutionState &currentState,
-        SolutionState &nextState,
+        std::map<int, std::vector<int>> &nextSolutionSpace, // modified
+        std::pair<std::vector<unsigned int>, unsigned int> &nextBestSolution, // modified
         const int kprime, 
         const size_t theta
     ) = 0;
@@ -57,7 +58,8 @@ class StreamingApproximatorGroup : public ApproximatorGroup {
 
     void approximate(
         const SolutionState &currentState,
-        SolutionState &nextState, // contains result
+        std::map<int, std::vector<int>> &nextSolutionSpace, // modified
+        std::pair<std::vector<unsigned int>, unsigned int> &nextBestSolution, // modified
         const int kprime, 
         const size_t theta
     ) override {
@@ -67,7 +69,7 @@ class StreamingApproximatorGroup : public ApproximatorGroup {
         MPI_Comm_size(this->groupWorld, &worldSize);
         if (groupRank == 0) {
             StreamingRandGreedIEngine<GraphTy> streamingEngine(this->CFG.k, kprime, theta, (double)this->CFG.epsilon_2, worldSize - 1, this->cEngine, this->timeAggregator);
-            nextState.bestSolution = streamingEngine.Stream(nextState.solutionSpace);
+            nextBestSolution = streamingEngine.Stream(nextSolutionSpace);
         } else {
             this->timeAggregator.totalSendTimer.startTimer();
             
@@ -110,18 +112,19 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
 
     void approximate(
         const SolutionState &currentState,
-        SolutionState &nextState, // contains result
+        std::map<int, std::vector<int>> &nextSolutionSpace, // modified
+        std::pair<std::vector<unsigned int>, unsigned int> &nextBestSolution, // modified
         const int kprime, 
         const size_t theta
     ) override {
-        nextState.bestSolution.first = currentState.bestSolution.first;
-        nextState.bestSolution.second = currentState.bestSolution.second;
+        nextBestSolution.first = currentState.bestSolution.first;
+        nextBestSolution.second = currentState.bestSolution.second;
 
-        if (nextState.bestSolution.first.size() == 0) {
+        if (nextBestSolution.first.size() == 0) {
             // std::cout << "init of local solution using world size of " << currentState.solutionSpace.size() << std::endl;;
             this->timeAggregator.max_k_localTimer.startTimer();
 
-            nextState.bestSolution = this->SolveKCover(
+            nextBestSolution = this->SolveKCover(
                 this->CFG.k, kprime, theta, this->timeAggregator, currentState.solutionSpace
             );
 
@@ -134,7 +137,7 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
         // std::cout << "before gather" << std::endl;
         size_t totalData = this->cEngine.GatherPartialSolutions(
             receiveBuffer, 
-            nextState.bestSolution,
+            nextBestSolution,
             currentState.solutionSpace, 
             this->groupWorld
         );
@@ -153,7 +156,7 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
 
             std::vector<std::pair<std::vector<unsigned int>, unsigned int>> candidateSets;
             // std::cout << "before deserialization" << std::endl;
-            this->cEngine.deserializeGatherData(nextState.solutionSpace, candidateSets, receiveBuffer.data(), totalData);
+            this->cEngine.deserializeGatherData(nextSolutionSpace, candidateSets, receiveBuffer.data(), totalData);
 
             this->timeAggregator.allGatherTimer.endTimer();
 
@@ -162,17 +165,17 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
 
             // std::cout << "before global k cover" << std::endl;
             auto globalSeeds = this->SolveKCover(
-                this->CFG.k, kprime, theta, this->timeAggregator, nextState.solutionSpace
+                this->CFG.k, kprime, theta, this->timeAggregator, nextSolutionSpace
             );
 
             candidateSets.push_back(globalSeeds);
-            nextState.bestSolution = this->getBestCandidate(candidateSets, kprime);
+            nextBestSolution = this->getBestCandidate(candidateSets, kprime);
 
-            // nextState.bestSolution = globalSeeds;
+            // nextBestSolution = globalSeeds;
 
             this->timeAggregator.max_k_globalTimer.endTimer();
         } else {
-            nextState.bestSolution = std::make_pair(std::vector<unsigned int>(), 0);
+            nextBestSolution = std::make_pair(std::vector<unsigned int>(), 0);
         }
     }
 };
