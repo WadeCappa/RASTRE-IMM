@@ -68,7 +68,7 @@ def build(bld):
         cuda_acc_cxx_flags += ['-DENABLE_MEMKIND=1']
 
     if bld.env.ENABLE_METALL:
-        cuda_acc_tools_deps += ['metall', 'boost']
+        cuda_acc_tools_deps += ['metall', 'boost', 'libstdc++fs']
         cuda_acc_cxx_flags += ['-DENABLE_METALL=1']
 
     bld(features='cxx cxxprogram', source='imm.cc', target='imm',
@@ -87,19 +87,21 @@ def build(bld):
     bld(features='cxx cxxprogram', source='hill_climbing.cc', target='hill-climbing',
         use=cuda_acc_tools_deps + ['cuda_hc_bfs'], cxxflags=cuda_acc_cxx_flags, cuda=bld.env.ENABLE_CUDA)
 
+
     if not bld.env.HAVE_MPI:
         return
 
     tools_deps += ['MPI']
     cuda_acc_tools_deps += ['MPI']
-    bld(features='cxx cxxprogram', source='mpi-hill-climbing.cc', target='mpi-hill-climbing',
-        use=cuda_acc_tools_deps + ['cuda_hc_bfs'], cuda=bld.env.ENABLE_CUDA, cxxflags=cuda_acc_cxx_flags)
-
-    bld(features='cxx cxxprogram', source='mpi-imm.cc', target='mpi-imm',
-        use=cuda_acc_tools_deps + ['cuda_imm_bfs'], cuda=bld.env.ENABLE_CUDA, cxxflags=cuda_acc_cxx_flags)
+    bld(features='cxx cxxprogram', source='mpi-hill-climbing.cc', target='mpi-hill-climbing',	
+        use=cuda_acc_tools_deps + ['cuda_hc_bfs'], cxxflags=cuda_acc_cxx_flags, cuda=bld.env.ENABLE_CUDA)
+        	
+    bld(features='cxx cxxprogram', source='mpi-imm.cc', target='mpi-imm',	
+        use=cuda_acc_tools_deps + ['cuda_imm_bfs'], cuda=bld.env.ENABLE_CUDA,	
+        cxxflags=cuda_acc_cxx_flags)
 
     bld(features='cxx cxxprogram', source='mpi-greedimm.cc', target='mpi-greedimm',
-        use=cuda_acc_tools_deps + ['cuda_hc_bfs'], cuda=bld.env.ENABLE_CUDA, cxxflags=cuda_acc_cxx_flags)
+        use=cuda_acc_tools_deps + ['cuda_imm_bfs'], cuda=bld.env.ENABLE_CUDA, cxxflags=cuda_acc_cxx_flags)
 
     bld(features='cxx cxxprogram', source='mpi-randgreedi.cc', target='mpi-randgreedi',
-        use=cuda_acc_tools_deps + ['cuda_hc_bfs'], cuda=bld.env.ENABLE_CUDA, cxxflags=cuda_acc_cxx_flags)
+        use=cuda_acc_tools_deps + ['cuda_imm_bfs'], cuda=bld.env.ENABLE_CUDA, cxxflags=cuda_acc_cxx_flags)
