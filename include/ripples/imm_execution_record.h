@@ -71,6 +71,8 @@ struct IMMExecutionRecord {
     ex_time_ms Total{0};
   };
 
+  unsigned int OptimalExecutionPath;
+
   //! Number of threads used during the execution.
   size_t NumThreads;
   //! Number of RRR sets generated.
