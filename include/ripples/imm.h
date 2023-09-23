@@ -79,7 +79,10 @@ struct IMMConfiguration : public TIMConfiguration {
   double epsilon_2 = 0.13; 
   double alpha = 1;
   bool use_diimm = false;
-  bool output_diagnostics = false;
+  bool verbose = false;
+  unsigned int number_of_levels = 1;
+  unsigned int branching_factor = INT_MAX;
+
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
 
@@ -115,9 +118,15 @@ struct IMMConfiguration : public TIMConfiguration {
     app.add_option("--DIiMM", use_diimm,
                 "Use the 2022 DIiMM algorithm to approximate influence maximization")
         ->group("Streaming-Engine Options");
-    app.add_option("--verbose", output_diagnostics,
+    app.add_option("--verbose", verbose,
                 "Output more granular runtime data")
         ->group("Streaming-Engine Options");
+    app.add_option("--levels", number_of_levels,
+                "Set number of levels, default of 1")
+        ->group("Streaming-Engine Options"); // todo: figure out if you can change the group without breaking anything
+    app.add_option("--branching-factor", branching_factor,
+                "Set the prefered group size, default of INT_MAX") // todo: spelling
+        ->group("Streaming-Engine Options"); // todo: figure out if you can change the group without breaking anything
 
   }
 };

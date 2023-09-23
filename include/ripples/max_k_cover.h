@@ -90,8 +90,7 @@ private:
         }
 
     public:
-        LazyGreedy(size_t theta) : NextMostInfluentialFinder(theta)
-        {}
+        LazyGreedy(size_t theta) : NextMostInfluentialFinder(theta) {}
 
         ~LazyGreedy()
         {
@@ -115,13 +114,15 @@ private:
             return this;
         }
 
+        // TODO: this is broken, pull this code offline and figure out how to fix it. It never makes recusive calls, always accepts first solution.
         size_t findNextInfluential() override
         {
+            // std::cout << "entered into finder" << std::endl;
             std::pair<int, std::vector<int>*> l = this->heap->front();
             std::pop_heap(this->heap->begin(), this->heap->end(), this->cmp);
             this->heap->pop_back();
 
-            // std::cout << "covered is size " << covered.size() << std::endl;
+            // std::cout << "found " << l.first << " from heap " << std::endl;
 
             std::vector<int> new_set;
 
@@ -154,20 +155,21 @@ private:
             
             // if marginal of l is better than r's utility, l is the current best     
             if (marginal_gain >= r.second->size()) 
-            {               
+            {
                 for (unsigned int e: *(l.second)) {
                     if (!(this->covered.get(e))) {
                         this->covered.set(e);
                     }
                 }
 
-                // std::cout << "returning " << l.first << " of size " << l.second->size() << std::endl;
+                // std::cout << "returning from lazy greedy " << l.first << " of size " << l.second->size() << std::endl;
 
                 return l.first;
             }
             // else push l's marginal into the heap 
             else {
-                // std::cout << "l.first: " << l.first << ", l.second.size(): " << l.second->size() << ", r.second.size(): " << r.second->size() << std::endl;
+                // std::cout << "recursive call, l.first: " << l.first << ", l.second.size(): " << l.second->size() << ", r.second.size(): " << r.second->size() << std::endl;
+                // TODO: Verify that this branch works.
 
                 this->heap->push_back(l);
                 std::push_heap(this->heap->begin(), this->heap->end(), this->cmp);
@@ -249,95 +251,6 @@ private:
         }
     };
 
-    // class NaiveBitMapGreedy : public NextMostInfluentialFinder
-    // {
-    // private:
-    //     std::map<int, ripples::Bitmask<int>> bitmaps;
-
-    // public:
-    //     NaiveBitMapGreedy(int theta) : NextMostInfluentialFinder(theta)
-    //     {}
-
-    //     void Setup(const std::map<int, std::vector<int>>& original_data) override 
-    //     {
-    //         for (const auto & l : original_data)
-    //         {
-    //             this->replicated_data.insert({ l.first, new std::vector<int>(l.second.begin(), l.second.end()) });
-    //         }
-
-    //         for (const auto & l : this->replicated_data)
-    //         {
-    //             ripples::Bitmask<int> newBitMask(theta);
-    //             for (const auto & r : *(l.second))
-    //             {
-    //                 newBitMask.set(r);
-    //             }
-    //             this->bitmaps.insert({ l.first, newBitMask });
-    //         }
-    //     }
-
-    //     ~NaiveBitMapGreedy()
-    //     {}
-
-    //     NextMostInfluentialFinder setSubset(const std::vector<unsigned int>& subset_of_selection_sets, size_t subset_size) override
-    //     {
-    //         this->vertex_subset = subset_of_selection_sets;
-    //         this->subset_size = subset_size;
-    //         return this;
-    //     } 
-
-    //     NextMostInfluentialFinder reloadSubset () override 
-    //     {
-    //         return this;
-    //     }
-
-    //     size_t findNextInfluential() override
-    //     {
-    //         int best_score = -1;
-    //         int max_key = -1;
-
-    //         ripples::Bitmask<int> localCovered(this->covered);
-    //         localCovered.notOperation();
-
-    //         // check this->bitmaps for the bitmap that has the maximal marginal gain when bitmap[i] & ~covered is used. 
-    //         #pragma omp parallel 
-    //         {
-    //             int local_best_score = best_score;
-    //             int local_max_key = max_key;
-
-    //             # pragma omp for 
-    //             for ( int i = 0; i < this->subset_size; i++ )
-    //             {
-    //                 int vertex = this->vertex_subset.at(i);
-    //                 if (this->bitmaps->find(vertex) != this->bitmaps->end())
-    //                 {
-    //                     ripples::Bitmask<int> working(localCovered);
-    //                     working.andOperation(*(this->bitmaps->at(vertex)));
-    //                     size_t popcount = working.popcount();
-    //                     if ((int)popcount > local_best_score) {
-    //                         local_best_score = popcount;
-    //                         local_max_key = vertex;
-    //                     }
-    //                 }
-    //             }
-
-    //             #pragma omp critical 
-    //             {
-    //                 if (local_best_score > best_score) {
-    //                     best_score = local_best_score;
-    //                     max_key = local_max_key;
-    //                 }
-    //             }
-    //         }
-
-    //         // update covered
-    //         this->covered.orOperation(*(this->bitmaps->at(max_key)));
-
-    //         this->bitmaps->erase(max_key);
-    //         return max_key;
-    //     }
-    // };
-
 protected: 
     int k;
     int kprime;
@@ -349,9 +262,6 @@ protected:
 
     void reorganizeVertexSet(std::vector<unsigned int>& vertices, size_t size, std::vector<unsigned int>& seedSet)
     {
-        // for i from 0 to n−2 do
-        //     j ← random integer such that i ≤ j < n
-        //     exchange a[i] and a[j]
         std::set<int> seeds(seedSet.begin(), seedSet.end());
 
         for (int i = 0; i < size; i++) 
@@ -409,14 +319,7 @@ public:
         return *this;
     }
 
-    // MaxKCoverBase& useNaiveBitmapGreedy()
-    // {
-    //     this->finder = new NaiveBitMapGreedy(this->theta);
-
-    //     return *this;
-    // }
-
-    virtual std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
+    virtual std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover (const std::map<int, std::vector<int>>& data) = 0;
 };
 
 template <typename GraphTy>
@@ -425,9 +328,10 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
     public:
     MaxKCover(int k, int kprime, size_t theta, TimerAggregator &timer) 
         : MaxKCoverBase<GraphTy>(k, kprime, theta, timer)
-    {}
+    {
+    }
 
-    std::pair<std::vector<unsigned int>, size_t> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
+    std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover (const std::map<int, std::vector<int>>& data) override
     {
         this->finder->Setup(data);
         std::vector<unsigned int> res(this->k, -1);
@@ -440,18 +344,18 @@ class MaxKCover : public MaxKCoverBase<GraphTy>
 
         for (unsigned int currentSeed = 0; currentSeed < this->k; currentSeed++)
         {
+            // std::cout << "working on seed " <<  currentSeed  << "..." << std::endl;
             if (this->usingStochastic)
             {
                 this->reorganizeVertexSet(all_vertices, subset_size, res);
                 this->finder->reloadSubset();
             }
 
-            this->timer.max_k_localTimer.startTimer();
-
             res[currentSeed] = this->finder->findNextInfluential();
         }
 
-        return std::make_pair(res, this->finder->GetUtility());
+        auto resUtility = this->finder->GetUtility();
+        return std::make_pair(res, resUtility);
     }
 };
 
@@ -568,7 +472,7 @@ private:
     ) : MaxKCoverBase<GraphTy>(k, kprime, theta, timer), cEngine(cEngine), send_buffers(kprime)
     {}
 
-    std::pair<std::vector<unsigned int>, size_t> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
+    std::pair<std::vector<unsigned int>, unsigned int> run_max_k_cover(const std::map<int, std::vector<int>>& data) override
     {
         this->finder->Setup(data);
 

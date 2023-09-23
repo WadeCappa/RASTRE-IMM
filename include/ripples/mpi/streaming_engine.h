@@ -24,7 +24,7 @@ typedef struct origin {
 
 typedef struct candidateSet {
     unsigned int vertex;
-    std::vector<unsigned int> covered;
+    std::vector<int> covered;
 } CandidateSet;
 
 class ThresholdBucket 
@@ -274,16 +274,15 @@ class StreamingRandGreedIEngine
         }
     }
 
-    CandidateSet ExtractElement(std::vector<unsigned int>& receive_buffer)
+    CandidateSet ExtractElement(std::vector<unsigned int>& receive_buffer, std::map<int, std::vector<int>> &newSolutionSpace)
     {
-        std::vector<unsigned int> received_data;
-
+        std::vector<int> &seed_data = newSolutionSpace[receive_buffer[0]];
         for (unsigned int* e = receive_buffer.data() + 1; *(e) != -1; e++) 
         {
-            received_data.push_back(*e);
+            seed_data.push_back(*e);
         }
 
-        return (CandidateSet){receive_buffer[0], received_data};
+        return (CandidateSet){receive_buffer[0], seed_data};
     }
 
     void ResetBuffer(std::vector<unsigned int>& receive_buffer)
@@ -346,7 +345,7 @@ class StreamingRandGreedIEngine
             this->number_of_senders, 
             std::vector<CandidateSet>(
                 this->kprime,
-                (CandidateSet){0, std::vector<unsigned int>()}
+                (CandidateSet){0, std::vector<int>()}
             )
         );
 
@@ -365,7 +364,7 @@ class StreamingRandGreedIEngine
 
     }
 
-    std::pair<std::vector<unsigned int>, int> Stream()
+    std::pair<std::vector<unsigned int>, int> Stream(std::map<int, std::vector<int>> &newSolutionSpace)
     {
         int buckets_initialized = 0;
         int dummy_value = 0;
@@ -404,7 +403,7 @@ class StreamingRandGreedIEngine
                         this->GetSeedSet(this->buffer, local_seed_sets[source]);
                     }
 
-                    element_matrix[source][tag] = this->ExtractElement(this->buffer);
+                    element_matrix[source][tag] = this->ExtractElement(this->buffer, newSolutionSpace);
 
                     this->timer.processingReceiveTimer.endTimer();
 
