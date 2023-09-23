@@ -165,9 +165,7 @@ auto run_greedimm(
       sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  timeAggregator.total.startTimer();
   auto res = martingaleContext.approximateInfMax();
-  timeAggregator.total.endTimer();
 
   return res;
 }
@@ -207,9 +205,7 @@ auto run_randgreedi(
       sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  timeAggregator.total.startTimer();
   auto res = martingaleContext.approximateInfMax();
-  timeAggregator.total.endTimer();
 
   return res;
 }

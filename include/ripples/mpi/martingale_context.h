@@ -22,7 +22,7 @@ class MartingaleContext {
     const ConfTy &CFG;
     ripples::IMMExecutionRecord &record;
     const CommunicationEngine<GraphTy> &cEngine;
-    int fastestExecutionPath = -1;
+    int optimalExecutionPath = -1;
 
     const double l;
     size_t previousTheta;
@@ -82,8 +82,8 @@ class MartingaleContext {
             return this->approximators[0].getBestSeeds(localSpace, kprime, localTheta);
         }
 
-        if (this->fastestExecutionPath != -1) {
-            return this->approximators[this->fastestExecutionPath].getBestSeeds(localSpace, kprime, localTheta);
+        if (this->optimalExecutionPath != -1) {
+            return this->approximators[this->optimalExecutionPath].getBestSeeds(localSpace, kprime, localTheta);
         }
 
         std::vector<std::future<std::pair<std::vector<unsigned int>, unsigned int>>> executionPaths;
@@ -105,7 +105,7 @@ class MartingaleContext {
                 status = f.wait_for(std::chrono::seconds(0));
                 if (status == std::future_status::ready) {
                     this->record.OptimalExecutionPath = i;
-                    this->fastestExecutionPath = i;
+                    this->optimalExecutionPath = i;
                     return f.get();
                 }
             }

@@ -94,7 +94,7 @@ auto GetExperimentRecord(
       {"Theta", R.Theta},
       {"GenerateRRRSets", R.GenerateRRRSets},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
-      {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size)},
+      {"GranularRuntime_Milliseconds", timer.buildStreamingTimeJson(world_size, R.Total.count())},
       {"Seeds", seeds}};
   return experiment;
 }
