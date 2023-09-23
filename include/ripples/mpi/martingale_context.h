@@ -15,7 +15,7 @@ template <
 class MartingaleContext {
     private:
     DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> &sampler;
-    const ApproximatorContext &approximator;
+    const std::vector<ApproximatorContext> &approximators;
     OwnershipManager<GraphTy> &ownershipManager;
 
     const GraphTy &G;
@@ -50,47 +50,53 @@ class MartingaleContext {
     ) {
         // delta will always be (theta / 2) / world_size
 
-        std::pair<std::vector<unsigned int>, unsigned int> bestSeeds;
+        size_t delta = ((thetaPrime - previousTheta) / this->cEngine.GetSize() + 1);
 
-        auto timeRRRSets = ripples::measure<>::exec_time([&]() 
+        if ((thetaPrime - previousTheta) / this->cEngine.GetSize() < 0)
         {
-            // size_t delta = localThetaPrime - this->RR_sets;
-            // size_t delta = this->RR_sets == 0 ? thetaPrime / this->cEngine.GetSize() : (thetaPrime / 2) / this->cEngine.GetSize();
-            size_t delta = ((thetaPrime - previousTheta) / this->cEngine.GetSize() + 1);
+            // std::cout << "DELTA ERROR" << std::endl;
+            exit(1);
+        }
 
-            if ((thetaPrime - previousTheta) / this->cEngine.GetSize() < 0)
-            {
-                // std::cout << "DELTA ERROR" << std::endl;
-                exit(1);
-            }
+        this->record.ThetaPrimeDeltas.push_back(delta);
 
-            this->record.ThetaPrimeDeltas.push_back(delta);
+        // std::cout << "before sampling, " << this->previousTheta << ", " << delta << std::endl;
+        this->timeAggregator.samplingTimer.startTimer();
+        this->sampler.addNewSamples(this->tRRRSets, this->previousTheta, delta);
+        this->timeAggregator.samplingTimer.endTimer();    
 
-            // std::cout << "before sampling, " << this->previousTheta << ", " << delta << std::endl;
-            this->timeAggregator.samplingTimer.startTimer();
-            this->sampler.addNewSamples(this->tRRRSets, this->previousTheta, delta);
-            this->timeAggregator.samplingTimer.endTimer();    
+        // std::cout << "before redistribution" << std::endl;
+        this->timeAggregator.allToAllTimer.startTimer();  
+        this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->solutionSpace, delta);
+        this->timeAggregator.allToAllTimer.endTimer();
 
-            // std::cout << "before redistribution" << std::endl;
-            this->timeAggregator.allToAllTimer.startTimer();  
-            this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->solutionSpace, delta);
-            this->timeAggregator.allToAllTimer.endTimer();
+        int kprime = int(CFG.alpha * (double)CFG.k);
 
-            int kprime = int(CFG.alpha * (double)CFG.k);
+        // std::cout << "before seed selection using kprime of " << kprime << std::endl;
+        const std::map<int, std::vector<int>> &localSpace = this->solutionSpace;
+        size_t localTheta = thetaPrime + this->cEngine.GetSize();
 
-            // std::cout << "before seed selection using kprime of " << kprime << std::endl;
-            bestSeeds = this->approximator.getBestSeeds(
-                this->solutionSpace,
-                kprime, 
-                thetaPrime + this->cEngine.GetSize()
+        std::vector<std::future<std::pair<std::vector<unsigned int>, unsigned int>>> executionPaths;
+        for (const auto & approximator : this->approximators) {
+            executionPaths.push_back(
+                std::async(
+                    std::launch::async, 
+                    [&approximator, &localSpace, &kprime, &localTheta] {
+                        return approximator.getBestSeeds(localSpace,kprime, localTheta);
+                    }
+                )
             );
-        });
-        
-        this->record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
-        auto timeMostInfluential = ripples::measure<>::exec_time([&]() { });
-        this->record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
+        }
 
-        return bestSeeds;
+        while (true) {
+            for (auto & f : executionPaths) {
+                std::future_status status;
+                status = f.wait_for(std::chrono::seconds(0));
+                if (status == std::future_status::ready) {
+                    return f.get();
+                }
+            }
+        }
     }
 
     std::pair<std::vector<unsigned int>, unsigned int> runMartingaleRound(size_t theta) {
@@ -151,7 +157,7 @@ class MartingaleContext {
     MartingaleContext(
         DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> &sampler,
         OwnershipManager<GraphTy> &ownershipManager,
-        const ApproximatorContext &approximator,
+        const std::vector<ApproximatorContext> &approximators,
 
         const GraphTy &input_G, 
         const ConfTy &input_CFG,
@@ -161,7 +167,7 @@ class MartingaleContext {
         TimerAggregator &timeAggregator
     ) 
         : 
-            approximator(approximator), 
+            approximators(approximators), 
             ownershipManager(ownershipManager), 
             sampler(sampler),
 

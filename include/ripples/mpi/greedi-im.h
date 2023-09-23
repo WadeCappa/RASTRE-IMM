@@ -158,10 +158,11 @@ auto run_greedimm(
 
   std::vector<ApproximatorGroup*> approximatorGroups;
   approximatorGroups.push_back(new StreamingApproximatorGroup<GraphTy, ConfTy>(MPI_COMM_WORLD, vertexToProcess, timeAggregator, CFG, cEngine));
-  ApproximatorContext approximator(approximatorGroups);
+  std::vector<ApproximatorContext> approximators;
+  approximators.push_back(ApproximatorContext (approximatorGroups));
 
   MartingaleContext<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> martingaleContext(
-      sampler, ownershipManager, approximator, G, CFG, l_value, record, cEngine, timeAggregator
+      sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
   std::cout << "starting algo" << std::endl;
@@ -198,21 +199,19 @@ auto run_randgreedi(
 
   OwnershipManager<GraphTy> ownershipManager(G.num_nodes(), cEngine, vertexToProcess);
 
-  std::vector<MPI_Comm> groups = MartingleBuilder::buildCommGroups<GraphTy, ConfTy>(
-      levels, branchingFactor, cEngine.GetRank(), cEngine.GetSize()
-  );
-
-  std::vector<ApproximatorGroup*> approximatorGroups;
-  MartingleBuilder::buildApproximatorGroups(approximatorGroups, groups, CFG, vertexToProcess, timeAggregator, cEngine);
-
-  ApproximatorContext approximator(approximatorGroups);
+  std::vector<ApproximatorContext> approximators;
+  approximators.push_back(MartingleBuilder::buildApproximatorContext<GraphTy, ConfTy>(levels, branchingFactor, CFG, timeAggregator, vertexToProcess, cEngine));
 
   MartingaleContext<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> martingaleContext(
-      sampler, ownershipManager, approximator, G, CFG, l_value, record, cEngine, timeAggregator
+      sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
+  timeAggregator.total.startTimer();
+  auto res = martingaleContext.approximateInfMax();
+  timeAggregator.total.endTimer();
+
   // return randimm.SolveInfMax();
-  return martingaleContext.approximateInfMax();
+  return res;
 }
 
 

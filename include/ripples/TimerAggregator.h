@@ -63,6 +63,8 @@ class TimerAggregator
     }
 
     public:
+    Timer total;
+
     Timer samplingTimer;
     Timer max_k_localTimer;
     Timer max_k_globalTimer;
@@ -92,7 +94,7 @@ class TimerAggregator
             {"MaxKCover", this->getWorldTimes(world_size, this->max_k_globalTimer.resolveTimer() + this->max_k_localTimer.resolveTimer())},  
             {"MPI_Gather", this->getWorldTimes(world_size, this->allGatherTimer.resolveTimer())}, 
             {"MPI_Broadcast", this->getWorldTimes(world_size, this->broadcastTimer.resolveTimer())},
-            {"Total", this->getTotalRuntimes(world_size, total_runtime)} 
+            {"Total", this->getWorldTimes(world_size, this->total.resolveTimer())}
         };
 
         return timeReport;
@@ -112,7 +114,7 @@ class TimerAggregator
             {"AtomicUpdateForBuckets_ListeningThread", this->atomicUpdateTimer.resolveTimer()},
             {"TotalGlobalStreamingTime", this->totalGlobalStreamTimer.resolveTimer()},
             {"MPI_Broadcast", this->getWorldTimes(world_size, this->broadcastTimer.resolveTimer())},
-            {"Total", this->getTotalRuntimes(world_size, total_runtime)} 
+            {"Total", this->getWorldTimes(world_size, this->total.resolveTimer())}
         };
 
         return timeReport;

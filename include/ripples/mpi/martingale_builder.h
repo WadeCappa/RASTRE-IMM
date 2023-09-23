@@ -4,6 +4,28 @@
 
 class MartingleBuilder {
     public:
+
+    template <
+        typename GraphTy,
+        typename ConfTy>
+    static ApproximatorContext buildApproximatorContext(
+        const unsigned int levels,
+        const unsigned int branchingFactor,
+        const ConfTy &CFG, 
+        TimerAggregator &timeAggregator,
+        const std::vector<int> &vertexToProcess,
+        const CommunicationEngine<GraphTy> &cEngine
+    ) {
+        std::vector<MPI_Comm> groups = MartingleBuilder::buildCommGroups<GraphTy, ConfTy>(
+            levels, branchingFactor, cEngine.GetRank(), cEngine.GetSize()
+        );
+
+        std::vector<ApproximatorGroup*> approximatorGroups;
+        MartingleBuilder::buildApproximatorGroups(approximatorGroups, groups, CFG, vertexToProcess, timeAggregator, cEngine);
+
+        return ApproximatorContext(approximatorGroups);
+    }
+
     template <
         typename GraphTy,
         typename ConfTy>
