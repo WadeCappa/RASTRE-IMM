@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
   std::ifstream experimentRecordIS(CFG.EFileName);
 
   experimentRecordIS >> experimentRecord;
-  CFG.diffusionModel = experimentRecord[0]["DiffusionModel"];
+  CFG.diffusionModel = experimentRecord["DiffusionModel"];
 
   using edge_type = ripples::WeightedDestination<uint32_t, float>;
   using Graph =
@@ -127,12 +127,11 @@ int main(int argc, char **argv) {
   console->info("Number of Edges : {}", G.num_edges());
 
   nlohmann::json simRecordLog;
-  for (auto &record : experimentRecord) {
     using vertex_type = typename Graph::vertex_type;
 
     std::vector<std::pair<size_t, size_t>> experiments(CFG.Replicas);
 
-    std::vector<vertex_type> seeds = record["Seeds"];
+    std::vector<vertex_type> seeds = experimentRecord["Seeds"];
 
     G.transformID(seeds.begin(), seeds.end(), seeds.begin());
 
@@ -141,30 +140,29 @@ int main(int argc, char **argv) {
     generator.resize(omp_get_max_threads());
 
 #pragma omp parallel
-    {
-      generator[omp_get_thread_num()].seed(0UL);
-      generator[omp_get_thread_num()].split(2, 1);
-      generator[omp_get_thread_num()].split(omp_get_num_threads(),
-                                            omp_get_thread_num());
-    }
+  {
+    generator[omp_get_thread_num()].seed(0UL);
+    generator[omp_get_thread_num()].split(2, 1);
+    generator[omp_get_thread_num()].split(omp_get_num_threads(),
+                                          omp_get_thread_num());
+  }
 
 #pragma omp parallel for schedule(dynamic)
-    for (size_t i = 0; i < experiments.size(); ++i) {
-      if (CFG.diffusionModel == "IC") {
-        experiments[i] = simulate(G, seeds.begin(), seeds.end(),
-                                  generator[omp_get_thread_num()],
-                                  ripples::independent_cascade_tag{});
-      } else if (CFG.diffusionModel == "LT") {
-        experiments[i] = simulate(G, seeds.begin(), seeds.end(),
-                                  generator[omp_get_thread_num()],
-                                  ripples::linear_threshold_tag{});
-      } else {
-        throw std::string("Not Yet Implemented");
-      }
+  for (size_t i = 0; i < experiments.size(); ++i) {
+    if (CFG.diffusionModel == "IC") {
+      experiments[i] = simulate(G, seeds.begin(), seeds.end(),
+                                generator[omp_get_thread_num()],
+                                ripples::independent_cascade_tag{});
+    } else if (CFG.diffusionModel == "LT") {
+      experiments[i] = simulate(G, seeds.begin(), seeds.end(),
+                                generator[omp_get_thread_num()],
+                                ripples::linear_threshold_tag{});
+    } else {
+      throw std::string("Not Yet Implemented");
     }
-    simRecordLog.push_back(
-        ripples::GetExperimentRecord(CFG, record, experiments));
   }
+  simRecordLog.push_back(
+      ripples::GetExperimentRecord(CFG, experimentRecord, experiments));
   simRecord->info("{}", simRecordLog.dump(2));
 
   return EXIT_SUCCESS;
