@@ -4,11 +4,11 @@
 #SBATCH -C cpu
 #SBATCH -t 00:10:00
 #SBATCH -q debug 
-#SBATCH -N 4
+#SBATCH -N 8
 #SBATCH --ntasks-per-node=1
-#SBATCH -J m4_l2_b2_leveled_github_IC
-#SBATCH -o /global/homes/w/wadecap/results/jobs/testing_leveled/github/m4_l2_b2_leveled_github_IC.o
-#SBATCH -e /global/homes/w/wadecap/results/jobs/testing_leveled/github/m4_l2_b2_leveled_github_IC.e
+#SBATCH -J m8_leveled_github_IC
+#SBATCH -o /global/homes/w/wadecap/results/jobs/testing_leveled/github/m8_leveled_github_IC.o
+#SBATCH -e /global/homes/w/wadecap/results/jobs/testing_leveled/github/m8_leveled_github_IC.e
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=wade.cappa@wsu.edu
 
@@ -29,4 +29,4 @@ module load cray-libsci
 #module load openmpi
 #module load cudatoolkit/11.0
 
-srun -n 4 ./build/release/tools/mpi-randgreedi -i /global/cfs/cdirs/m1641/network-data/Binaries/github_IC_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/homes/w/wadecap/results/jobs/testing_leveled/github/m4_l2_b2_leveled_github_IC.json --run-streaming=false --branching-factors="2.4" --reload-binary -u 
+srun -n 8 ./build/release/tools/mpi-randgreedi -i /global/cfs/cdirs/m1641/network-data/Binaries/github_IC_binary.txt -w -k 100 -p -d IC -e 0.13 -o /global/homes/w/wadecap/results/jobs/testing_leveled/github/m8_leveled_github_IC.json --run-streaming=false --branching-factors="2.4.8" --reload-binary -u 
