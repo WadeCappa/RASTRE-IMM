@@ -99,6 +99,7 @@ auto GetExperimentRecord(
       {"GenerateRRRSets", R.GenerateRRRSets},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
       {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size, R.Total.count())},
+      {"Total", R.Total},
       {"Seeds", seeds}};
   return experiment;
 }
