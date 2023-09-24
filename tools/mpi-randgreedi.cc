@@ -66,8 +66,8 @@ auto GetExperimentRecord(
   const ToolConfiguration<IMMConfiguration> &CFG,
   const IMMExecutionRecord &R, 
   const SeedSet &seeds,
-  const unsigned int levels,
-  const unsigned int optBranchingFactor,
+  const std::vector<unsigned int> orderOfUsedLevels,
+  const std::vector<unsigned int> orderOfUsedBranchingFactors,
   TimerAggregator &timer) {
   // Find out rank, size
   int world_rank;
@@ -75,11 +75,15 @@ auto GetExperimentRecord(
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
+  nlohmann::json leveled_randgreedi_information{
+    {"OrderOfUsedLevels", orderOfUsedLevels},
+    {"PossibleBranchingFactors", CFG.branching_factors}, 
+    {"OrderOfUsedBranchingFactors", orderOfUsedBranchingFactors}
+  };
+
   nlohmann::json experiment{
       {"Algorithm", "RandGreediLazylazy"},
-      {"Levels", levels},
-      {"BranchingFactors", CFG.branching_factors}, 
-      {"OptimalBranchingFactor", optBranchingFactor},
+      {"LeveledRandgreediInformation", leveled_randgreedi_information},
       {"Input", CFG.IFileName},
       {"Output", CFG.OutputFile},
       {"DiffusionModel", CFG.diffusionModel},
@@ -162,6 +166,8 @@ int main(int argc, char *argv[]) {
   generator.split(2, 1);
   ripples::mpi::split_generator(generator);
 
+  std::vector<unsigned int> branchingFactors = MartingleBuilder::getBranchingFactors(CFG.branching_factors);
+
   auto workers = CFG.streaming_workers;
   auto gpu_workers = CFG.streaming_gpu_workers;
   TimerAggregator timeAggregator;
@@ -175,7 +181,7 @@ int main(int argc, char *argv[]) {
     auto start = std::chrono::high_resolution_clock::now();
     console->info("finished initializing graph");
     seeds = ripples::mpi::run_randgreedi(
-        G, CFG, timeAggregator, 1.0, se, R, ripples::independent_cascade_tag{},
+        G, CFG, timeAggregator, 1.0, se, R, ripples::independent_cascade_tag{}, branchingFactors,
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;
@@ -188,7 +194,7 @@ int main(int argc, char *argv[]) {
            CFG.worker_to_gpu);
     auto start = std::chrono::high_resolution_clock::now();
     seeds = ripples::mpi::run_randgreedi(
-        G, CFG, timeAggregator, 1.0, se, R, ripples::linear_threshold_tag{},
+        G, CFG, timeAggregator, 1.0, se, R, ripples::linear_threshold_tag{}, branchingFactors,
         ripples::mpi::MPI_Plus_X<ripples::mpi_omp_parallel_tag>{});
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;
@@ -207,9 +213,15 @@ int main(int argc, char *argv[]) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-  std::vector<unsigned int> branchingFactors = MartingleBuilder::getBranchingFactors(CFG.branching_factors);
-  unsigned int optimalBranchingFactor = branchingFactors[R.OptimalExecutionPath];
-  auto experiment = GetExperimentRecord(CFG, R, seeds, std::ceil((double)std::log(world_size) / (double)std::log(optimalBranchingFactor)), optimalBranchingFactor, timeAggregator);
+  std::vector<unsigned int> orderOfUsedBranchingFactors;
+  std::vector<unsigned int> orderOfUsedLevels;
+  for (auto e : R.OptimalExecutionPaths) {
+    auto branchingFactor = branchingFactors[e];
+    orderOfUsedBranchingFactors.push_back(branchingFactor);
+    orderOfUsedLevels.push_back(std::ceil((double)std::log(world_size) / (double)std::log(branchingFactor)));
+  }
+
+  auto experiment = GetExperimentRecord(CFG, R, seeds, orderOfUsedLevels, orderOfUsedBranchingFactors, timeAggregator);
 
   console->info("IMM World Size : {}", world_size);
 

@@ -180,6 +180,7 @@ auto run_randgreedi(
   RRRGeneratorTy &gen,
   IMMExecutionRecord &record, 
   diff_model_tag &&model_tag, 
+  const std::vector<unsigned int> &branchingFactors,
   ExTagTrait &&
 ) 
 {
@@ -196,8 +197,6 @@ auto run_randgreedi(
   );
 
   OwnershipManager<GraphTy> ownershipManager(G.num_nodes(), cEngine, vertexToProcess);
-
-  std::vector<unsigned int> branchingFactors = MartingleBuilder::getBranchingFactors(CFG.branching_factors);
 
   std::vector<ApproximatorContext> approximators = MartingleBuilder::buildApproximatorContexts<GraphTy, ConfTy>(branchingFactors, cEngine.GetSize(), CFG, timeAggregator, vertexToProcess, cEngine);
 

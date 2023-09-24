@@ -71,7 +71,7 @@ struct IMMExecutionRecord {
     ex_time_ms Total{0};
   };
 
-  unsigned int OptimalExecutionPath;
+  std::vector<unsigned int> OptimalExecutionPaths;
 
   //! Number of threads used during the execution.
   size_t NumThreads;
