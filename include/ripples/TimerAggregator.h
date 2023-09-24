@@ -64,6 +64,7 @@ class TimerAggregator
 
     public:
     Timer samplingTimer;
+    Timer total_seed_selection;
     Timer max_k_localTimer;
     Timer max_k_globalTimer;
     Timer allGatherTimer;
@@ -82,16 +83,33 @@ class TimerAggregator
     Timer totalSendTimer;
     Timer totalReceiveTimer;
 
+    std::vector<TimerAggregator> subTimers;
+
     TimerAggregator(){}
     ~TimerAggregator(){}
+
+    nlohmann::json buildPathTimesJson(const int world_size) {
+        nlohmann::json executionPathTimes;
+
+        for (const auto & e : subTimers) {
+            nlohmann::json subTime{
+                {"MaxKCover", this->getWorldTimes(world_size, e.max_k_globalTimer.resolveTimer() + e.max_k_localTimer.resolveTimer())},  
+                {"MPI_Gather", this->getWorldTimes(world_size, e.allGatherTimer.resolveTimer())}, 
+            };
+
+            executionPathTimes.push_back(subTime);
+        }
+
+        return executionPathTimes;
+    }
 
     nlohmann::json buildLazyLazyTimeJson(const int world_size, const double total_runtime) {
         nlohmann::json timeReport{
             {"Sampling", this->getWorldTimes(world_size, this->samplingTimer.resolveTimer())}, 
             {"MPI_AllToAll", this->getWorldTimes(world_size, this->allToAllTimer.resolveTimer())}, 
-            {"MaxKCover", this->getWorldTimes(world_size, this->max_k_globalTimer.resolveTimer() + this->max_k_localTimer.resolveTimer())},  
-            {"MPI_Gather", this->getWorldTimes(world_size, this->allGatherTimer.resolveTimer())}, 
+            {"GranularExecutionPaths", this->buildPathTimesJson(world_size)},
             {"MPI_Broadcast", this->getWorldTimes(world_size, this->broadcastTimer.resolveTimer())},
+            {"TotalSeedSelection", this->getWorldTimes(world_size, this->total_seed_selection.resolveTimer())},
             {"Total", this->getTotalRuntimes(world_size, total_runtime)} 
         };
 
@@ -112,6 +130,7 @@ class TimerAggregator
             {"AtomicUpdateForBuckets_ListeningThread", this->atomicUpdateTimer.resolveTimer()},
             {"TotalGlobalStreamingTime", this->totalGlobalStreamTimer.resolveTimer()},
             {"MPI_Broadcast", this->getWorldTimes(world_size, this->broadcastTimer.resolveTimer())},
+            {"TotalSeedSelection", this->getWorldTimes(world_size, this->total_seed_selection.resolveTimer())},
             {"Total", this->getTotalRuntimes(world_size, total_runtime)} 
         };
 

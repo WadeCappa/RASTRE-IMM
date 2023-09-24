@@ -157,9 +157,9 @@ auto run_greedimm(
   OwnershipManager<GraphTy> ownershipManager(G.num_nodes(), cEngine, vertexToProcess);
 
   std::vector<ApproximatorGroup*> approximatorGroups;
-  approximatorGroups.push_back(new StreamingApproximatorGroup<GraphTy, ConfTy>(MPI_COMM_WORLD, vertexToProcess, timeAggregator, CFG, cEngine));
+  approximatorGroups.push_back(new StreamingApproximatorGroup<GraphTy, ConfTy>(MPI_COMM_WORLD, vertexToProcess, CFG, cEngine));
   std::vector<ApproximatorContext> approximators;
-  approximators.push_back(ApproximatorContext (approximatorGroups));
+  approximators.push_back(ApproximatorContext (approximatorGroups, timeAggregator));
 
   MartingaleContext<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> martingaleContext(
       sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator

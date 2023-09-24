@@ -44,9 +44,46 @@ class MartingaleContext {
         #endif
     }
 
+    std::pair<std::vector<unsigned int>, int> resolveSeedProducers(
+        const std::map<int, std::vector<int>> &localSpace,
+        const int kprime, 
+        const size_t localTheta,
+        const std::atomic_bool &killSeedSelection
+    ) {
+        if (this->approximators.size() == 1) {
+            this->record.OptimalExecutionPaths.push_back(0);
+            return this->approximators[0].getBestSeeds(localSpace, kprime, localTheta, killSeedSelection);
+        }
+
+        std::vector<std::future<std::pair<std::vector<unsigned int>, unsigned int>>> executionPaths;
+        for (const auto & approximator : this->approximators) {
+            executionPaths.push_back(
+                std::async(
+                    std::launch::async, 
+                    [&approximator, &localSpace, &kprime, &localTheta, &killSeedSelection] {
+                        return approximator.getBestSeeds(localSpace, kprime, localTheta, killSeedSelection);
+                    }
+                )
+            );
+        }
+
+        while (true) {
+            for (size_t i = 0; i < executionPaths.size(); i++) {
+                auto & f = executionPaths[i];
+                std::future_status status;
+                status = f.wait_for(std::chrono::seconds(0));
+                if (status == std::future_status::ready) {
+                    this->record.OptimalExecutionPaths.push_back(i);
+                    return f.get();
+                }
+            }
+        }
+    }
+
     std::pair<std::vector<unsigned int>, int> runMartingaleRound(
         const size_t thetaPrime,
-        const size_t previousTheta
+        const size_t previousTheta,
+        const std::atomic_bool &killSeedSelection
     ) {
         // delta will always be (theta / 2) / world_size
 
@@ -76,34 +113,11 @@ class MartingaleContext {
         const std::map<int, std::vector<int>> &localSpace = this->solutionSpace;
         size_t localTheta = thetaPrime + this->cEngine.GetSize();
 
-        if (this->approximators.size() == 1) {
-            this->record.OptimalExecutionPaths.push_back(0);
-            return this->approximators[0].getBestSeeds(localSpace, kprime, localTheta);
-        }
+        this->timeAggregator.total_seed_selection.startTimer();
+        auto res = resolveSeedProducers(localSpace, kprime, localTheta, killSeedSelection);
+        this->timeAggregator.total_seed_selection.endTimer();
 
-        std::vector<std::future<std::pair<std::vector<unsigned int>, unsigned int>>> executionPaths;
-        for (const auto & approximator : this->approximators) {
-            executionPaths.push_back(
-                std::async(
-                    std::launch::async, 
-                    [&approximator, &localSpace, &kprime, &localTheta] {
-                        return approximator.getBestSeeds(localSpace, kprime, localTheta);
-                    }
-                )
-            );
-        }
-
-        while (true) {
-            for (size_t i = 0; i < executionPaths.size(); i++) {
-                auto & f = executionPaths[i];
-                std::future_status status;
-                status = f.wait_for(std::chrono::seconds(0));
-                if (status == std::future_status::ready) {
-                    this->record.OptimalExecutionPaths.push_back(i);
-                    return f.get();
-                }
-            }
-        }
+        return res;
     }
 
     std::pair<std::vector<unsigned int>, unsigned int> runMartingaleRound(size_t theta) {
@@ -113,9 +127,14 @@ class MartingaleContext {
             exit(1);
         }
 
+        std::atomic_bool killSeedSelection = ATOMIC_VAR_INIT(false);
+
         auto res = this->runMartingaleRound(
-            theta, this->previousTheta
+            theta, this->previousTheta, killSeedSelection
         );
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        killSeedSelection = true;
 
         this->previousTheta = theta;
 

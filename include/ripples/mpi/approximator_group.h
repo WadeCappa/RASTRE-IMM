@@ -36,14 +36,14 @@ class ApproximatorGroup {
         std::map<int, std::vector<int>> &nextSolutionSpace, // modified
         std::pair<std::vector<unsigned int>, unsigned int> &nextBestSolution, // modified
         const int kprime, 
-        const size_t theta
+        const size_t theta,
+        TimerAggregator &timers
     ) = 0;
 };
 
 template <typename GraphTy, typename ConfTy>
 class StreamingApproximatorGroup : public ApproximatorGroup { 
     private:
-    TimerAggregator &timeAggregator;
     const ConfTy &CFG;
     const CommunicationEngine<GraphTy> &cEngine;
 
@@ -51,33 +51,33 @@ class StreamingApproximatorGroup : public ApproximatorGroup {
     StreamingApproximatorGroup(
         MPI_Comm groupWorld,
         const std::vector<int> &vertexToProcess,
-        TimerAggregator &timeAggregator,
         const ConfTy &input_CFG,
         const CommunicationEngine<GraphTy> &cEngine
-    ) : ApproximatorGroup(groupWorld, vertexToProcess), timeAggregator(timeAggregator), CFG(input_CFG), cEngine(cEngine) {}
+    ) : ApproximatorGroup(groupWorld, vertexToProcess), CFG(input_CFG), cEngine(cEngine) {}
 
     void approximate(
         const SolutionState &currentState,
         std::map<int, std::vector<int>> &nextSolutionSpace, // modified
         std::pair<std::vector<unsigned int>, unsigned int> &nextBestSolution, // modified
         const int kprime, 
-        const size_t theta
+        const size_t theta,
+        TimerAggregator &timers
     ) override {
         int worldSize;
         int groupRank;
         MPI_Comm_rank(this->groupWorld, &groupRank);
         MPI_Comm_size(this->groupWorld, &worldSize);
         if (groupRank == 0) {
-            StreamingRandGreedIEngine<GraphTy> streamingEngine(this->CFG.k, kprime, theta, (double)this->CFG.epsilon_2, worldSize - 1, this->cEngine, this->timeAggregator);
+            StreamingRandGreedIEngine<GraphTy> streamingEngine(this->CFG.k, kprime, theta, (double)this->CFG.epsilon_2, worldSize - 1, this->cEngine, timers);
             nextBestSolution = streamingEngine.Stream(nextSolutionSpace);
         } else {
-            this->timeAggregator.totalSendTimer.startTimer();
+            timers.totalSendTimer.startTimer();
             
-            StreamingMaxKCover<GraphTy> localKCoverEngine(this->CFG.k, kprime, theta, this->timeAggregator, this->cEngine);
+            StreamingMaxKCover<GraphTy> localKCoverEngine(this->CFG.k, kprime, theta, timers, this->cEngine);
             localKCoverEngine.useLazyGreedy();
             localKCoverEngine.run_max_k_cover(currentState.solutionSpace);
 
-            this->timeAggregator.totalSendTimer.endTimer();
+            timers.totalSendTimer.endTimer();
         }
     }
 };
@@ -85,7 +85,6 @@ class StreamingApproximatorGroup : public ApproximatorGroup {
 template <typename GraphTy, typename ConfTy>
 class LazyLazyApproximatorGroup : public ApproximatorGroup {
     private:
-    TimerAggregator &timeAggregator;
     const ConfTy &CFG;
     const CommunicationEngine<GraphTy> &cEngine;
 
@@ -105,33 +104,33 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
     LazyLazyApproximatorGroup(
         MPI_Comm groupWorld,
         const std::vector<int> &vertexToProcess,
-        TimerAggregator &timeAggregator,
         const ConfTy &input_CFG,
         const CommunicationEngine<GraphTy> &cEngine
-    ) : ApproximatorGroup(groupWorld, vertexToProcess), timeAggregator(timeAggregator), CFG(input_CFG), cEngine(cEngine) {}
+    ) : ApproximatorGroup(groupWorld, vertexToProcess), CFG(input_CFG), cEngine(cEngine) {}
 
     void approximate(
         const SolutionState &currentState,
         std::map<int, std::vector<int>> &nextSolutionSpace, // modified
         std::pair<std::vector<unsigned int>, unsigned int> &nextBestSolution, // modified
         const int kprime, 
-        const size_t theta
+        const size_t theta,
+        TimerAggregator &timers
     ) override {
         nextBestSolution.first = currentState.bestSolution.first;
         nextBestSolution.second = currentState.bestSolution.second;
 
         if (nextBestSolution.first.size() == 0) {
             // std::cout << "init of local solution using world size of " << currentState.solutionSpace.size() << std::endl;;
-            this->timeAggregator.max_k_localTimer.startTimer();
+            timers.max_k_localTimer.startTimer();
 
             nextBestSolution = this->SolveKCover(
-                this->CFG.k, kprime, theta, this->timeAggregator, currentState.solutionSpace
+                this->CFG.k, kprime, theta, timers, currentState.solutionSpace
             );
 
-            this->timeAggregator.max_k_localTimer.endTimer();
+            timers.max_k_localTimer.endTimer();
         }
 
-        this->timeAggregator.allGatherTimer.startTimer();
+        timers.allGatherTimer.startTimer();
 
         std::vector<unsigned int> receiveBuffer;
         // std::cout << "before gather" << std::endl;
@@ -142,7 +141,7 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
             this->groupWorld
         );
 
-        this->timeAggregator.allGatherTimer.endTimer();
+        timers.allGatherTimer.endTimer();
 
         int globalRank; 
         MPI_Comm_rank(MPI_COMM_WORLD, &globalRank);
@@ -152,20 +151,20 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
         if (groupRank == 0) {
             // std::cout << "global rank " << globalRank << " is group leader" << std::endl;
 
-            this->timeAggregator.allGatherTimer.startTimer();
+            timers.allGatherTimer.startTimer();
 
             std::vector<std::pair<std::vector<unsigned int>, unsigned int>> candidateSets;
             // std::cout << "before deserialization" << std::endl;
             this->cEngine.deserializeGatherData(nextSolutionSpace, candidateSets, receiveBuffer.data(), totalData);
 
-            this->timeAggregator.allGatherTimer.endTimer();
+            timers.allGatherTimer.endTimer();
 
             // spdlog::get("console")->info("global max_k_cover...");
-            this->timeAggregator.max_k_globalTimer.startTimer();
+            timers.max_k_globalTimer.startTimer();
 
             // std::cout << "before global k cover" << std::endl;
             auto globalSeeds = this->SolveKCover(
-                this->CFG.k, kprime, theta, this->timeAggregator, nextSolutionSpace
+                this->CFG.k, kprime, theta, timers, nextSolutionSpace
             );
 
             candidateSets.push_back(globalSeeds);
@@ -173,7 +172,7 @@ class LazyLazyApproximatorGroup : public ApproximatorGroup {
 
             // nextBestSolution = globalSeeds;
 
-            this->timeAggregator.max_k_globalTimer.endTimer();
+            timers.max_k_globalTimer.endTimer();
         } else {
             nextBestSolution = std::make_pair(std::vector<unsigned int>(), 0);
         }

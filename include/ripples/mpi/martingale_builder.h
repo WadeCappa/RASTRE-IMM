@@ -35,13 +35,16 @@ class MartingleBuilder {
         const CommunicationEngine<GraphTy> &cEngine
     ) {
         std::vector<ApproximatorContext> approximators;
-        for (auto branchingFactor : branchingFactors) {
-            int numberOfLevels = (int)(std::ceil((double)std::log(worldSize) / (double)std::log(branchingFactor)));
+        timeAggregator.subTimers.resize(branchingFactors.size());
+
+        for (size_t i = 0; i < branchingFactors.size(); i++) {
+            int numberOfLevels = (int)(std::ceil((double)std::log(worldSize) / (double)std::log(branchingFactors[i])));
+
             approximators.push_back(MartingleBuilder::buildApproximatorContext<GraphTy, ConfTy>(
                 numberOfLevels,
-                branchingFactor, 
+                branchingFactors[i], 
                 CFG, 
-                timeAggregator, 
+                timeAggregator.subTimers[i], 
                 vertexToProcess, 
                 cEngine
             ));
@@ -66,9 +69,9 @@ class MartingleBuilder {
         );
 
         std::vector<ApproximatorGroup*> approximatorGroups;
-        MartingleBuilder::buildApproximatorGroups(approximatorGroups, groups, CFG, vertexToProcess, timeAggregator, cEngine);
+        MartingleBuilder::buildApproximatorGroups(approximatorGroups, groups, CFG, vertexToProcess, cEngine);
 
-        return ApproximatorContext(approximatorGroups);
+        return ApproximatorContext(approximatorGroups, timeAggregator);
     }
 
     template <
@@ -129,13 +132,12 @@ class MartingleBuilder {
         const std::vector<MPI_Comm> &commGroups,
         const ConfTy &CFG, 
         const std::vector<int> &vertexToProcess,
-        TimerAggregator &timeAggregator,
         const CommunicationEngine<GraphTy> &cEngine) {
         for (const auto e : commGroups) {
             // ApproximatorGroup* newGroup = new DummyApproximatorGroup(e, vertexToProcess);
 
             approximatorGroups.push_back(new LazyLazyApproximatorGroup<GraphTy, ConfTy>(
-                e, vertexToProcess, timeAggregator, CFG, cEngine
+                e, vertexToProcess, CFG, cEngine
             ));
         }
     }

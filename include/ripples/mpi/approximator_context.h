@@ -9,14 +9,16 @@ typedef struct solutionState {
 class ApproximatorContext {
     private:
     const std::vector<ApproximatorGroup*> groups;
+    TimerAggregator &timers;
 
     public:
-    ApproximatorContext(const std::vector<ApproximatorGroup*> groups) : groups(groups) {}
+    ApproximatorContext(const std::vector<ApproximatorGroup*> groups, TimerAggregator &timers) : groups(groups), timers(timers) {}
 
     std::pair<std::vector<unsigned int>, unsigned int> getBestSeeds(
         const std::map<int, std::vector<int>> &initialSolutionSpace,
         const unsigned int kprime,
-        const size_t theta
+        const size_t theta,
+        const std::atomic_bool& terminated
     ) const {
         SolutionState initialState = {initialSolutionSpace, std::make_pair(std::vector<unsigned int>(), 0)};
         const SolutionState *currentState = &initialState;
@@ -25,6 +27,10 @@ class ApproximatorContext {
         std::vector<SolutionState> solutionStates;
 
         for (size_t i = 0; i < this->groups.size(); i++) {
+            if (terminated == true) {
+                return std::make_pair(std::vector<unsigned int>(), 0);
+            }
+
             auto nextSolutionSpace = &(solutionSpaces[i]);
             auto nextBestSolution = &(bestSolutions[i]);
 
@@ -32,7 +38,7 @@ class ApproximatorContext {
             // std::cout << " and local solution utility of " << currentState->bestSolution.second;
             // std::cout << " and size of " << currentState->bestSolution.first.size() << std::endl;
 
-            this->groups[i]->approximate(*currentState, *nextSolutionSpace, *nextBestSolution, kprime, theta);
+            this->groups[i]->approximate(*currentState, *nextSolutionSpace, *nextBestSolution, kprime, theta, this->timers);
             solutionStates.push_back({*nextSolutionSpace, *nextBestSolution});
             currentState = &(solutionStates[i]);
         }
