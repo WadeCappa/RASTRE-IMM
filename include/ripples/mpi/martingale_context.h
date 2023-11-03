@@ -205,7 +205,7 @@ class MartingaleContext {
         }
     }
 
-    std::vector<unsigned int> approximateInfMax() 
+    std::vector<unsigned int> useImm() 
     {
         double LB = 0;
         double epsilonPrime = 1.4142135623730951 * this->CFG.epsilon;
@@ -276,5 +276,11 @@ class MartingaleContext {
         }
 
         return bestSeeds.first;
+    }
+
+
+    std::vector<unsigned int> useOpimc() 
+    {
+        return std::vector<unsigned int>();
     }
 };

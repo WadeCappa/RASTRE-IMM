@@ -81,6 +81,7 @@ struct IMMConfiguration : public TIMConfiguration {
   bool use_diimm = false;
   bool verbose = false;
   std::string branching_factors = "";
+  bool use_opimc = false;
 
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
@@ -122,6 +123,9 @@ struct IMMConfiguration : public TIMConfiguration {
         ->group("Streaming-Engine Options");
     app.add_option("--branching-factors", branching_factors,
                 "Provide a set of branching factors. The most optimal will be determined at runtime. Format as '.' delimited string, such as \"2.4.8.16\". Defaults empty.")
+        ->group("Streaming-Engine Options"); // todo: figure out if you can change the group without breaking anything
+    app.add_option("--opimc", use_opimc,
+                "Use OPIM-C instead of IMM.")
         ->group("Streaming-Engine Options"); // todo: figure out if you can change the group without breaking anything
   }
 };

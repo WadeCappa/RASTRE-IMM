@@ -162,12 +162,16 @@ auto run_greedimm(
   approximators.push_back(ApproximatorContext (approximatorGroups));
 
   MartingaleContext<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> martingaleContext(
-      sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
+    sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  auto res = martingaleContext.approximateInfMax();
-
-  return res;
+  if (CFG.use_opimc) {
+    auto res = martingaleContext.useOpimc();
+    return res;
+  } else {
+    auto res = martingaleContext.useImm();
+    return res;
+  }
 }
 
 template <typename GraphTy, typename ConfTy, typename diff_model_tag,
@@ -202,12 +206,16 @@ auto run_randgreedi(
   std::vector<ApproximatorContext> approximators = MartingleBuilder::buildApproximatorContexts<GraphTy, ConfTy>(branchingFactors, cEngine.GetSize(), CFG, timeAggregator, vertexToProcess, cEngine);
 
   MartingaleContext<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> martingaleContext(
-      sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
+    sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  auto res = martingaleContext.approximateInfMax();
-
-  return res;
+  if (CFG.use_opimc) {
+    auto res = martingaleContext.useOpimc();
+    return res;
+  } else {
+    auto res = martingaleContext.useImm();
+    return res;
+  }
 }
 
 
