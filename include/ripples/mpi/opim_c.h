@@ -138,7 +138,7 @@ std::vector<PRNG> rank_split_generator(const PRNG &gen) {
 //! \param ex_tag The execution policy tag.
 template <typename GraphTy, typename ConfTy, typename PRNGeneratorTy,
           typename diff_model_tag, typename ExTagTrait>
-auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
+auto SolveInfMax(const GraphTy &G, const ConfTy &CFG, double l,
               PRNGeneratorTy &generator, IMMExecutionRecord &record,
               diff_model_tag &&model_tag, ExTagTrait &&) {
   using vertex_type = typename GraphTy::vertex_type;
@@ -156,72 +156,75 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
 #else
   RRRsetAllocator<vertex_type> allocator;
   #endif
-  std::vector<RRRset<GraphTy>> RR;
+
+  const double error_delta = (double)1 / (double)G.num_nodes();
+
+  // TODO: Calculate
+  const double theta_max = 0;
+
+  const double theta_0 = theta_max * std::pow(CFG.epsilon, 2) * CFG.k / G.num_nodes();
 
   auto start = std::chrono::high_resolution_clock::now();
   size_t thetaPrime = 0;
-  for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
-    // Equation 9
-    ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
-                                    mpi_omp_parallel_tag{});
 
-    size_t delta = thetaPrime - RR.size();
-    record.ThetaPrimeDeltas.push_back(thetaPrime - RR.size());
+  std::vector<RRRset<GraphTy>> RR_set_1;
+  std::vector<RRRset<GraphTy>> RR_set_2;
 
-    auto timeRRRSets = measure<>::exec_time([&]() {
-      RR.insert(RR.end(), delta, RRRset<GraphTy>(allocator));
+  RR_set_1.insert(RR_set_1.end(), theta_0, RRRset<GraphTy>(allocator));
+  RR_set_2.insert(RR_set_1.end(), theta_0, RRRset<GraphTy>(allocator));
 
-      auto begin = RR.end() - delta;
+  GenerateRRRSets(G, generator, 
+    RR_set_1.begin(), RR_set_1.end(), record,
+    std::forward<diff_model_tag>(model_tag),
+    typename ExTagTrait::generate_ex_tag{});
 
-      GenerateRRRSets(G, generator, begin, RR.end(), record,
-                      std::forward<diff_model_tag>(model_tag),
-                      typename ExTagTrait::generate_ex_tag{});
-    });
-    record.ThetaEstimationGenerateRRR.push_back(timeRRRSets);
+  GenerateRRRSets(G, generator, 
+    RR_set_2.begin(), RR_set_2.end(), record,
+    std::forward<diff_model_tag>(model_tag),
+    typename ExTagTrait::generate_ex_tag{});
 
-    double f;
-    auto timeMostInfluential = measure<>::exec_time([&]() {
-      const auto &S =
-          FindMostInfluentialSet(G, CFG, RR, generator.isGpuEnabled(),
-                                 typename ExTagTrait::seed_selection_ex_tag{});
-      f = S.first;
-    });
-    record.ThetaEstimationMostInfluential.push_back(timeMostInfluential);
+  const int i_max = std::ceil(std::log2(theta_max / theta_0));
+  for (int i = 0; i < i_max; i++) {
+    
+    const auto s_star = FindMostInfluentialSet(
+      G, CFG, RR_set_1, generator.isGpuEnabled(),
+      typename ExTagTrait::seed_selection_ex_tag{});
 
-    if (f >= std::pow(2, -x)) {
-      // std::cout << "Fraction " << f << std::endl;
-      LB = (G.num_nodes() * f) / (1 + epsilonPrime);
-      break;
+    const double delta_1 = error_delta / (3 * i_max); // TODO: double check, why is '3' here?
+    const double delta_2 = delta_1;
+
+    // TODO: Calculate
+    const double sigma_super_l = 0;
+    const double sigma_super_u = 0;
+
+    const double alpha = sigma_super_l / sigma_super_u;
+    const double euler_constant = std::exp(1.0);
+
+    if (alpha >= (1 - 1/euler_constant - CFG.epsilon) || i == i_max) {
+      auto end = std::chrono::high_resolution_clock::now();
+
+      record.ThetaEstimationTotal = end - start;
+      record.GenerateRRRSets = end - start;
+
+      return s_star;
     }
+
+    const size_t delta = RR_set_1.size();
+    record.ThetaPrimeDeltas.push_back(delta);
+
+    RR_set_1.insert(RR_set_1.end(), delta, RRRset<GraphTy>(allocator));
+    RR_set_2.insert(RR_set_1.end(), delta, RRRset<GraphTy>(allocator));
+
+    GenerateRRRSets(G, generator, 
+      RR_set_1.end() - delta, RR_set_1.end(), record,
+      std::forward<diff_model_tag>(model_tag),
+      typename ExTagTrait::generate_ex_tag{});
+
+    GenerateRRRSets(G, generator, 
+      RR_set_2.end() - delta, RR_set_2.end(), record,
+      std::forward<diff_model_tag>(model_tag),
+      typename ExTagTrait::generate_ex_tag{});
   }
-
-  int world_size;
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-  size_t theta = Theta(epsilon, l, k, LB, G.num_nodes());
-  size_t thetaLocal = (theta / world_size) + 1;
-  auto end = std::chrono::high_resolution_clock::now();
-
-  record.ThetaEstimationTotal = end - start;
-
-  record.Theta = theta;
-
-  start = std::chrono::high_resolution_clock::now();
-  if (thetaLocal > RR.size()) {
-    size_t final_delta = thetaLocal - RR.size();
-    RR.insert(RR.end(), final_delta, RRRset<GraphTy>(allocator));
-
-    auto begin = RR.end() - final_delta;
-
-    GenerateRRRSets(G, generator, begin, RR.end(), record,
-                    std::forward<diff_model_tag>(model_tag),
-                    typename ExTagTrait::generate_ex_tag{});
-  }
-  end = std::chrono::high_resolution_clock::now();
-
-  record.GenerateRRRSets = end - start;
-
-  return RR;
 }
 
 //! The IMM algroithm for Influence Maximization (MPI specialization).
@@ -246,14 +249,10 @@ auto OPIM_C(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
 
   l = l * (1 + 1 / std::log2(G.num_nodes()));
 
-  auto R = mpi::Sampling(G, CFG, l, gen, record,
+  auto start = std::chrono::high_resolution_clock::now();
+  auto S = mpi::SolveInfMax(G, CFG, l, gen, record,
                          std::forward<diff_model_tag>(model_tag),
                          std::forward<ExTagTrait>(ex_tag));
-
-  auto start = std::chrono::high_resolution_clock::now();
-  const auto &S =
-      FindMostInfluentialSet(G, CFG, R, gen.isGpuEnabled(),
-                             typename ExTagTrait::seed_selection_ex_tag{});
   auto end = std::chrono::high_resolution_clock::now();
 
   record.FindMostInfluentialSet = end - start;
