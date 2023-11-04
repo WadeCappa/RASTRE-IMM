@@ -300,36 +300,36 @@ class MartingaleContext {
     {
         const double epsilonPrime = 1.4142135623730951 * this->CFG.epsilon;
         const double delta = 1.0 / (double)this->G.num_nodes();
-        const double approximation_guarantee = 1 - 1.0 / std::exp(1.0);
+        const double approximation_guarantee = 1.0 - (1.0 / (double)std::exp(1.0));
 
         const double error_delta = (double)1 / (double)G.num_nodes();
         const size_t theta_max = calculateThetaMax(G.num_nodes(), approximation_guarantee, this->CFG.epsilon, this->CFG.k, delta);
-        const size_t theta_0 = std::ceil(theta_max * std::pow(this->CFG.epsilon, 2) * this->CFG.k / this->G.num_nodes());
+        const size_t theta_0 = std::ceil(((double)theta_max * (double)std::pow(this->CFG.epsilon, 2) * (double)this->CFG.k) / (double)this->G.num_nodes());
+        size_t global_theta = theta_0;
         
         // will be modified
-        size_t local_theta = std::floor(theta_0 / this->cEngine.GetSize());
+        size_t local_theta = std::floor((double)theta_0 / (double)this->cEngine.GetSize());
+        size_t local_theta_delta = local_theta;
 
         TransposeRRRSets<GraphTy> R1(this->G.num_nodes());
         TransposeRRRSets<GraphTy> R2(this->G.num_nodes());
 
         const int i_max = std::ceil(std::log2(theta_max / theta_0));
 
+        this->timeAggregator.samplingTimer.startTimer();
+        this->sampler.addNewSamples(R1, 0, local_theta_delta);
+        this->sampler.addNewSamples(R2, 0, local_theta_delta);
+        this->timeAggregator.samplingTimer.endTimer();
+
         for (int i = 0; i < i_max; i++) {
-            record.ThetaPrimeDeltas.push_back(local_theta);
+            record.ThetaPrimeDeltas.push_back(local_theta_delta);
 
-            this->sampler.addNewSamples(R1, 0, local_theta);
-            this->sampler.addNewSamples(R2, 0, local_theta);
-
+            this->timeAggregator.allToAllTimer.startTimer();  
             this->ownershipManager.redistributeSeedSets(R1, this->solutionSpace, local_theta);
-
-            if (this->approximators.size() > 1) {
-                std::cout << "Multiple execution paths are not supported, using the first path" << std::endl;
-            }
+            this->timeAggregator.allToAllTimer.endTimer();  
 
             const int kprime = int(this->CFG.alpha * (double)(this->CFG.k));
 
-            this->record.OptimalExecutionPath = 0;
-            const size_t global_theta = (local_theta * this->cEngine.GetSize()) + this->cEngine.GetSize();
             const auto s_star = this->approximators[0].getBestSeeds(this->solutionSpace, kprime, global_theta);
             
             const std::vector<unsigned int> seeds = this->cEngine.distributeSeedSet(s_star.first, kprime);
@@ -342,11 +342,11 @@ class MartingaleContext {
                 const double a2 = std::log(2.0 / delta);
 
                 const unsigned int infSelf = s_star.second; /// influence over R1
-                const auto degVldt = global_R2_influence * local_theta / this->G.num_nodes();
+                const auto degVldt = (double)(global_R2_influence * global_theta) / (double)(this->G.num_nodes());
 
-                const auto upperBound = infSelf / approximation_guarantee;
+                const auto upperBound = (double)infSelf / (double)approximation_guarantee;
 
-                const auto upperDegOPT = upperBound * local_theta / this->G.num_nodes();
+                const auto upperDegOPT = (double)(upperBound * global_theta) / (double)(this->G.num_nodes());
                 const double sigma_super_l = std::pow(std::sqrt(degVldt + a1 * 2.0 / 9.0) - sqrt(a1 / 2.0), 2) - a1 / 18.0;
                 const double sigma_super_u = std::pow(std::sqrt(upperDegOPT + a2 / 2.0) + sqrt(a2 / 2.0), 2);
                 alpha = sigma_super_l / sigma_super_u;
@@ -354,11 +354,17 @@ class MartingaleContext {
             
             this->cEngine.distributeF(&alpha);
 
-            if (alpha >= (approximation_guarantee - this->CFG.epsilon)) {
+            if (alpha >= (approximation_guarantee - this->CFG.epsilon)) { // divide approx by 2 here? Check in with group.
                 return s_star.first;
             }
 
+            local_theta_delta = local_theta;
+            this->timeAggregator.samplingTimer.startTimer();
+            this->sampler.addNewSamples(R1, global_theta, local_theta_delta);
+            this->sampler.addNewSamples(R2, global_theta, local_theta_delta);
+            this->timeAggregator.samplingTimer.endTimer();
             local_theta = local_theta * 2;
+            global_theta = global_theta * 2;
         }
     
         std::cout << "Error, exited for loop without returning, should not be possible" << std::endl;
