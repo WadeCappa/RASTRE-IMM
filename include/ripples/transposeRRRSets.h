@@ -27,14 +27,21 @@ class TransposeRRRSets
         sets[vertex].first.unlock();
     }
 
-    auto getBegin() 
-    {
-        return sets.begin();
-    }
+    unsigned int calculateInfluence(const std::vector<unsigned int> &seed_set) const {
+        std::unordered_set<unsigned int> search_space = std::unordered_set<unsigned int>(seed_set.begin(), seed_set.end());
+        unsigned int res = 0;
+        
+        #pragma omp parallel for reduction(+:res)
+        for (const auto & rr_set : this->sets) {
+            for (const auto & traversed_vertex : rr_set.second) {
+                if (search_space.find(traversed_vertex) != search_space.end()) {
+                    res++;
+                    break;
+                }
+            }
+        }
 
-    auto getEnd() 
-    {
-        return sets.end();
+        return res;
     }
 
     void GetSetSizes(std::vector<unsigned int>& setSizes)

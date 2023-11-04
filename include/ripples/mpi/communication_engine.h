@@ -560,6 +560,23 @@ class CommunicationEngine
         delete linearizedLocalData;
     }
 
+    std::vector<unsigned int> distributeSeedSet(const std::vector<unsigned int> &seed_set, const size_t k) const {
+        std::vector<unsigned int> res = std::vector<unsigned int>(k, -1);
+        for (int i = 0; i < seed_set.size(); i++) {
+            res[i] = seed_set[i];
+        }
+
+        MPI_Bcast(res.data(), k, MPI_INT, 0, MPI_COMM_WORLD);
+
+        return res;
+    }
+
+    unsigned int sumCoverage(unsigned int coverage) const {
+        unsigned int res;
+        MPI_Reduce(&coverage, &res, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+        return res;
+    }
+
     size_t aggregateAggregateSets(
         std::vector<unsigned int>& receiveBuffer, // modified
         const size_t totalGatherData, 

@@ -166,6 +166,23 @@ class MartingaleContext {
 	return emptyCount;
     }
 
+    static size_t choose(size_t n, size_t k) { // TODO: This logic will have rounding errors, see what the opimc repo did for this.
+        size_t res = 1;
+        for (size_t i = 0; i < k; i++) {
+            res *= (n - (k - i)) / i; 
+        }
+    
+        return res;
+    }
+
+    static size_t calculateThetaMax(size_t num_nodes, double approx, double eps, size_t k, double delta) { // TODO: this logic will have rounding errors, only convert to size_t at the very end.
+        const double denominator = std::pow(eps, 2) * k;
+        const double natural_log = std::log(6.0 / delta);
+        const size_t n_choose_k = choose(num_nodes, k);
+        const double numerator = natural_log * approx + std::sqrt(approx * (natural_log + std::log(n_choose_k)));
+        return (2 * num_nodes * std::pow(numerator, 2)) / denominator;
+    }
+
     public:
     MartingaleContext(
         DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> &sampler,
@@ -281,6 +298,70 @@ class MartingaleContext {
 
     std::vector<unsigned int> useOpimc() 
     {
+        const double epsilonPrime = 1.4142135623730951 * this->CFG.epsilon;
+        const double delta = 1.0 / (double)this->G.num_nodes();
+        const double approximation_guarantee = 1 - 1.0 / std::exp(1.0);
+
+        const double error_delta = (double)1 / (double)G.num_nodes();
+        const size_t theta_max = calculateThetaMax(G.num_nodes(), approximation_guarantee, this->CFG.epsilon, this->CFG.k, delta);
+        const size_t theta_0 = std::ceil(theta_max * std::pow(this->CFG.epsilon, 2) * this->CFG.k / this->G.num_nodes());
+        
+        // will be modified
+        size_t local_theta = std::floor(theta_0 / this->cEngine.GetSize());
+
+        TransposeRRRSets<GraphTy> R1(this->G.num_nodes());
+        TransposeRRRSets<GraphTy> R2(this->G.num_nodes());
+
+        const int i_max = std::ceil(std::log2(theta_max / theta_0));
+
+        for (int i = 0; i < i_max; i++) {
+            record.ThetaPrimeDeltas.push_back(local_theta);
+
+            this->sampler.addNewSamples(R1, 0, local_theta);
+            this->sampler.addNewSamples(R2, 0, local_theta);
+
+            this->ownershipManager.redistributeSeedSets(R1, this->solutionSpace, local_theta);
+
+            if (this->approximators.size() > 1) {
+                std::cout << "Multiple execution paths are not supported, using the first path" << std::endl;
+            }
+
+            const int kprime = int(this->CFG.alpha * (double)(this->CFG.k));
+
+            this->record.OptimalExecutionPath = 0;
+            const size_t global_theta = (local_theta * this->cEngine.GetSize()) + this->cEngine.GetSize();
+            const auto s_star = this->approximators[0].getBestSeeds(this->solutionSpace, kprime, global_theta);
+            
+            const std::vector<unsigned int> seeds = this->cEngine.distributeSeedSet(s_star.first, kprime);
+            const unsigned int local_R2_influence = R2.calculateInfluence(seeds); /// Evaluate the influence spread of a seed set on current generated RR sets
+            const unsigned int global_R2_influence = this->cEngine.sumCoverage(local_R2_influence);
+
+            double alpha;
+            if (this->cEngine.GetRank() == 0) {
+                const double a1 = std::log(2.0 / delta);
+                const double a2 = std::log(2.0 / delta);
+
+                const unsigned int infSelf = s_star.second; /// influence over R1
+                const auto degVldt = global_R2_influence * local_theta / this->G.num_nodes();
+
+                const auto upperBound = infSelf / approximation_guarantee;
+
+                const auto upperDegOPT = upperBound * local_theta / this->G.num_nodes();
+                const double sigma_super_l = std::pow(std::sqrt(degVldt + a1 * 2.0 / 9.0) - sqrt(a1 / 2.0), 2) - a1 / 18.0;
+                const double sigma_super_u = std::pow(std::sqrt(upperDegOPT + a2 / 2.0) + sqrt(a2 / 2.0), 2);
+                alpha = sigma_super_l / sigma_super_u;
+            }
+            
+            this->cEngine.distributeF(&alpha);
+
+            if (alpha >= (approximation_guarantee - this->CFG.epsilon)) {
+                return s_star.first;
+            }
+
+            local_theta = local_theta * 2;
+        }
+    
+        std::cout << "Error, exited for loop without returning, should not be possible" << std::endl;
         return std::vector<unsigned int>();
     }
 };
