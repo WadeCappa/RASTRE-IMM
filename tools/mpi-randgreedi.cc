@@ -66,8 +66,6 @@ auto GetExperimentRecord(
   const ToolConfiguration<IMMConfiguration> &CFG,
   const IMMExecutionRecord &R, 
   const SeedSet &seeds,
-  const unsigned int levels,
-  const unsigned int optBranchingFactor,
   TimerAggregator &timer) {
   // Find out rank, size
   int world_rank;
@@ -77,9 +75,6 @@ auto GetExperimentRecord(
 
   nlohmann::json experiment{
       {"Algorithm", "RandGreediLazylazy"},
-      {"Levels", levels},
-      {"BranchingFactors", CFG.branching_factors}, 
-      {"OptimalBranchingFactor", optBranchingFactor},
       {"Input", CFG.IFileName},
       {"Output", CFG.OutputFile},
       {"DiffusionModel", CFG.diffusionModel},
@@ -207,9 +202,7 @@ int main(int argc, char *argv[]) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-  std::vector<unsigned int> branchingFactors = MartingleBuilder::getBranchingFactors(CFG.branching_factors);
-  unsigned int optimalBranchingFactor = branchingFactors[R.OptimalExecutionPath];
-  auto experiment = GetExperimentRecord(CFG, R, seeds, std::ceil((double)std::log(world_size) / (double)std::log(optimalBranchingFactor)), optimalBranchingFactor, timeAggregator);
+  auto experiment = GetExperimentRecord(CFG, R, seeds, timeAggregator);
 
   console->info("IMM World Size : {}", world_size);
 

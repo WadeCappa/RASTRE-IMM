@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <mutex>
 #include <iostream>
+#include "ripples/bitmask.h"
 
 template <typename GraphTy>
 class TransposeRRRSets
@@ -27,21 +28,17 @@ class TransposeRRRSets
         sets[vertex].first.unlock();
     }
 
-    unsigned int calculateInfluence(const std::vector<unsigned int> &seed_set) const {
-        std::unordered_set<unsigned int> search_space = std::unordered_set<unsigned int>(seed_set.begin(), seed_set.end());
-        unsigned int res = 0;
-        
-        #pragma omp parallel for reduction(+:res)
-        for (const auto & rr_set : this->sets) {
-            for (const auto & traversed_vertex : rr_set.second) {
-                if (search_space.find(traversed_vertex) != search_space.end()) {
-                    res++;
-                    break;
-                }
+    unsigned int calculateInfluence(const std::vector<unsigned int> &seed_set, const size_t theta) const {
+        ripples::Bitmask<int> covered(theta);
+
+        #pragma omp parallel for
+        for (const auto & vertex : seed_set) {
+            for (const auto & RRR_set : this->sets[vertex].second) {
+                covered.set(RRR_set);
             }
         }
 
-        return res;
+        return covered.popcount();
     }
 
     void GetSetSizes(std::vector<unsigned int>& setSizes)
