@@ -353,14 +353,15 @@ class MartingaleContext {
 
             double alpha;
             if (this->cEngine.GetRank() == 0) {
-                const double a1 = std::log((double)i_max * 3.0 / delta);
-                const double a2 = std::log((double)i_max * 3.0 / delta);
+                const auto a1 = std::log((double)i_max * 3.0 / delta);
+                const auto a2 = std::log((double)i_max * 3.0 / delta);
 
                 const auto degVldt = (double)(global_R2_influence * global_theta) / (double)(this->G.num_nodes());
                 const auto upperBound = (double)s_star.second / (double)approximation_guarantee;
                 const auto upperDegOPT = (double)(upperBound * global_theta) / (double)(this->G.num_nodes());
                 const auto sigma_super_l = std::pow(std::sqrt(degVldt + a1 * 2.0 / 9.0) - sqrt(a1 / 2.0), 2) - a1 / 18.0;
                 const auto sigma_super_u = std::pow(std::sqrt(upperDegOPT + a2 / 2.0) + sqrt(a2 / 2.0), 2);
+                std::cout << "sigma_super_l: "  << sigma_super_l << ", sigma_super_u: " << sigma_super_u << std::endl;
                 alpha = sigma_super_l / sigma_super_u;
                 std::cout << "finished calculating alpha of " << alpha << std::endl;
             }
