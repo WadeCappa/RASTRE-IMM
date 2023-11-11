@@ -165,11 +165,15 @@ auto run_greedimm(
     sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
+  const double a = 1.0 - std::pow((double)std::exp(1.0), 0 - CFG.alpha);
+  const double b = 0.5 - CFG.epsilon_2;
+  const double approx = (a * b) / (a + b);
+
   if (CFG.use_opimc) {
-    auto res = martingaleContext.useOpimc();
+    auto res = martingaleContext.useOpimc(approx);
     return res;
   } else {
-    auto res = martingaleContext.useImm();
+    auto res = martingaleContext.useImm(approx);
     return res;
   }
 }
@@ -209,11 +213,12 @@ auto run_randgreedi(
     sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
+  const double approx = (1.0 - std::pow((double)std::exp(1.0), 0 - CFG.alpha)) / 2.0; // last term should be number of levels.
   if (CFG.use_opimc) {
-    auto res = martingaleContext.useOpimc();
+    auto res = martingaleContext.useOpimc(approx);
     return res;
   } else {
-    auto res = martingaleContext.useImm();
+    auto res = martingaleContext.useImm(approx);
     return res;
   }
 }

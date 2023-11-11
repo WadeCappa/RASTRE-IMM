@@ -226,7 +226,7 @@ class MartingaleContext {
         }
     }
 
-    std::vector<unsigned int> useImm() 
+    std::vector<unsigned int> useImm(const double approximation_guarantee) // todo: term not used in function, needs to be used
     {
         double LB = 0;
         double epsilonPrime = 1.4142135623730951 * this->CFG.epsilon;
@@ -300,12 +300,11 @@ class MartingaleContext {
     }
 
 
-    std::vector<unsigned int> useOpimc() 
+    std::vector<unsigned int> useOpimc(const double approximation_guarantee)
     {
         std::cout << "starting opimc" << std::endl;
         const double epsilonPrime = 1.4142135623730951 * this->CFG.epsilon;
         const double delta = 1.0 / (double)this->G.num_nodes();
-        const double approximation_guarantee = 1.0 - (1.0 / (double)std::exp(1.0));
 
         std::pair<size_t, size_t> loop_conditions = calculateLoopConditions(G.num_nodes(), approximation_guarantee, this->CFG.epsilon, this->CFG.k, delta);
         const size_t theta_max = loop_conditions.first;
@@ -363,7 +362,7 @@ class MartingaleContext {
                 const auto sigma_super_u = std::pow(std::sqrt(upperDegOPT + a2 / 2.0) + sqrt(a2 / 2.0), 2);
                 std::cout << "sigma_super_l: "  << sigma_super_l << ", sigma_super_u: " << sigma_super_u << std::endl;
                 alpha = sigma_super_l / sigma_super_u;
-                std::cout << "finished calculating alpha of " << alpha << std::endl;
+                std::cout << "Finished? Is " << alpha << " >= " << approximation_guarantee  - this->CFG.epsilon <<"? " << std::endl;
             }
             
             this->cEngine.distributeF(&alpha);
