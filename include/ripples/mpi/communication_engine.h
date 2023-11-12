@@ -577,6 +577,17 @@ class CommunicationEngine
         return res;
     }
 
+    void reduceLocalNonCovered(const std::vector<unsigned int> &local_covered, std::vector<unsigned int> &global_covered) const {
+        MPI_Reduce(
+            local_covered.data(),
+            global_covered.data(),
+            local_covered.size(),
+            MPI_INT,
+            MPI_SUM,
+            0,
+            MPI_COMM_WORLD);
+    }
+
     size_t aggregateAggregateSets(
         std::vector<unsigned int>& receiveBuffer, // modified
         const size_t totalGatherData, 

@@ -28,19 +28,6 @@ class TransposeRRRSets
         sets[vertex].first.unlock();
     }
 
-    unsigned int calculateInfluence(const std::vector<unsigned int> &seed_set, const size_t theta) const {
-        ripples::Bitmask<int> covered(theta);
-
-        #pragma omp parallel for
-        for (const auto & vertex : seed_set) {
-            for (const auto & RRR_set : this->sets[vertex].second) {
-                covered.set(RRR_set);
-            }
-        }
-
-        return covered.popcount();
-    }
-
     void GetSetSizes(std::vector<unsigned int>& setSizes)
     {
         for (int i = 0; i < setSizes.size() && i < this->sets.size(); i++)
@@ -69,6 +56,50 @@ class TransposeRRRSets
                 std::cout << "size difference; " << sizeBefore -  this->sets[i].second.size() << std::endl;
             }
         }
+    }
+
+    void getLocalNonCovered(
+        std::vector<unsigned int> &non_covered,
+        const GraphTy &G, 
+        const std::vector<unsigned int> &seeds, 
+        const size_t theta
+    ) const {
+        ripples::Bitmask<int> covered(theta);
+
+        #pragma omp parallel for
+        for (size_t i = 0; i < seeds.size(); i++) {
+            const auto &vertex = seeds[i];
+            for (const auto & rrr_set : this->sets[vertex].second) {
+                covered.set(rrr_set);
+            }
+        }
+
+        #pragma omp parallel for
+        for (size_t vertex = 0; vertex < this->sets.size(); vertex++) {
+            const auto & rrr_sets = this->sets[vertex].second;
+            for (const auto & rrr_set : rrr_sets) {
+                if (!covered.get(rrr_set)) {
+                    non_covered[vertex]++;
+                }
+            }
+        }
+    }
+
+    unsigned int calculateInfluence(
+        const std::vector<unsigned int> &seeds, 
+        const size_t theta
+    ) const {
+        ripples::Bitmask<int> covered(theta);
+
+        #pragma omp parallel for
+        for (size_t i = 0; i < seeds.size(); i++) {
+            const auto &vertex = seeds[i];
+            for (const auto & rrr_set : this->sets[vertex].second) {
+                covered.set(rrr_set);
+            }
+        }
+
+        return covered.popcount();
     }
 };
 

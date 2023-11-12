@@ -4,6 +4,7 @@
 #include "ripples/mpi/imm.h"
 #include "ripples/imm_execution_record.h"
 #include "ripples/imm.h"
+#include "ripples/bitmask.h"
 
 template <
     typename GraphTy,
@@ -187,6 +188,29 @@ class MartingaleContext {
         return std::make_pair(theta_max, i_max);
     }
 
+    unsigned int getCoverageOfNextK(
+        const TransposeRRRSets<GraphTy> &R,
+        const std::vector<unsigned int> &seeds, 
+        const size_t theta, 
+        const unsigned int k
+    ) const {
+        std::vector<unsigned int> local_non_covered(this->G.num_nodes());
+        R.getLocalNonCovered(local_non_covered, this->G, seeds, theta);
+
+        std::vector<unsigned int> global_non_covered(this->G.num_nodes());
+        this->cEngine.reduceLocalNonCovered(local_non_covered, global_non_covered);
+
+        unsigned int res = 0;
+        std::make_heap(global_non_covered.begin(), global_non_covered.end());
+        for (unsigned int i = 0; i < k; i++) {
+            std::pop_heap(global_non_covered.begin(), global_non_covered.end());
+            res += global_non_covered.back();
+            global_non_covered.pop_back();
+        }
+
+        return res;
+    }
+
     public:
     MartingaleContext(
         DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> &sampler,
@@ -348,7 +372,14 @@ class MartingaleContext {
             const std::vector<unsigned int> seeds = this->cEngine.distributeSeedSet(s_star.first, kprime);
             const unsigned int local_R2_influence = R2.calculateInfluence(seeds, local_theta); /// Evaluate the influence spread of a seed set on current generated RR sets
             const unsigned int global_R2_influence = this->cEngine.sumCoverage(local_R2_influence);
-            std::cout << "finished calculating influence" << std::endl;
+            std::cout << "global_R2_influence: " << global_R2_influence << ", global_R1_influence: " << s_star.second << std::endl;
+
+            double upperBound = (double)s_star.second / (double)approximation_guarantee;
+            if (this->CFG.use_opimc == 1) {
+                const unsigned int next_k_influence = this->getCoverageOfNextK(R1, seeds, local_theta, kprime);
+                std::cout << "next_k_influence: " << next_k_influence << std::endl;
+                upperBound = next_k_influence;
+            } 
 
             double alpha;
             if (this->cEngine.GetRank() == 0) {
@@ -356,7 +387,6 @@ class MartingaleContext {
                 const auto a2 = std::log((double)i_max * 3.0 / delta);
 
                 const auto degVldt = (double)(global_R2_influence * global_theta) / (double)(this->G.num_nodes());
-                const auto upperBound = (double)s_star.second / (double)approximation_guarantee;
                 const auto upperDegOPT = (double)(upperBound * global_theta) / (double)(this->G.num_nodes());
                 const auto sigma_super_l = std::pow(std::sqrt(degVldt + a1 * 2.0 / 9.0) - sqrt(a1 / 2.0), 2) - a1 / 18.0;
                 const auto sigma_super_u = std::pow(std::sqrt(upperDegOPT + a2 / 2.0) + sqrt(a2 / 2.0), 2);
