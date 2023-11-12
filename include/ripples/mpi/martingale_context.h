@@ -233,7 +233,7 @@ class MartingaleContext {
             CFG(input_CFG), 
             tRRRSets(G.num_nodes()), 
             l(input_l * (1 + 1 / std::log2(G.num_nodes()))),
-            vertexToProcess(cEngine.DistributeVertices(input_CFG.use_streaming, input_G)),
+            vertexToProcess(cEngine.DistributeVertices(input_G)),
             old_sampling_sizes(input_G.num_nodes(), 0),
             record(record),
             cEngine(cEngine),
@@ -369,10 +369,12 @@ class MartingaleContext {
             const auto s_star = this->approximators[0].getBestSeeds(this->solutionSpace, kprime, global_theta);
             std::cout << "finished finding s_star" << std::endl;
             
-            const std::vector<unsigned int> seeds = this->cEngine.distributeSeedSet(s_star.first, kprime);
+            const std::vector<unsigned int> seeds = this->cEngine.distributeSeedSet(s_star.first, this->CFG.k);
+            std::cout << "distributed seeds" << std::endl;
             const unsigned int local_R2_influence = R2.calculateInfluence(seeds, local_theta); /// Evaluate the influence spread of a seed set on current generated RR sets
+            std::cout << "calculated influence" << std::endl;
             const unsigned int global_R2_influence = this->cEngine.sumCoverage(local_R2_influence);
-            std::cout << "global_R2_influence: " << global_R2_influence << ", global_R1_influence: " << s_star.second << std::endl;
+            std::cout << "local_R2_influence: " << local_R2_influence << ", global_R2_influence: " << global_R2_influence << ", global_R1_influence: " << s_star.second << std::endl;
 
             double upperBound = (double)s_star.second / (double)approximation_guarantee;
             if (this->CFG.use_opimc == 1) {

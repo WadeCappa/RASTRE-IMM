@@ -115,17 +115,15 @@ class CommunicationEngine
     }
 
     std::vector<int> DistributeVertices (
-        const bool streaming,
         const GraphTy &G
-    ) const
-    {
+    ) const {
         size_t nodes = G.num_nodes();
 
         std::vector<int> vertex_mapping(nodes, -1);
         unsigned int seed = (unsigned int)time(0);
         MPI_Bcast(&seed, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 
-        std::uniform_int_distribution<int> uniform_distribution(streaming ? 1 : 0, this->world_size - 1);
+        std::uniform_int_distribution<int> uniform_distribution(this->streaming ? 1 : 0, this->world_size - 1);
         std::default_random_engine number_selecter(seed);
 
         for (int i = 0; i < nodes; i++) {
@@ -561,18 +559,22 @@ class CommunicationEngine
     }
 
     std::vector<unsigned int> distributeSeedSet(const std::vector<unsigned int> &seed_set, const size_t k) const {
-        std::vector<unsigned int> res = std::vector<unsigned int>(k, -1);
+        std::vector<unsigned int> res = std::vector<unsigned int>(k, UINT_MAX);
         for (int i = 0; i < seed_set.size(); i++) {
             res[i] = seed_set[i];
         }
 
-        MPI_Bcast(res.data(), k, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(res.data(), k, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+
+        for (size_t i = res.size() - 1; i >= 0 && res[i] == UINT_MAX; i--) {
+            res.pop_back();
+        }
 
         return res;
     }
 
     unsigned int sumCoverage(unsigned int coverage) const {
-        unsigned int res;
+        unsigned int res = 0;
         MPI_Reduce(&coverage, &res, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
         return res;
     }

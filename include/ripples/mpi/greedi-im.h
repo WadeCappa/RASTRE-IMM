@@ -146,9 +146,10 @@ auto run_greedimm(
   using execution_tag = ripples::omp_parallel_tag;
   using vertex_type = typename GraphTy::vertex_type;
 
-  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(CFG.use_streaming);
+  const bool use_streaming = true;
+  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(use_streaming);
   TransposeRRRSets<GraphTy> tRRRSets(G.num_nodes());
-  std::vector<int> vertexToProcess(cEngine.DistributeVertices(CFG.use_streaming, G));
+  std::vector<int> vertexToProcess(cEngine.DistributeVertices(G));
 
   DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> sampler(
       cEngine.GetSize(), G, gen, record, model_tag
@@ -195,9 +196,10 @@ auto run_randgreedi(
   using execution_tag = ripples::omp_parallel_tag;
   using vertex_type = typename GraphTy::vertex_type;
 
-  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(CFG.use_streaming);
+  const bool use_streaming = false;
+  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(use_streaming);
   TransposeRRRSets<GraphTy> tRRRSets(G.num_nodes());
-  std::vector<int> vertexToProcess(cEngine.DistributeVertices(CFG.use_streaming, G));
+  std::vector<int> vertexToProcess(cEngine.DistributeVertices(G));
 
   DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> sampler(
       cEngine.GetSize(), G, gen, record, model_tag

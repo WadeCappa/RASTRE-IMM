@@ -94,8 +94,15 @@ class TransposeRRRSets
         #pragma omp parallel for
         for (size_t i = 0; i < seeds.size(); i++) {
             const auto &vertex = seeds[i];
+            // if (vertex > this->sets.size()) {
+            //     std::cout << "invalid vertex found, ignoring. Vertex: " << vertex << std::endl;
+            // }
             for (const auto & rrr_set : this->sets[vertex].second) {
+                // if (rrr_set > theta) {
+                //     std::cout << "rrr_set " << rrr_set << " is larger than theta " << theta << std::endl;
+                // } else {
                 covered.set(rrr_set);
+                // }
             }
         }
 
