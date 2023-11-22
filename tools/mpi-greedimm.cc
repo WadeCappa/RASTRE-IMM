@@ -74,19 +74,20 @@ auto GetExperimentRecord(
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
   nlohmann::json experiment{
-      {"Algorithm", "GreeDIMM"},
+      {"Algorithm", nlohmann::json {
+        {"Exit Condition", CFG.use_opimc ? "OPIMC" : "IMM"},
+        {"Greedy Algorithm", "Streaming"}
+      }},
       {"Input", CFG.IFileName},
       {"Output", CFG.OutputFile},
       {"DiffusionModel", CFG.diffusionModel},
       {"Epsilon", CFG.epsilon},
       {"K", CFG.k},
-      {"L", 1},
       {"Rank", world_rank},
       {"WorldSize", world_size},
       {"NumThreads", R.NumThreads},
       {"NumWalkWorkers", CFG.streaming_workers},
       {"NumGPUWalkWorkers", CFG.streaming_gpu_workers},
-      {"Total", R.Total},
       {"ThetaPrimeDeltas", R.ThetaPrimeDeltas},
       {"ThetaEstimation", R.ThetaEstimationTotal},
       {"ThetaEstimationGenerateRRR", R.ThetaEstimationGenerateRRR},
@@ -94,7 +95,9 @@ auto GetExperimentRecord(
       {"Theta", R.Theta},
       {"GenerateRRRSets", R.GenerateRRRSets},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
-      {"GranularRuntime_Milliseconds", timer.buildStreamingTimeJson(world_size, R.Total.count())},
+      {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size, R.Total.count())},
+      {"OPIMC_Timings_Milliseconds", CFG.use_opimc ? timer.buildOpimcTimeJson(world_size) : "Did not use OPIMC"},
+      {"Total", R.Total},
       {"Seeds", seeds}};
   return experiment;
 }
@@ -200,6 +203,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
   G.convertID(seeds.begin(), seeds.end(), seeds.begin());
+
   auto experiment = GetExperimentRecord(CFG, R, seeds, timeAggregator);
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);

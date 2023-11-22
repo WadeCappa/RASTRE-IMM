@@ -74,13 +74,15 @@ auto GetExperimentRecord(
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
   nlohmann::json experiment{
-      {"Algorithm", "RandGreediLazylazy"},
+      {"Algorithm", nlohmann::json {
+        {"Exit Condition", CFG.use_opimc ? "OPIMC" : "IMM"},
+        {"Greedy Algorithm", "Lazy Lazy"}
+      }},
       {"Input", CFG.IFileName},
       {"Output", CFG.OutputFile},
       {"DiffusionModel", CFG.diffusionModel},
       {"Epsilon", CFG.epsilon},
       {"K", CFG.k},
-      {"L", 1},
       {"Rank", world_rank},
       {"WorldSize", world_size},
       {"NumThreads", R.NumThreads},
@@ -94,6 +96,7 @@ auto GetExperimentRecord(
       {"GenerateRRRSets", R.GenerateRRRSets},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
       {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size, R.Total.count())},
+      {"OPIMC_Timings_Milliseconds", CFG.use_opimc ? timer.buildOpimcTimeJson(world_size) : "Did not use OPIMC"},
       {"Total", R.Total},
       {"Seeds", seeds}};
   return experiment;

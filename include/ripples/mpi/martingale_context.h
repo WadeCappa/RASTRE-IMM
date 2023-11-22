@@ -193,13 +193,18 @@ class MartingaleContext {
         const std::vector<unsigned int> &seeds, 
         const size_t theta, 
         const unsigned int k
-    ) const {
+    ) {
         std::vector<unsigned int> local_non_covered(this->G.num_nodes());
+        this->timeAggregator.countUncoveredR1_OPIMC.startTimer();
         R.getLocalNonCovered(local_non_covered, this->G, seeds, theta);
+        this->timeAggregator.countUncoveredR1_OPIMC.endTimer();
 
         std::vector<unsigned int> global_non_covered(this->G.num_nodes());
+        this->timeAggregator.reduceUncoveredR1_OPIMC.startTimer();
         this->cEngine.reduceLocalNonCovered(local_non_covered, global_non_covered);
+        this->timeAggregator.reduceUncoveredR1_OPIMC.endTimer();
 
+        this->timeAggregator.selectNextBestKR1_OPIMC.startTimer();
         unsigned int res = 0;
         std::make_heap(global_non_covered.begin(), global_non_covered.end());
         for (unsigned int i = 0; i < k; i++) {
@@ -207,6 +212,7 @@ class MartingaleContext {
             res += global_non_covered.back();
             global_non_covered.pop_back();
         }
+        this->timeAggregator.selectNextBestKR1_OPIMC.endTimer();
 
         return res;
     }
@@ -326,7 +332,7 @@ class MartingaleContext {
 
     std::vector<unsigned int> useOpimc(const double approximation_guarantee)
     {
-        std::cout << "starting opimc" << std::endl;
+        // std::cout << "starting opimc" << std::endl;
         const double epsilonPrime = 1.4142135623730951 * this->CFG.epsilon;
         const double delta = 1.0 / (double)this->G.num_nodes();
 
@@ -350,7 +356,7 @@ class MartingaleContext {
         for (int i = 0; i < i_max; i++) {
             std::cout << "loop " << i << ") using values local_theta of " << local_theta << ", global_theta of " << global_theta << ", change in RR sets since last loop of " << change_in_number_of_RRR_sets << std::endl;
 
-            std::cout << "begining to sample with delta of " << local_theta << std::endl;
+            // std::cout << "begining to sample with delta of " << local_theta << std::endl;
             this->timeAggregator.samplingTimer.startTimer();
             this->sampler.addNewSamples(R1, previous_RRR_sets, change_in_number_of_RRR_sets);
             this->sampler.addNewSamples(R2, previous_RRR_sets, change_in_number_of_RRR_sets);
@@ -358,23 +364,31 @@ class MartingaleContext {
 
             record.ThetaPrimeDeltas.push_back(change_in_number_of_RRR_sets);
 
-            std::cout << "starting redistribution" << std::endl;
+            // std::cout << "starting redistribution" << std::endl;
             this->timeAggregator.allToAllTimer.startTimer();  
             this->ownershipManager.redistributeSeedSets(R1, this->solutionSpace, change_in_number_of_RRR_sets); // TODO: probably not global theta here, double check code
             this->timeAggregator.allToAllTimer.endTimer();  
-            std::cout << "finished redistributing seed sets" << std::endl;
+            // std::cout << "finished redistributing seed sets" << std::endl;
 
             const int kprime = int(this->CFG.alpha * (double)(this->CFG.k));
 
             const auto s_star = this->approximators[0].getBestSeeds(this->solutionSpace, kprime, global_theta);
-            std::cout << "finished finding s_star" << std::endl;
+            // std::cout << "finished finding s_star" << std::endl;
             
+            this->timeAggregator.broadcastSeeds_OPIMC.startTimer();
             const std::vector<unsigned int> seeds = this->cEngine.distributeSeedSet(s_star.first, this->CFG.k);
-            std::cout << "distributed seeds" << std::endl;
+            this->timeAggregator.broadcastSeeds_OPIMC.endTimer();
+            // std::cout << "distributed seeds" << std::endl;
+
+            this->timeAggregator.countCoveredR2_OPIMC.startTimer();
             const unsigned int local_R2_influence = R2.calculateInfluence(seeds, local_theta); /// Evaluate the influence spread of a seed set on current generated RR sets
-            std::cout << "calculated influence" << std::endl;
+            this->timeAggregator.countCoveredR2_OPIMC.endTimer();
+            // std::cout << "calculated influence" << std::endl;
+            
+            this->timeAggregator.reduceCoveredR2_OPIMC.startTimer();
             const unsigned int global_R2_influence = this->cEngine.sumCoverage(local_R2_influence);
-            std::cout << "local_R2_influence: " << local_R2_influence << ", global_R2_influence: " << global_R2_influence << ", global_R1_influence: " << s_star.second << std::endl;
+            this->timeAggregator.reduceCoveredR2_OPIMC.endTimer();
+            // std::cout << "local_R2_influence: " << local_R2_influence << ", global_R2_influence: " << global_R2_influence << ", global_R1_influence: " << s_star.second << std::endl;
 
             double upperBound = (double)s_star.second / (double)approximation_guarantee;
             if (this->CFG.use_opimc == 1) {
@@ -396,8 +410,10 @@ class MartingaleContext {
                 alpha = sigma_super_l / sigma_super_u;
                 std::cout << "Finished? Is " << alpha << " >= " << approximation_guarantee  - this->CFG.epsilon <<"? " << std::endl;
             }
-            
+
+            this->timeAggregator.broadcastTimer.startTimer();
             this->cEngine.distributeF(&alpha);
+            this->timeAggregator.broadcastTimer.endTimer();
 
             if (alpha >= (approximation_guarantee - this->CFG.epsilon)) { // divide approx by 2 here? Check in with group.
                 return s_star.first;
