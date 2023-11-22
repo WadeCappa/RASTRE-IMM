@@ -50,8 +50,7 @@ class MartingaleContext {
         const size_t thetaPrime,
         const size_t previousTheta
     ) {
-        // delta will always be (theta / 2) / world_size
-
+        // You may want delta to be a user parameter eventually
         size_t delta = ((thetaPrime - previousTheta) / this->cEngine.GetSize() + 1);
 
         if ((thetaPrime - previousTheta) / this->cEngine.GetSize() < 0)

@@ -81,7 +81,6 @@ struct IMMConfiguration : public TIMConfiguration {
   bool verbose = false;
   std::string branching_factors = "";
   int use_opimc = -1;
-  double delta = 0.1;
 
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
@@ -123,9 +122,6 @@ struct IMMConfiguration : public TIMConfiguration {
         ->group("Streaming-Engine Options"); // todo: figure out if you can change the group without breaking anything
     app.add_option("--opimc", use_opimc,
                 "Use OPIM-C instead of IMM. Set to -1 by default which means it will not be used. Mode 0 uses a pessimistic but easy to calculate upper bound. Mode 1 uses a more optimistic upper bound but is harder to calculate.")
-        ->group("Streaming-Engine Options"); // todo: figure out if you can change the group without breaking anything
-    app.add_option("--delta", delta,
-                "Set error (create a better hint, not sure how to describe this)")
         ->group("Streaming-Engine Options"); // todo: figure out if you can change the group without breaking anything
   }
 };
