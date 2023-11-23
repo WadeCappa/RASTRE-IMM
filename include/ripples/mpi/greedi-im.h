@@ -146,9 +146,10 @@ auto run_greedimm(
   using execution_tag = ripples::omp_parallel_tag;
   using vertex_type = typename GraphTy::vertex_type;
 
-  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(CFG.use_streaming);
+  const bool use_streaming = true;
+  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(use_streaming);
   TransposeRRRSets<GraphTy> tRRRSets(G.num_nodes());
-  std::vector<int> vertexToProcess(cEngine.DistributeVertices(CFG.use_streaming, G));
+  std::vector<int> vertexToProcess(cEngine.DistributeVertices(G));
 
   DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> sampler(
       cEngine.GetSize(), G, gen, record, model_tag
@@ -162,12 +163,20 @@ auto run_greedimm(
   approximators.push_back(ApproximatorContext (approximatorGroups));
 
   MartingaleContext<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> martingaleContext(
-      sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
+    sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  auto res = martingaleContext.approximateInfMax();
+  const double a = 1.0 - std::pow((double)std::exp(1.0), 0 - CFG.alpha);
+  const double b = 0.5 - CFG.epsilon_2;
+  const double approx = (a * b) / (a + b);
 
-  return res;
+  if (CFG.use_opimc >= 0) {
+    auto res = martingaleContext.useOpimc(approx);
+    return res;
+  } else {
+    auto res = martingaleContext.useImm(approx);
+    return res;
+  }
 }
 
 template <typename GraphTy, typename ConfTy, typename diff_model_tag,
@@ -187,9 +196,10 @@ auto run_randgreedi(
   using execution_tag = ripples::omp_parallel_tag;
   using vertex_type = typename GraphTy::vertex_type;
 
-  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(CFG.use_streaming);
+  const bool use_streaming = false;
+  CommunicationEngine<GraphTy> cEngine = CommunicationEngineBuilder<GraphTy>::BuildCommunicationEngine(use_streaming);
   TransposeRRRSets<GraphTy> tRRRSets(G.num_nodes());
-  std::vector<int> vertexToProcess(cEngine.DistributeVertices(CFG.use_streaming, G));
+  std::vector<int> vertexToProcess(cEngine.DistributeVertices(G));
 
   DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> sampler(
       cEngine.GetSize(), G, gen, record, model_tag
@@ -202,12 +212,17 @@ auto run_randgreedi(
   std::vector<ApproximatorContext> approximators = MartingleBuilder::buildApproximatorContexts<GraphTy, ConfTy>(branchingFactors, cEngine.GetSize(), CFG, timeAggregator, vertexToProcess, cEngine);
 
   MartingaleContext<GraphTy, ConfTy, RRRGeneratorTy, diff_model_tag, execution_tag> martingaleContext(
-      sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
+    sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  auto res = martingaleContext.approximateInfMax();
-
-  return res;
+  const double approx = (1.0 - std::pow((double)std::exp(1.0), 0 - CFG.alpha)) / 2.0; // last term should be number of levels.
+  if (CFG.use_opimc >= 0) {
+    auto res = martingaleContext.useOpimc(approx);
+    return res;
+  } else {
+    auto res = martingaleContext.useImm(approx);
+    return res;
+  }
 }
 
 

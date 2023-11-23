@@ -66,8 +66,6 @@ auto GetExperimentRecord(
   const ToolConfiguration<IMMConfiguration> &CFG,
   const IMMExecutionRecord &R, 
   const SeedSet &seeds,
-  const unsigned int levels,
-  const unsigned int optBranchingFactor,
   TimerAggregator &timer) {
   // Find out rank, size
   int world_rank;
@@ -76,16 +74,15 @@ auto GetExperimentRecord(
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
   nlohmann::json experiment{
-      {"Algorithm", "RandGreediLazylazy"},
-      {"Levels", levels},
-      {"BranchingFactors", CFG.branching_factors}, 
-      {"OptimalBranchingFactor", optBranchingFactor},
+      {"Algorithm", nlohmann::json {
+        {"Exit Condition", CFG.use_opimc ? "OPIMC" : "IMM"},
+        {"Greedy Algorithm", "Lazy Lazy"}
+      }},
       {"Input", CFG.IFileName},
       {"Output", CFG.OutputFile},
       {"DiffusionModel", CFG.diffusionModel},
       {"Epsilon", CFG.epsilon},
       {"K", CFG.k},
-      {"L", 1},
       {"Rank", world_rank},
       {"WorldSize", world_size},
       {"NumThreads", R.NumThreads},
@@ -99,6 +96,7 @@ auto GetExperimentRecord(
       {"GenerateRRRSets", R.GenerateRRRSets},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
       {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size, R.Total.count())},
+      {"OPIMC_Timings_Milliseconds", CFG.use_opimc ? timer.buildOpimcTimeJson(world_size) : "Did not use OPIMC"},
       {"Total", R.Total},
       {"Seeds", seeds}};
   return experiment;
@@ -207,9 +205,7 @@ int main(int argc, char *argv[]) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-  std::vector<unsigned int> branchingFactors = MartingleBuilder::getBranchingFactors(CFG.branching_factors);
-  unsigned int optimalBranchingFactor = branchingFactors[R.OptimalExecutionPath];
-  auto experiment = GetExperimentRecord(CFG, R, seeds, std::ceil((double)std::log(world_size) / (double)std::log(optimalBranchingFactor)), optimalBranchingFactor, timeAggregator);
+  auto experiment = GetExperimentRecord(CFG, R, seeds, timeAggregator);
 
   console->info("IMM World Size : {}", world_size);
 

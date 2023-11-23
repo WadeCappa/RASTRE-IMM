@@ -82,8 +82,34 @@ class TimerAggregator
     Timer totalSendTimer;
     Timer totalReceiveTimer;
 
+    Timer broadcastSeeds_OPIMC;
+    
+    Timer countUncoveredR1_OPIMC;
+    Timer reduceUncoveredR1_OPIMC;
+    Timer selectNextBestKR1_OPIMC;
+
+    Timer countCoveredR2_OPIMC;
+    Timer reduceCoveredR2_OPIMC;
+
     TimerAggregator(){}
     ~TimerAggregator(){}
+
+    nlohmann::json buildOpimcTimeJson(const int world_size) {
+        nlohmann::json timeReport{
+            {"Broadcasting Seeds", this->getWorldTimes(world_size, this->broadcastSeeds_OPIMC.resolveTimer())},
+            {"Estimating alpha upper bound", nlohmann::json {
+                {"Count uncovered on R1", this->getWorldTimes(world_size, this->countUncoveredR1_OPIMC.resolveTimer())},
+                {"Reduce unconvered on R1", this->getWorldTimes(world_size, this->reduceUncoveredR1_OPIMC.resolveTimer())},
+                {"Select next best k on R1", this->getWorldTimes(world_size, this->selectNextBestKR1_OPIMC.resolveTimer())}
+            }},
+            {"Getting influence on R2", nlohmann::json {
+                {"Count covered on R2", this->getWorldTimes(world_size, this->countCoveredR2_OPIMC.resolveTimer())},
+                {"Reduce covered on R2", this->getWorldTimes(world_size, this->reduceCoveredR2_OPIMC.resolveTimer())}
+            }}
+        };
+
+        return timeReport;
+    }
 
     nlohmann::json buildLazyLazyTimeJson(const int world_size, const double total_runtime) {
         nlohmann::json timeReport{

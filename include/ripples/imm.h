@@ -75,12 +75,12 @@ struct IMMConfiguration : public TIMConfiguration {
   size_t seed_select_max_workers{std::numeric_limits<size_t>::max()};
   size_t seed_select_max_gpu_workers{0};
   bool dump_sampling_data_flag{false};
-  bool use_streaming = false;
   double epsilon_2 = 0.13; 
   double alpha = 1;
   bool use_diimm = false;
   bool verbose = false;
   std::string branching_factors = "";
+  int use_opimc = -1;
 
   std::string gpu_mapping_string{""};
   std::unordered_map<size_t, size_t> worker_to_gpu;
@@ -105,9 +105,6 @@ struct IMMConfiguration : public TIMConfiguration {
         ->group("Streaming-Engine Options");
     app.add_option("--dump-sampling-data", dump_sampling_data_flag, "Output all sampling data to your output file")
         ->group("Streaming-Engine Options");
-    app.add_option("--run-streaming", use_streaming,
-                   "Run max-k-cover within a streaming algorithm. False by default.")
-        ->group("Streaming-Engine Options");
     app.add_option("--epsilon-2", epsilon_2,
                    "Set the error parameter for the streaming step. Default of 0.13 to acheive approximation garuntee of 21%")
         ->group("Streaming-Engine Options");
@@ -122,6 +119,9 @@ struct IMMConfiguration : public TIMConfiguration {
         ->group("Streaming-Engine Options");
     app.add_option("--branching-factors", branching_factors,
                 "Provide a set of branching factors. The most optimal will be determined at runtime. Format as '.' delimited string, such as \"2.4.8.16\". Defaults empty.")
+        ->group("Streaming-Engine Options"); // todo: figure out if you can change the group without breaking anything
+    app.add_option("--opimc", use_opimc,
+                "Use OPIM-C instead of IMM. Set to -1 by default which means it will not be used. Mode 0 uses a pessimistic but easy to calculate upper bound. Mode 1 uses a more optimistic upper bound but is harder to calculate.")
         ->group("Streaming-Engine Options"); // todo: figure out if you can change the group without breaking anything
   }
 };

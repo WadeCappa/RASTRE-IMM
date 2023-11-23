@@ -4,6 +4,7 @@
 #include "ripples/mpi/imm.h"
 #include "ripples/imm_execution_record.h"
 #include "ripples/imm.h"
+#include "ripples/bitmask.h"
 
 template <
     typename GraphTy,
@@ -49,8 +50,7 @@ class MartingaleContext {
         const size_t thetaPrime,
         const size_t previousTheta
     ) {
-        // delta will always be (theta / 2) / world_size
-
+        // You may want delta to be a user parameter eventually
         size_t delta = ((thetaPrime - previousTheta) / this->cEngine.GetSize() + 1);
 
         if ((thetaPrime - previousTheta) / this->cEngine.GetSize() < 0)
@@ -166,6 +166,56 @@ class MartingaleContext {
 	return emptyCount;
     }
 
+    static size_t logChoose(size_t n, size_t k) { // TODO: This logic will have rounding errors, see what the opimc repo did for this.
+        k = k < n - k ? k : n - k;
+        double res = 0;
+        for (size_t i = 1; i <= k; i++) res += std::log(double(n - k + i) / i);
+        return res;
+    }
+
+    static std::pair<size_t, size_t> calculateLoopConditions(
+            const size_t num_nodes, 
+            const double approx, 
+            const double epsilon, 
+            const size_t k, 
+            const double delta) {
+        const double a = std::sqrt(std::log(6.0 / delta));
+        const double b = std::sqrt(approx * (logChoose(num_nodes, k) + std::log(6.0 / delta)));
+        const auto theta_max = size_t(2.0 * num_nodes * std::pow(approx * a + b, 2) / k / std::pow(epsilon, 2)) + 1;
+        const auto i_max_base = size_t(2.0 * std::pow(approx * a + b, 2));
+        const auto i_max = (size_t)log2(theta_max / i_max_base) + 1;
+        return std::make_pair(theta_max, i_max);
+    }
+
+    unsigned int getCoverageOfNextK(
+        const TransposeRRRSets<GraphTy> &R,
+        const std::vector<unsigned int> &seeds, 
+        const size_t theta, 
+        const unsigned int k
+    ) {
+        std::vector<unsigned int> local_non_covered(this->G.num_nodes());
+        this->timeAggregator.countUncoveredR1_OPIMC.startTimer();
+        R.getLocalNonCovered(local_non_covered, this->G, seeds, theta);
+        this->timeAggregator.countUncoveredR1_OPIMC.endTimer();
+
+        std::vector<unsigned int> global_non_covered(this->G.num_nodes());
+        this->timeAggregator.reduceUncoveredR1_OPIMC.startTimer();
+        this->cEngine.reduceLocalNonCovered(local_non_covered, global_non_covered);
+        this->timeAggregator.reduceUncoveredR1_OPIMC.endTimer();
+
+        this->timeAggregator.selectNextBestKR1_OPIMC.startTimer();
+        unsigned int res = 0;
+        std::make_heap(global_non_covered.begin(), global_non_covered.end());
+        for (unsigned int i = 0; i < k; i++) {
+            std::pop_heap(global_non_covered.begin(), global_non_covered.end());
+            res += global_non_covered.back();
+            global_non_covered.pop_back();
+        }
+        this->timeAggregator.selectNextBestKR1_OPIMC.endTimer();
+
+        return res;
+    }
+
     public:
     MartingaleContext(
         DefaultSampler<GraphTy, diff_model_tag, RRRGeneratorTy, execution_tag> &sampler,
@@ -188,7 +238,7 @@ class MartingaleContext {
             CFG(input_CFG), 
             tRRRSets(G.num_nodes()), 
             l(input_l * (1 + 1 / std::log2(G.num_nodes()))),
-            vertexToProcess(cEngine.DistributeVertices(input_CFG.use_streaming, input_G)),
+            vertexToProcess(cEngine.DistributeVertices(input_G)),
             old_sampling_sizes(input_G.num_nodes(), 0),
             record(record),
             cEngine(cEngine),
@@ -205,7 +255,7 @@ class MartingaleContext {
         }
     }
 
-    std::vector<unsigned int> approximateInfMax() 
+    std::vector<unsigned int> useImm(const double approximation_guarantee) // todo: term not used in function, needs to be used
     {
         double LB = 0;
         double epsilonPrime = 1.4142135623730951 * this->CFG.epsilon;
@@ -276,5 +326,105 @@ class MartingaleContext {
         }
 
         return bestSeeds.first;
+    }
+
+
+    std::vector<unsigned int> useOpimc(const double approximation_guarantee)
+    {
+        // std::cout << "starting opimc" << std::endl;
+        const double epsilonPrime = 1.4142135623730951 * this->CFG.epsilon;
+        const double delta = 1.0 / (double)this->G.num_nodes();
+
+        std::pair<size_t, size_t> loop_conditions = calculateLoopConditions(G.num_nodes(), approximation_guarantee, this->CFG.epsilon, this->CFG.k, delta);
+        const size_t theta_max = loop_conditions.first;
+        const size_t i_max = loop_conditions.second;
+
+        const size_t theta_0 = std::ceil(((double)theta_max * (double)std::pow(this->CFG.epsilon, 2) * (double)this->CFG.k) / (double)this->G.num_nodes());
+        size_t global_theta = theta_0;
+
+        // will be modified
+        size_t local_theta = std::floor((double)theta_0 / (double)this->cEngine.GetSize());
+
+        TransposeRRRSets<GraphTy> R1(this->G.num_nodes());
+        TransposeRRRSets<GraphTy> R2(this->G.num_nodes());
+
+        size_t change_in_number_of_RRR_sets = local_theta;
+        size_t previous_RRR_sets = 0;
+
+        std::cout << "starting the opimc loop. theta_max: " << theta_max << ", theta_0: " << theta_0 << ", i_max: " << i_max << std::endl;
+        for (int i = 0; i < i_max; i++) {
+            std::cout << "loop " << i << ") using values local_theta of " << local_theta << ", global_theta of " << global_theta << ", change in RR sets since last loop of " << change_in_number_of_RRR_sets << std::endl;
+
+            // std::cout << "begining to sample with delta of " << local_theta << std::endl;
+            this->timeAggregator.samplingTimer.startTimer();
+            this->sampler.addNewSamples(R1, previous_RRR_sets, change_in_number_of_RRR_sets);
+            this->sampler.addNewSamples(R2, previous_RRR_sets, change_in_number_of_RRR_sets);
+            this->timeAggregator.samplingTimer.endTimer();
+
+            record.ThetaPrimeDeltas.push_back(change_in_number_of_RRR_sets);
+
+            // std::cout << "starting redistribution" << std::endl;
+            this->timeAggregator.allToAllTimer.startTimer();  
+            this->ownershipManager.redistributeSeedSets(R1, this->solutionSpace, change_in_number_of_RRR_sets); // TODO: probably not global theta here, double check code
+            this->timeAggregator.allToAllTimer.endTimer();  
+            // std::cout << "finished redistributing seed sets" << std::endl;
+
+            const int kprime = int(this->CFG.alpha * (double)(this->CFG.k));
+
+            const auto s_star = this->approximators[0].getBestSeeds(this->solutionSpace, kprime, global_theta);
+            // std::cout << "finished finding s_star" << std::endl;
+            
+            this->timeAggregator.broadcastSeeds_OPIMC.startTimer();
+            const std::vector<unsigned int> seeds = this->cEngine.distributeSeedSet(s_star.first, this->CFG.k);
+            this->timeAggregator.broadcastSeeds_OPIMC.endTimer();
+            // std::cout << "distributed seeds" << std::endl;
+
+            this->timeAggregator.countCoveredR2_OPIMC.startTimer();
+            const unsigned int local_R2_influence = R2.calculateInfluence(seeds, local_theta); /// Evaluate the influence spread of a seed set on current generated RR sets
+            this->timeAggregator.countCoveredR2_OPIMC.endTimer();
+            // std::cout << "calculated influence" << std::endl;
+            
+            this->timeAggregator.reduceCoveredR2_OPIMC.startTimer();
+            const unsigned int global_R2_influence = this->cEngine.sumCoverage(local_R2_influence);
+            this->timeAggregator.reduceCoveredR2_OPIMC.endTimer();
+            // std::cout << "local_R2_influence: " << local_R2_influence << ", global_R2_influence: " << global_R2_influence << ", global_R1_influence: " << s_star.second << std::endl;
+
+            double upperBound = (double)s_star.second / (double)approximation_guarantee;
+            if (this->CFG.use_opimc == 1) {
+                const unsigned int next_k_influence = this->getCoverageOfNextK(R1, seeds, local_theta, kprime);
+                std::cout << "next_k_influence: " << next_k_influence << std::endl;
+                upperBound = next_k_influence;
+            } 
+
+            double alpha;
+            if (this->cEngine.GetRank() == 0) {
+                const auto a1 = std::log((double)i_max * 3.0 / delta);
+                const auto a2 = std::log((double)i_max * 3.0 / delta);
+
+                const auto degVldt = (double)(global_R2_influence * global_theta) / (double)(this->G.num_nodes());
+                const auto upperDegOPT = (double)(upperBound * global_theta) / (double)(this->G.num_nodes());
+                const auto sigma_super_l = std::pow(std::sqrt(degVldt + a1 * 2.0 / 9.0) - sqrt(a1 / 2.0), 2) - a1 / 18.0;
+                const auto sigma_super_u = std::pow(std::sqrt(upperDegOPT + a2 / 2.0) + sqrt(a2 / 2.0), 2);
+                std::cout << "sigma_super_l: "  << sigma_super_l << ", sigma_super_u: " << sigma_super_u << std::endl;
+                alpha = sigma_super_l / sigma_super_u;
+                std::cout << "Finished? Is " << alpha << " >= " << approximation_guarantee  - this->CFG.epsilon <<"? " << std::endl;
+            }
+
+            this->timeAggregator.broadcastTimer.startTimer();
+            this->cEngine.distributeF(&alpha);
+            this->timeAggregator.broadcastTimer.endTimer();
+
+            if (alpha >= (approximation_guarantee - this->CFG.epsilon)) { // divide approx by 2 here? Check in with group.
+                return s_star.first;
+            }
+
+            previous_RRR_sets = local_theta;
+            change_in_number_of_RRR_sets = local_theta;
+            local_theta = local_theta * 2;
+            global_theta = global_theta * 2;
+        }
+    
+        std::cout << "Error, exited for loop without returning, should not be possible" << std::endl;
+        return std::vector<unsigned int>();
     }
 };

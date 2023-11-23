@@ -43,7 +43,7 @@ class DefaultSampler {
     ) : world_size(world_size), graph(input_G), gen(gen), record(record), model_tag(model_tag) {
     }
 
-    // TODO: see if you can add a const tag to this method
+    // Non-const, but because we want random generation this is fine.
     void addNewSamples(
         TransposeRRRSets<GraphTy> &tRRRSets, 
         const size_t counterStart, 
