@@ -95,7 +95,8 @@ auto GetExperimentRecord(
       {"Theta", R.Theta},
       {"GenerateRRRSets", R.GenerateRRRSets},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
-      {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size, R.Total.count())},
+      {"Exit Condition", CFG.ExitConditions},
+      {"GranularRuntime_Milliseconds", timer.buildStreamingTimeJson(world_size, R.Total.count())},
       {"OPIMC_Timings_Milliseconds", CFG.use_opimc ? timer.buildOpimcTimeJson(world_size) : "Did not use OPIMC"},
       {"Total", R.Total},
       {"Seeds", seeds}};

@@ -115,7 +115,8 @@ class TimerAggregator
         nlohmann::json timeReport{
             {"Sampling", this->getWorldTimes(world_size, this->samplingTimer.resolveTimer())}, 
             {"MPI_AllToAll", this->getWorldTimes(world_size, this->allToAllTimer.resolveTimer())}, 
-            {"MaxKCover", this->getWorldTimes(world_size, this->max_k_globalTimer.resolveTimer() + this->max_k_localTimer.resolveTimer())},  
+            {"Local MaxKCover", this->getWorldTimes(world_size, this->max_k_localTimer.resolveTimer())},  
+            {"Global MaxKCover", this->getWorldTimes(world_size, this->max_k_globalTimer.resolveTimer())},  
             {"MPI_Gather", this->getWorldTimes(world_size, this->allGatherTimer.resolveTimer())}, 
             {"MPI_Broadcast", this->getWorldTimes(world_size, this->broadcastTimer.resolveTimer())},
             {"Total", this->getTotalRuntimes(world_size, total_runtime)} 

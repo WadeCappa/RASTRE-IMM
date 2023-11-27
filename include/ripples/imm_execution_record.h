@@ -77,6 +77,8 @@ struct IMMExecutionRecord {
   size_t NumThreads;
   //! Number of RRR sets generated.
   size_t Theta;
+
+  std::vector<double> ExitConditions;
   //! The list of how many RRR sets are produced during the estimation phase.
   std::vector<size_t> ThetaPrimeDeltas;
   //! Execution time of the Theta estimation phase.

@@ -59,7 +59,7 @@ class MartingaleContext {
             exit(1);
         }
 
-        this->record.ThetaPrimeDeltas.push_back(delta);
+        this->record.ThetaPrimeDeltas.push_back(delta * this->cEngine.GetSize());
 
         // std::cout << "before sampling, " << this->previousTheta << ", " << delta << std::endl;
         this->timeAggregator.samplingTimer.startTimer();
@@ -293,6 +293,7 @@ class MartingaleContext {
             this->timeAggregator.broadcastTimer.endTimer();
 
             // std::cout << "seeds.second: (covered RRRSet IDs) = " << seeds.second << " , thetaPrme: " << thetaPrime << " , f = " << f << std::endl;
+            this->CFG.ExitConditions.push_back(f);
             if (f >= std::pow(2, -x)) {
                 // std::cout << "Fraction " << f << std::endl;
                 LB = (G.num_nodes() * f) / (1 + epsilonPrime);
@@ -361,7 +362,7 @@ class MartingaleContext {
             this->sampler.addNewSamples(R2, previous_RRR_sets, change_in_number_of_RRR_sets);
             this->timeAggregator.samplingTimer.endTimer();
 
-            record.ThetaPrimeDeltas.push_back(change_in_number_of_RRR_sets);
+            record.ThetaPrimeDeltas.push_back(change_in_number_of_RRR_sets * this->cEngine.GetSize());
 
             // std::cout << "starting redistribution" << std::endl;
             this->timeAggregator.allToAllTimer.startTimer();  
@@ -414,6 +415,7 @@ class MartingaleContext {
             this->cEngine.distributeF(&alpha);
             this->timeAggregator.broadcastTimer.endTimer();
 
+            CFG.ExitConditions.push_back(alpha);
             if (alpha >= (approximation_guarantee - this->CFG.epsilon)) { // divide approx by 2 here? Check in with group.
                 return s_star.first;
             }

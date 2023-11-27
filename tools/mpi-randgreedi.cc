@@ -94,6 +94,7 @@ auto GetExperimentRecord(
       {"ThetaEstimationMostInfluential", R.ThetaEstimationMostInfluential},
       {"Theta", R.Theta},
       {"GenerateRRRSets", R.GenerateRRRSets},
+      {"Exit Condition", CFG.ExitConditions},
       {"FindMostInfluentialSet", R.FindMostInfluentialSet},
       {"GranularRuntime_Milliseconds", timer.buildLazyLazyTimeJson(world_size, R.Total.count())},
       {"OPIMC_Timings_Milliseconds", CFG.use_opimc ? timer.buildOpimcTimeJson(world_size) : "Did not use OPIMC"},
