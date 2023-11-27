@@ -374,8 +374,6 @@ class StreamingRandGreedIEngine
         int threads = omp_get_max_threads();
         omp_set_nested(2);
 
-        this->timer.totalGlobalStreamTimer.startTimer();
-
         # pragma omp parallel num_threads(2)
         {
             if (omp_get_thread_num() == 0) // receiver
@@ -453,8 +451,6 @@ class StreamingRandGreedIEngine
                 this->timer.max_k_globalTimer.endTimer();
             }
         }
-
-        this->timer.totalGlobalStreamTimer.endTimer();
 
         auto bestSeeds = this->buckets.GetBestSeeds();
 

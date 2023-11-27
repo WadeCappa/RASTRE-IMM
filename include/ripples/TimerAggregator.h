@@ -69,8 +69,7 @@ class TimerAggregator
     Timer allGatherTimer;
     Timer allToAllTimer;
     Timer broadcastTimer;
-    Timer totalGlobalStreamTimer;
-    Timer localStreamTimer;
+    Timer totalSeedSelectionTimer;
     Timer sendTimer;
     Timer receiveTimer;
     Timer initBucketTimer;
@@ -119,6 +118,7 @@ class TimerAggregator
             {"Global MaxKCover", this->getWorldTimes(world_size, this->max_k_globalTimer.resolveTimer())},  
             {"MPI_Gather", this->getWorldTimes(world_size, this->allGatherTimer.resolveTimer())}, 
             {"MPI_Broadcast", this->getWorldTimes(world_size, this->broadcastTimer.resolveTimer())},
+            {"TotalSeedSelectionTime", this->getWorldTimes(world_size, this->totalSeedSelectionTimer.resolveTimer())},
             {"Total", this->getTotalRuntimes(world_size, total_runtime)} 
         };
 
@@ -132,12 +132,12 @@ class TimerAggregator
             {"SelectNextSeedUsingMaxKCover", this->getWorldTimes(world_size, this->max_k_localTimer.resolveTimer())},  
             {"SendingNextSeed", this->getWorldTimes(world_size, this->sendTimer.resolveTimer())},
             {"TotalSendTime", this->getWorldTimes(world_size, this->totalSendTimer.resolveTimer())},
-            {"InitializingBuckets_ListeningThread", this->getWorldTimes(world_size, this->initBucketTimer.resolveTimer())},
-            {"WaitingToReceiveNextSeed_ListeningThread", this->getWorldTimes(world_size, this->receiveTimer.resolveTimer())},
-            {"InsertingSeed_BucketingThreads", this->getWorldTimes(world_size, this->max_k_globalTimer.resolveTimer())},
-            {"ProcessingSentSeedForBuckets_ListeningThread", this->getWorldTimes(world_size, this->processingReceiveTimer.resolveTimer())},
+            {"InitializingBuckets_ListeningThread", this->initBucketTimer.resolveTimer()},
+            {"WaitingToReceiveNextSeed_ListeningThread", this->receiveTimer.resolveTimer()},
+            {"InsertingSeed_BucketingThreads", this->max_k_globalTimer.resolveTimer()},
+            {"ProcessingSentSeedForBuckets_ListeningThread", this->processingReceiveTimer.resolveTimer()},
             {"AtomicUpdateForBuckets_ListeningThread", this->atomicUpdateTimer.resolveTimer()},
-            {"TotalGlobalStreamingTime", this->totalGlobalStreamTimer.resolveTimer()},
+            {"TotalSeedSelectionTime", this->getWorldTimes(world_size, this->totalSeedSelectionTimer.resolveTimer())},
             {"MPI_Broadcast", this->getWorldTimes(world_size, this->broadcastTimer.resolveTimer())},
             {"Total", this->getTotalRuntimes(world_size, total_runtime)} 
         };

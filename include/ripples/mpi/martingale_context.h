@@ -77,10 +77,15 @@ class MartingaleContext {
         const std::map<int, std::vector<int>> &localSpace = this->solutionSpace;
         size_t localTheta = thetaPrime + this->cEngine.GetSize();
 
+        this->timeAggregator.totalSeedSelectionTimer.startTimer();
         if (this->approximators.size() == 1) {
             this->record.OptimalExecutionPath = 0;
             return this->approximators[0].getBestSeeds(localSpace, kprime, localTheta);
         }
+        this->timeAggregator.totalSeedSelectionTimer.endTimer();
+
+        std::cout << "this code path is current inactive" << std::endl;
+        exit(1);
 
         if (this->optimalExecutionPath != -1) {
             return this->approximators[this->optimalExecutionPath].getBestSeeds(localSpace, kprime, localTheta);
@@ -293,7 +298,7 @@ class MartingaleContext {
             this->timeAggregator.broadcastTimer.endTimer();
 
             // std::cout << "seeds.second: (covered RRRSet IDs) = " << seeds.second << " , thetaPrme: " << thetaPrime << " , f = " << f << std::endl;
-            this->CFG.ExitConditions.push_back(f);
+            this->record.ExitConditions.push_back(f);
             if (f >= std::pow(2, -x)) {
                 // std::cout << "Fraction " << f << std::endl;
                 LB = (G.num_nodes() * f) / (1 + epsilonPrime);
@@ -372,7 +377,9 @@ class MartingaleContext {
 
             const int kprime = int(this->CFG.alpha * (double)(this->CFG.k));
 
+            this->timeAggregator.totalSeedSelectionTimer.startTimer();
             const auto s_star = this->approximators[0].getBestSeeds(this->solutionSpace, kprime, global_theta);
+            this->timeAggregator.totalSeedSelectionTimer.endTimer();
             // std::cout << "finished finding s_star" << std::endl;
             
             this->timeAggregator.broadcastSeeds_OPIMC.startTimer();
@@ -415,7 +422,7 @@ class MartingaleContext {
             this->cEngine.distributeF(&alpha);
             this->timeAggregator.broadcastTimer.endTimer();
 
-            CFG.ExitConditions.push_back(alpha);
+            this->record.ExitConditions.push_back(alpha);
             if (alpha >= (approximation_guarantee - this->CFG.epsilon)) { // divide approx by 2 here? Check in with group.
                 return s_star.first;
             }
