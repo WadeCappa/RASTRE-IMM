@@ -78,7 +78,6 @@ class TimerAggregator
     Timer processingReceiveTimer;
     Timer atomicUpdateTimer;
 
-    Timer totalSendTimer;
     Timer totalReceiveTimer;
 
     Timer broadcastSeeds_OPIMC;
@@ -131,7 +130,6 @@ class TimerAggregator
             {"MPI_AllToAll", this->getWorldTimes(world_size, this->allToAllTimer.resolveTimer())}, 
             {"SelectNextSeedUsingMaxKCover", this->getWorldTimes(world_size, this->max_k_localTimer.resolveTimer())},  
             {"SendingNextSeed", this->getWorldTimes(world_size, this->sendTimer.resolveTimer())},
-            {"TotalSendTime", this->getWorldTimes(world_size, this->totalSendTimer.resolveTimer())},
             {"InitializingBuckets_ListeningThread", this->initBucketTimer.resolveTimer()},
             {"WaitingToReceiveNextSeed_ListeningThread", this->receiveTimer.resolveTimer()},
             {"InsertingSeed_BucketingThreads", this->max_k_globalTimer.resolveTimer()},

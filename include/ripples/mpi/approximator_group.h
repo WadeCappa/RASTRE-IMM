@@ -71,13 +71,9 @@ class StreamingApproximatorGroup : public ApproximatorGroup {
             StreamingRandGreedIEngine<GraphTy> streamingEngine(this->CFG.k, kprime, theta, (double)this->CFG.epsilon_2, worldSize - 1, this->cEngine, this->timeAggregator);
             nextBestSolution = streamingEngine.Stream(nextSolutionSpace);
         } else {
-            this->timeAggregator.totalSendTimer.startTimer();
-            
             StreamingMaxKCover<GraphTy> localKCoverEngine(this->CFG.k, kprime, theta, this->timeAggregator, this->cEngine);
             localKCoverEngine.useLazyGreedy();
             localKCoverEngine.run_max_k_cover(currentState.solutionSpace);
-
-            this->timeAggregator.totalSendTimer.endTimer();
         }
     }
 };
