@@ -390,29 +390,27 @@ class MartingaleContext {
             this->timeAggregator.countCoveredR2_OPIMC.startTimer();
             const unsigned int local_R2_influence = R2.calculateInfluence(seeds, local_theta); /// Evaluate the influence spread of a seed set on current generated RR sets
             this->timeAggregator.countCoveredR2_OPIMC.endTimer();
-            // std::cout << "calculated influence" << std::endl;
+            std::cout << "calculated influence, local_R2_influence of " << local_R2_influence << std::endl;
             
             this->timeAggregator.reduceCoveredR2_OPIMC.startTimer();
             const unsigned int global_R2_influence = this->cEngine.sumCoverage(local_R2_influence);
             this->timeAggregator.reduceCoveredR2_OPIMC.endTimer();
-            // std::cout << "local_R2_influence: " << local_R2_influence << ", global_R2_influence: " << global_R2_influence << ", global_R1_influence: " << s_star.second << std::endl;
+            std::cout << "local_R2_influence: " << local_R2_influence << ", global_R2_influence: " << global_R2_influence << ", global_R1_influence: " << s_star.second << std::endl;
 
             double upperBound = (double)s_star.second / (double)approximation_guarantee;
             if (this->CFG.use_opimc == 1) {
                 const unsigned int next_k_influence = this->getCoverageOfNextK(R1, seeds, local_theta, kprime);
                 std::cout << "next_k_influence: " << next_k_influence << std::endl;
-                upperBound = next_k_influence;
+                upperBound = s_star.second + next_k_influence;
             } 
 
             double alpha;
             if (this->cEngine.GetRank() == 0) {
-                const auto a1 = std::log((double)i_max * 3.0 / delta);
-                const auto a2 = std::log((double)i_max * 3.0 / delta);
+                const double a1 = std::log((double)i_max * 3.0 / delta);
+                const double a2 = std::log((double)i_max * 3.0 / delta);
 
-                const auto degVldt = (double)(global_R2_influence * global_theta) / (double)(this->G.num_nodes());
-                const auto upperDegOPT = (double)(upperBound * global_theta) / (double)(this->G.num_nodes());
-                const auto sigma_super_l = std::pow(std::sqrt(degVldt + a1 * 2.0 / 9.0) - sqrt(a1 / 2.0), 2) - a1 / 18.0;
-                const auto sigma_super_u = std::pow(std::sqrt(upperDegOPT + a2 / 2.0) + sqrt(a2 / 2.0), 2);
+                const double sigma_super_l = std::pow(std::sqrt(global_R2_influence + a1 * 2.0 / 9.0) - sqrt(a1 / 2.0), 2) - a1 / 18.0;
+                const double sigma_super_u = std::pow(std::sqrt(upperBound + a2 / 2.0) + sqrt(a2 / 2.0), 2);
                 std::cout << "sigma_super_l: "  << sigma_super_l << ", sigma_super_u: " << sigma_super_u << std::endl;
                 alpha = sigma_super_l / sigma_super_u;
                 std::cout << "Finished? Is " << alpha << " >= " << approximation_guarantee  - this->CFG.epsilon <<"? " << std::endl;
