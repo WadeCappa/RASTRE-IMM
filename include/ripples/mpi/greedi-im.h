@@ -128,6 +128,9 @@ std::vector<PRNG> rank_split_generator(const PRNG &gen) {
   return generator;
 }
 
+double getPessimisticApproximation() {
+  return 1.0 - (1.0 / (double)std::exp(1.0));
+}
 
 template <typename GraphTy, typename ConfTy, typename diff_model_tag,
           typename RRRGeneratorTy, typename ExTagTrait>
@@ -168,8 +171,8 @@ auto run_greedimm(
 
   const double a = 1.0 - std::pow((double)std::exp(1.0), 0 - CFG.alpha);
   const double b = 0.5 - CFG.epsilon_2;
-  const double approx = (a * b) / (a + b);
-
+  double approx = (a * b) / (a + b);
+  approx = CFG.use_pessimistic_approximation ? getPessimisticApproximation() : approx;
   if (CFG.use_opimc >= 0) {
     auto res = martingaleContext.useOpimc(approx);
     return res;
@@ -215,7 +218,8 @@ auto run_randgreedi(
     sampler, ownershipManager, approximators, G, CFG, l_value, record, cEngine, timeAggregator
   );
 
-  const double approx = (1.0 - std::pow((double)std::exp(1.0), 0 - CFG.alpha)) / 2.0; // last term should be number of levels.
+  double approx = (1.0 - std::pow((double)std::exp(1.0), 0 - CFG.alpha)) / 2.0; // last term should be number of levels.
+  approx = CFG.use_pessimistic_approximation ? getPessimisticApproximation() : approx;
   if (CFG.use_opimc >= 0) {
     auto res = martingaleContext.useOpimc(approx);
     return res;
