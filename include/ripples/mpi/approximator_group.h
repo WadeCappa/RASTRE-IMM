@@ -69,6 +69,7 @@ class StreamingApproximatorGroup : public ApproximatorGroup {
         MPI_Comm_size(this->groupWorld, &worldSize);
         if (groupRank == 0) {
             StreamingRandGreedIEngine<GraphTy> streamingEngine(this->CFG.k, kprime, theta, (double)this->CFG.epsilon_2, worldSize - 1, this->cEngine, this->timeAggregator);
+            std::cout << "starting to receive..." << std::endl;
             nextBestSolution = streamingEngine.Stream(nextSolutionSpace);
         } else {
             StreamingMaxKCover<GraphTy> localKCoverEngine(this->CFG.k, kprime, theta, this->timeAggregator, this->cEngine);

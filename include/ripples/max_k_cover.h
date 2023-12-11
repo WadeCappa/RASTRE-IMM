@@ -370,11 +370,12 @@ private:
     void QueueNextSeed(
         const unsigned int current_send_index,
         const std::vector<unsigned int>& res,
-        const std::map<int, std::vector<int>>& data
+        const std::map<int, std::vector<int>>& data,
+        const unsigned int kprime
     )
     {
         current_send_index == this->kprime - 1 ? 
-            this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index])) :
+            this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index]), kprime) :
             this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]))
         ;
 
@@ -425,18 +426,18 @@ private:
     void InsertLastSeed(
         const unsigned int current_seed, 
         const std::vector<unsigned int>& local_seed_set, 
-        const std::vector<int>& RRRSetIDs 
+        const std::vector<int>& RRRSetIDs,
+        const unsigned int kprime
     )
     {
-        // std::cout << "inserting last seed" << std::endl;
-
         this->InsertNextSeedIntoSendBuffer(
             current_seed, 
             local_seed_set[current_seed], 
             RRRSetIDs
         );
 
-        std::vector<unsigned int> newBuffer = std::vector<unsigned int>(this->send_buffers[current_seed].size() + this->cEngine.GetBlockSize()); // TODO: get ceiling on division, mupliply by number of blocks required.
+        const unsigned int number_of_blocks = std::ceil((double)kprime / (double)this->cEngine.GetBlockSize());
+        std::vector<unsigned int> newBuffer = std::vector<unsigned int>(this->send_buffers[current_seed].size() + number_of_blocks * this->cEngine.GetBlockSize());
 
         int start = 0;
         for (; this->send_buffers[current_seed][start] != -1; start++)
@@ -515,6 +516,7 @@ private:
                 flag = this->cEngine.TestSend(this->request);
                 if (flag == 1)
                 {
+                    // std::cout << "sent seed " << current_send_index << std::endl;
                     current_send_index++;
                 }
             }
@@ -522,7 +524,7 @@ private:
             if (flag == 1 || currentSeed == 0)
             {
                 // std::cout << "queuing seed " << current_send_index << std::endl;
-                this->QueueNextSeed(current_send_index, res, data);
+                this->QueueNextSeed(current_send_index, res, data, this->kprime);
                 // std::cout << "finished queuing " << current_send_index << std::endl;
             }
 
@@ -534,12 +536,12 @@ private:
         this->cEngine.WaitForSend(this->request);
         current_send_index++;
 
+        // std::cout << "starting to batch send" << std::endl;
         for (; current_send_index < this->kprime; current_send_index++)
         {
-            // std::cout << "batch sending seed " << current_send_index << std::endl;
 
             current_send_index == this->kprime - 1 ? 
-                this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index])) :
+                this->InsertLastSeed(current_send_index, res, data.at(res[current_send_index]), this->kprime) :
                 this->InsertNextSeedIntoSendBuffer(current_send_index, res[current_send_index], data.at(res[current_send_index]))
             ;
 
@@ -549,6 +551,8 @@ private:
                 current_send_index == this->kprime - 1 ? this->finder->GetUtility() : current_send_index
             );
         }
+
+        // std::cout << "Sent all seeds" << std::endl;
 
         this->timer.sendTimer.endTimer();
 

@@ -361,7 +361,7 @@ class MartingaleContext {
         for (int i = 0; i < i_max; i++) {
             std::cout << "loop " << i << ") using values local_theta of " << local_theta << ", global_theta of " << global_theta << ", change in RR sets since last loop of " << change_in_number_of_RRR_sets << std::endl;
 
-            // std::cout << "begining to sample with delta of " << local_theta << std::endl;
+            std::cout << "begining to sample with delta of " << local_theta << std::endl;
             this->timeAggregator.samplingTimer.startTimer();
             this->sampler.addNewSamples(R1, previous_RRR_sets, change_in_number_of_RRR_sets);
             this->sampler.addNewSamples(R2, previous_RRR_sets, change_in_number_of_RRR_sets);
@@ -369,23 +369,23 @@ class MartingaleContext {
 
             record.ThetaPrimeDeltas.push_back(change_in_number_of_RRR_sets * this->cEngine.GetSize());
 
-            // std::cout << "starting redistribution" << std::endl;
+            std::cout << "starting redistribution" << std::endl;
             this->timeAggregator.allToAllTimer.startTimer();  
             this->ownershipManager.redistributeSeedSets(R1, this->solutionSpace, change_in_number_of_RRR_sets); // TODO: probably not global theta here, double check code
             this->timeAggregator.allToAllTimer.endTimer();  
-            // std::cout << "finished redistributing seed sets" << std::endl;
+            std::cout << "finished redistributing seed sets" << std::endl;
 
             const int kprime = int(this->CFG.alpha * (double)(this->CFG.k));
 
             this->timeAggregator.totalSeedSelectionTimer.startTimer();
             const auto s_star = this->approximators[0].getBestSeeds(this->solutionSpace, kprime, global_theta);
             this->timeAggregator.totalSeedSelectionTimer.endTimer();
-            // std::cout << "finished finding s_star" << std::endl;
+            std::cout << "finished finding s_star" << std::endl;
             
             this->timeAggregator.broadcastSeeds_OPIMC.startTimer();
             const std::vector<unsigned int> seeds = this->cEngine.distributeSeedSet(s_star.first, this->CFG.k);
             this->timeAggregator.broadcastSeeds_OPIMC.endTimer();
-            // std::cout << "distributed seeds" << std::endl;
+            std::cout << "distributed seeds" << std::endl;
 
             this->timeAggregator.countCoveredR2_OPIMC.startTimer();
             const unsigned int local_R2_influence = R2.calculateInfluence(seeds, local_theta); /// Evaluate the influence spread of a seed set on current generated RR sets
