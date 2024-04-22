@@ -71,6 +71,10 @@ class MartingaleContext {
         this->ownershipManager.redistributeSeedSets(this->tRRRSets, this->solutionSpace, delta);
         this->timeAggregator.allToAllTimer.endTimer();
 
+        this->timeAggregator.barrierTime.startTimer();
+        MPI_Barrier(MPI_COMM_WORLD);
+        this->timeAggregator.barrierTime.endTimer();
+
         int kprime = int(CFG.alpha * (double)CFG.k);
 
         // std::cout << "before seed selection using kprime of " << kprime << std::endl;
@@ -374,6 +378,10 @@ class MartingaleContext {
             this->ownershipManager.redistributeSeedSets(R1, this->solutionSpace, change_in_number_of_RRR_sets); // TODO: probably not global theta here, double check code
             this->timeAggregator.allToAllTimer.endTimer();  
             std::cout << "finished redistributing seed sets" << std::endl;
+
+            this->timeAggregator.barrierTime.startTimer();
+            MPI_Barrier(MPI_COMM_WORLD);
+            this->timeAggregator.barrierTime.endTimer();
 
             const int kprime = int(this->CFG.alpha * (double)(this->CFG.k));
 
