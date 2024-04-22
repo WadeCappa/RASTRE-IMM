@@ -89,6 +89,8 @@ class TimerAggregator
     Timer countCoveredR2_OPIMC;
     Timer reduceCoveredR2_OPIMC;
 
+    Timer barrierTime;
+
     TimerAggregator(){}
     ~TimerAggregator(){}
 
@@ -118,6 +120,7 @@ class TimerAggregator
             {"MPI_Gather", this->getWorldTimes(world_size, this->allGatherTimer.resolveTimer())}, 
             {"MPI_Broadcast", this->getWorldTimes(world_size, this->broadcastTimer.resolveTimer())},
             {"TotalSeedSelectionTime", this->getWorldTimes(world_size, this->totalSeedSelectionTimer.resolveTimer())},
+            {"Time spent waiting after decoding AllToAll", this->getWorldTimes(world_size, this->barrierTime.resolveTimer())},
             {"Total", this->getTotalRuntimes(world_size, total_runtime)} 
         };
 
