@@ -58,51 +58,16 @@
 #include "ripples/graph.h"
 #include "ripples/imm_execution_record.h"
 #include "ripples/utility.h"
+#include "ripples/rrr_sets.h"
+#include "ripples/add_rrrset.h"
 #include "ripples/streaming_rrr_generator.h"
 
 #include "trng/uniform01_dist.hpp"
 #include "trng/uniform_int_dist.hpp"
 
-#ifdef ENABLE_MEMKIND
-#include "memkind_allocator.h"
-#endif
-
-#ifdef ENABLE_METALL
-#include "metall/metall.hpp"
-#include "metall/container/vector.hpp"
-#endif
 
 namespace ripples {
-
-#if defined ENABLE_MEMKIND
-template<typename vertex_type>
-using RRRsetAllocator = libmemkind::static_kind::allocator<vertex_type>;
-#elif defined ENABLE_METALL
-template<typename vertex_type>
-using RRRsetAllocator = metall::manager::allocator_type<vertex_type>;
-
-metall::manager &metall_manager_instance() {
-  static metall::manager manager(metall::create_only, "/tmp/ripples");
-  return manager;
-}
-
-#else
-template <typename vertex_type>
-using RRRsetAllocator = std::allocator<vertex_type>;
-#endif
-
-//! \brief The Random Reverse Reachability Sets type
-template <typename GraphTy>
-using RRRset =
-#ifdef  ENABLE_METALL
-    metall::container::vector<typename GraphTy::vertex_type,
-                              RRRsetAllocator<typename GraphTy::vertex_type>>;
-#else
-    std::vector<typename GraphTy::vertex_type,
-                              RRRsetAllocator<typename GraphTy::vertex_type>>;
-#endif
-template <typename GraphTy>
-using RRRsets = std::vector<RRRset<GraphTy>>;
+#if 0
 
 //! \brief Execute a randomize BFS to generate a Random RR Set.
 //!
@@ -164,6 +129,7 @@ void AddRRRSet(const GraphTy &G, typename GraphTy::vertex_type r,
 
   std::stable_sort(result.begin(), result.end());
 }
+#endif
 
 /// @brief 
 /// @tparam GraphTy 
@@ -329,10 +295,10 @@ template <typename GraphTy, typename PRNGeneratorTy,
 void GenerateRRRSets(const GraphTy &G,
                      StreamingRRRGenerator<GraphTy, PRNGeneratorTy, ItrTy, diff_model_tag> &se,
                      ItrTy begin, ItrTy end,
-                     ExecRecordTy &,
+                     ExecRecordTy & record,
                      diff_model_tag &&,
                      omp_parallel_tag &&) {
-  se.generate(begin, end);
+  se.generate(begin, end, record);
 }
 
 }  // namespace ripples

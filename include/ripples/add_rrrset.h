@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 //
 // Copyright (c) 2019, Battelle Memorial Institute
-// 
+//
 // Battelle Memorial Institute (hereinafter Battelle) hereby grants permission
 // to any person or entity lawfully obtaining a copy of this software and
 // associated documentation files (hereinafter “the Software”) to redistribute
@@ -15,18 +15,18 @@
 // modification.  Such person or entity may use, copy, modify, merge, publish,
 // distribute, sublicense, and/or sell copies of the Software, and may permit
 // others to do so, subject to the following conditions:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimers.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Other than as used herein, neither the name Battelle Memorial Institute or
 //    Battelle may be used in any form whatsoever without the express written
 //    consent of Battelle.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -40,45 +40,82 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef RIPPLES_CUDA_CUDA_UTILS_H
-#define RIPPLES_CUDA_CUDA_UTILS_H
+#ifndef RIPPLES_ADD_RRRSET_H
+#define RIPPLES_ADD_RRRSET_H
 
+#include <queue>
 #include <vector>
 #include <utility>
 
-#include "cuda_runtime.h"
-#include "unistd.h"
+#include "ripples/diffusion_simulation.h"
+
+#include "trng/uniform01_dist.hpp"
+#include "trng/uniform_int_dist.hpp"
+#include "ripples/rrr_sets.h"
 
 namespace ripples {
-void cuda_check(cudaError_t err, const char *fname, int line);
-void cuda_check(const char *fname, int line);
 
+//! \brief Execute a randomize BFS to generate a Random RR Set.
+//!
+//! \tparam GraphTy The type of the graph.
+//! \tparam PRNGGeneratorTy The type of pseudo the random number generator.
+//! \tparam diff_model_tag The policy for the diffusion model.
+//!
+//! \param G The graph instance.
+//! \param r The starting point for the exploration.
+//! \param generator The pseudo random number generator.
+//! \param result The RRR set
+//! \param tag The diffusion model tag.
+template <typename GraphTy, typename PRNGeneratorTy, typename diff_model_tag>
+void AddRRRSet(const GraphTy &G, typename GraphTy::vertex_type r,
+               PRNGeneratorTy &generator, RRRset<GraphTy> &result,
+               diff_model_tag &&tag) {
+  using vertex_type = typename GraphTy::vertex_type;
 
-//! \brief CUDA runtime wrap functions.
-size_t cuda_max_blocks();
-size_t cuda_num_devices();
-void cuda_set_device(size_t);
-void cuda_stream_create(cudaStream_t *);
-void cuda_stream_destroy(cudaStream_t);
+  trng::uniform01_dist<float> value;
 
-std::vector<std::pair<size_t, ssize_t>> cuda_get_reduction_tree();
+  std::queue<vertex_type> queue;
+  std::vector<bool> visited(G.num_nodes(), false);
 
-bool cuda_malloc(void **dst, size_t size);
-void cuda_free(void *ptr);
-void cuda_d2h(void *dst, void *src, size_t size, cudaStream_t);
-void cuda_d2h(void *dst, void *src, size_t size);
-void cuda_h2d(void *dst, void *src, size_t size, cudaStream_t);
-void cuda_h2d(void *dst, void *src, size_t size);
-void cuda_memset(void *dst, int val, size_t size, cudaStream_t s);
-void cuda_memset(void *dst, int val, size_t size);
-void cuda_sync(cudaStream_t);
-void cuda_device_sync();
+  queue.push(r);
+  visited[r] = true;
+  result.push_back(r);
 
-void cuda_enable_p2p(size_t dev_number);
-void cuda_disable_p2p(size_t dev_number);
+  while (!queue.empty()) {
+    vertex_type v = queue.front();
+    queue.pop();
 
-size_t cuda_available_memory();
+    if (std::is_same<diff_model_tag, ripples::independent_cascade_tag>::value) {
+      for (auto u : G.neighbors(v)) {
+        if (!visited[u.vertex] && value(generator) <= u.weight) {
+          queue.push(u.vertex);
+          visited[u.vertex] = true;
+          result.push_back(u.vertex);
+        }
+      }
+    } else if (std::is_same<diff_model_tag,
+                            ripples::linear_threshold_tag>::value) {
+      float threshold = value(generator);
+      for (auto u : G.neighbors(v)) {
+        threshold -= u.weight;
 
-}  // namespace ripples
+        if (threshold > 0) continue;
 
-#endif  // IM_CUDA_CUDA_UTILS_H
+        if (!visited[u.vertex]) {
+          queue.push(u.vertex);
+          visited[u.vertex] = true;
+          result.push_back(u.vertex);
+        }
+        break;
+      }
+    } else {
+      throw;
+    }
+  }
+
+  std::stable_sort(result.begin(), result.end());
+}
+
+}
+
+#endif

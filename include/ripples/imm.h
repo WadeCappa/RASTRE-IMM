@@ -50,12 +50,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include "nlohmann/json.hpp"
 #include "trng/lcg64.hpp"
 #include "trng/uniform01_dist.hpp"
 #include "trng/uniform_int_dist.hpp"
 
-#include "ripples/configuration.h"
 #include "ripples/find_most_influential.h"
 #include "ripples/generate_rrr_sets.h"
 #include "ripples/imm_execution_record.h"
@@ -212,17 +210,14 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
   double epsilonPrime = 1.4142135623730951 * epsilon;
 
   double LB = 0;
-  #if defined ENABLE_MEMKIND
-  RRRsetAllocator<vertex_type> allocator(libmemkind::kinds::DAX_KMEM_PREFERRED);
-  #elif defined ENABLE_METALL
-  RRRsetAllocator<vertex_type> allocator =  metall_manager_instance().get_allocator();
+  #if defined ENABLE_METALL_RRRSETS
+  RRRsetAllocator<vertex_type> allocator =  metall_manager_instance(CFG.rr_dir).get_allocator();
   #else
   RRRsetAllocator<vertex_type> allocator;
   #endif
   std::vector<RRRset<GraphTy>> RR;
 
   auto start = std::chrono::high_resolution_clock::now();
-  size_t thetaPrime = 0;
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
     // Equation 9
     ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
@@ -298,17 +293,14 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
   double epsilonPrime = 1.4142135623730951 * epsilon;
 
   double LB = 0;
-  #if defined ENABLE_MEMKIND
-  RRRsetAllocator<vertex_type> allocator(libmemkind::kinds::DAX_KMEM_PREFERRED);
-  #elif defined ENABLE_METALL
-  RRRsetAllocator<vertex_type> allocator =  metall_manager_instance().get_allocator();
-#else
+  #if defined ENABLE_METALL_RRRSETS
+  RRRsetAllocator<vertex_type> allocator =  metall_manager_instance(CFG.rr_dir).get_allocator();
+  #else
   RRRsetAllocator<vertex_type> allocator;
   #endif
   std::vector<RRRset<GraphTy>> RR;
 
   auto start = std::chrono::high_resolution_clock::now();
-  size_t thetaPrime = 0;
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
     // Equation 9
     ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
@@ -584,7 +576,7 @@ TransposeRRRSets<GraphTy> TransposeSampling(const GraphTy &G, const ConfTy &CFG,
 //! \param ex_tag The execution policy tag.
 template <typename GraphTy, typename ConfTy, typename PRNG,
           typename diff_model_tag>
-auto IMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
+std::vector<typename GraphTy::vertex_type> IMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
          IMMExecutionRecord &record, diff_model_tag &&model_tag,
          sequential_tag &&ex_tag) {
   using vertex_type = typename GraphTy::vertex_type;
@@ -744,12 +736,11 @@ auto TransposeIMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
 //! \param ex_tag The execution policy tag.
 template <typename GraphTy, typename ConfTy, typename GeneratorTy,
           typename diff_model_tag>
-auto IMM(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
-         diff_model_tag &&model_tag, omp_parallel_tag &&ex_tag) {
+std::vector<typename GraphTy::vertex_type> IMM(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
+                                               IMMExecutionRecord& record, diff_model_tag &&model_tag, omp_parallel_tag &&ex_tag) {
   using vertex_type = typename GraphTy::vertex_type;
   size_t k = CFG.k;
   double epsilon = CFG.epsilon;
-  auto &record(gen.execution_record());
 
   l = l * (1 + 1 / std::log2(G.num_nodes()));
 
