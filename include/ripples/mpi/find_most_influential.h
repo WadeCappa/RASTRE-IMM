@@ -244,50 +244,6 @@ class MPIStreamingFindMostInfluential {
     return queue;
   }
 
-  std::pair<vertex_type, size_t> get_next_DIiMM_seed(
-    std::vector<std::vector<size_t>>& coverage_vector, 
-    std::pair<size_t, size_t>& last_vertex
-  )
-  {
-    ReduceCounters();
-
-    if (mpi_rank == 0) { // DIiMM: this code is the only different code (outside of preprocessing), use D to select next seed.
-
-      while (last_vertex.first > 0)
-      {
-        while (last_vertex.second < coverage_vector[last_vertex.first].size())
-        {
-          const auto & vertex = coverage_vector[last_vertex.first][last_vertex.second];
-
-          if (last_vertex.first > reduced_vertex_coverage_[vertex])
-          {
-            // outdated case
-            coverage_vector[reduced_vertex_coverage_[vertex]].push_back(vertex);
-            last_vertex.second++;
-          }
-          else
-          {
-            // otherwise seed has been found
-            coveredAndSelected[0] += reduced_vertex_coverage_[vertex];
-            coveredAndSelected[1] = vertex;
-
-            last_vertex.second++;
-            goto RETURN_RESULT;
-          }
-        }
-
-        last_vertex.second = 0;
-        last_vertex.first--;
-      }
-    }
-
-    RETURN_RESULT:
-
-    MPI_Bcast(&coveredAndSelected, 2, MPI_UINT32_T, 0, MPI_COMM_WORLD);
-
-    return std::pair<vertex_type, size_t>(coveredAndSelected[1], coveredAndSelected[0]);
-  }
-
   std::pair<vertex_type, size_t> getNextSeed(priorityQueue &queue_) {
     ReduceCounters();
 #if defined(RIPPLES_ENABLE_CUDA) || defined(RIPPLES_ENABLE_HIP)
@@ -310,7 +266,7 @@ class MPIStreamingFindMostInfluential {
                                             coveredAndSelected[0]);
     }
 #endif
-    if (mpi_rank == 0) { // DIiMM: this code is the only different code (outside of preprocessing), use D to select next seed.
+    if (mpi_rank == 0) {
 
       uint32_t vertex = 0;
       uint32_t coverage = 0;
@@ -341,7 +297,7 @@ class MPIStreamingFindMostInfluential {
       coveredAndSelected[1] = vertex;
 
     }
-    MPI_Bcast(&coveredAndSelected, 2, MPI_UINT32_T, 0, MPI_COMM_WORLD); // DIiMM: Stays the same
+    MPI_Bcast(&coveredAndSelected, 2, MPI_UINT32_T, 0, MPI_COMM_WORLD);
 
     return std::pair<vertex_type, size_t>(coveredAndSelected[1],
                                           coveredAndSelected[0]);
@@ -378,76 +334,6 @@ class MPIStreamingFindMostInfluential {
       }
     }
     workers_[0]->set_first_rrr_set(indices[0].pivot);
-  }
-
-  auto find_most_influential_set_using_diimm(size_t k)
-  {
-    omp_set_max_active_levels(2);
-
-    LoadDataToDevice();
-
-    InitialCount();
-    // std::cout << "Initial Count Done" << std::endl;
-
-    std::vector<vertex_type> result;
-    result.reserve(k);
-
-    // DIiMM: Build initial global histogram. Do this by reducing local histograms. 
-    //  After mpi_reduce, sort by set size to build vector D.This data structure 
-    //  becomes persistant. 
-
-    ReduceCounters(); // TODO: Verify correctness of calling this function here
-    uint32_t max_coverage = 0; 
-    
-    for (const auto & m : this->reduced_vertex_coverage_)
-    {
-      max_coverage = std::max(m, max_coverage);
-    }
-
-    std::vector<std::vector<size_t>> coverage_vector(max_coverage + 1);
-
-    for (size_t i = 0; i < this->reduced_vertex_coverage_.size(); i++)
-    {
-      coverage_vector[this->reduced_vertex_coverage_[i]].push_back(i);
-    }
-
-    std::pair<size_t, size_t> last_checked_coverage = std::make_pair((size_t)max_coverage, 0);
-
-    std::chrono::duration<double, std::milli> seedSelection(0);
-    while (true) {
-      //      std::cout << "Get Seed" << std::endl;
-      auto start = std::chrono::high_resolution_clock::now();
-      auto element = get_next_DIiMM_seed(coverage_vector, last_checked_coverage);
-      auto end = std::chrono::high_resolution_clock::now();
-
-      seedSelection += end - start;
-
-      result.push_back(element.first);
-
-      if (result.size() == k) break;
-
-      // std::cout << "Update counters" << std::endl;
-      // std::cout << *std::max_element(vertex_coverage_.begin(), vertex_coverage_.end()) << std::endl;
-      UpdateCounters(element.first);
-      // std::cout << "Done update counters" << std::endl;
-      // std::cout << *std::max_element(vertex_coverage_.begin(), vertex_coverage_.end()) << std::endl;
-    }
-
-    int world_size = 0;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    double f = double(coveredAndSelected[0]) / (world_size * RRRsets_.size());
-    // if (mpi_rank == 0) {
-    //   std::cout << f << " = " << double(coveredAndSelected[0]) << "/ (" <<
-    //   world_size << " * " <<
-    //       RRRsets_.size() << ")" << std::endl;
-    // }
-    // double f = double(RRRsets_.size() - uncovered) / RRRsets_.size();
-
-    // std::cout << "#### " << seedSelection.count() << std::endl;
-
-    omp_set_max_active_levels(1);
-
-    return std::make_pair(f, result);
   }
 
   auto find_most_influential_set(size_t k) {
@@ -646,14 +532,7 @@ auto FindMostInfluentialSet(const GraphTy &G, const ConfTy &CFG,
   }
 #endif
   MPIStreamingFindMostInfluential<GraphTy> SE(G, RRRsets, num_max_cpu, num_gpu);
-  if (CFG.use_diimm == true)
-  {
-    return SE.find_most_influential_set_using_diimm(CFG.k);
-  }
-  else 
-  {
-    return SE.find_most_influential_set(CFG.k);
-  }
+  return SE.find_most_influential_set(CFG.k);
 }
 
 }  // namespace ripples
