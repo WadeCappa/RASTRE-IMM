@@ -34,11 +34,19 @@ target_link_libraries(hill-climbing
 
 if (MPI_FOUND)
 add_executable(mpi-imm mpi-imm.cc)
+add_executable(mpi-greedimm mpi-greedimm.cc)
 if (RIPPLES_ENABLE_CUDA)
   set_source_files_properties(mpi-imm.cc PROPERTIES LANGUAGE CUDA)
   target_link_libraries(mpi-imm CUDA::cudart)
+  set_source_files_properties(mpi-greedimm.cc PROPERTIES LANGUAGE CUDA)
+  target_link_libraries(mpi-greedimm CUDA::cudart)
 endif()
 target_link_libraries(mpi-imm
+                      spdlog::spdlog fmt::fmt libtrng::libtrng
+                      nlohmann_json::nlohmann_json CLI11::CLI11 OpenMP::OpenMP_CXX
+                      MPI::MPI_CXX infmax)
+
+target_link_libraries(mpi-greedimm
                       spdlog::spdlog fmt::fmt libtrng::libtrng
                       nlohmann_json::nlohmann_json CLI11::CLI11 OpenMP::OpenMP_CXX
                       MPI::MPI_CXX infmax)
@@ -46,9 +54,16 @@ target_link_libraries(mpi-imm
 target_compile_definitions(mpi-imm PRIVATE
                            $<IF:$<BOOL:${RIPPLES_ENABLE_CUDA}>, RIPPLES_ENABLE_CUDA=1,>
                            $<IF:$<BOOL:${RIPPLES_ENABLE_HIP}>, RIPPLES_ENABLE_HIP=1,>)
+
+target_compile_definitions(mpi-greedimm PRIVATE
+                           $<IF:$<BOOL:${RIPPLES_ENABLE_CUDA}>, RIPPLES_ENABLE_CUDA=1,>
+                           $<IF:$<BOOL:${RIPPLES_ENABLE_HIP}>, RIPPLES_ENABLE_HIP=1,>)
+
 if (metall_FOUND)
   target_compile_definitions(mpi-imm PRIVATE ENABLE_METAL=1)
   target_link_libraries(mpi-imm metall::metall)
+  target_compile_definitions(mpi-greedimm PRIVATE ENABLE_METAL=1)
+  target_link_libraries(mpi-greedimm metall::metall)
 endif()
 
 add_executable(mpi-hill-climbing mpi-hill-climbing.cc)

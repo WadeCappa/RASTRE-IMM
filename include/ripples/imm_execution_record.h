@@ -73,6 +73,8 @@ struct IMMExecutionRecord {
     {}
   };
 
+  unsigned int OptimalExecutionPath;
+
   struct walk_iteration_prof {
     std::vector<cpu_walk_prof> CPUWalks{};
     std::vector<gpu_walk_prof> GPUWalks{};

@@ -44,20 +44,54 @@
 #include "omp.h"
 
 #include <iostream>
-
-#include "ripples/configuration.h"
-#include "ripples/diffusion_simulation.h"
-#include "ripples/graph.h"
-#include "ripples/loaders.h"
-#include "ripples/mpi/greedi-im.h"
-#include "ripples/utility.h"
+#include <cstddef>
+#include <utility>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <set>
+#include <map>
+#include <thread>
+#include <time.h>
+#include <cstdlib>
+#include <numeric>
+#include <random>
 
 #include "CLI/CLI.hpp"
 #include "nlohmann/json.hpp"
-
 #include "spdlog/fmt/ostr.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
+#include "trng/lcg64.hpp"
+
+#include "ripples/configuration.h"
+#include "ripples/imm_configuration.h"
+#include "ripples/diffusion_simulation.h"
+#include "ripples/graph.h"
+#include "ripples/loaders.h"
+#include "ripples/utility.h"
+
+#include "ripples/generate_rrr_sets.h"
+#include "ripples/imm.h"
+#include "ripples/imm_execution_record.h"
+#include "ripples/mpi/find_most_influential.h"
+#include "ripples/utility.h"
+
+#include "ripples/generate_rrr_sets.h"
+#include "ripples/transposeRRRSets.h"
+#include "ripples/mpi/communication_engine.h"
+#include "ripples/TimerAggregator.h"
+#include "ripples/max_k_cover.h"
+
+#include "ripples/imm_execution_record.h"
+
+#include "ripples/mpi/streaming_engine.h"
+#include "ripples/mpi/approximator_context.h"
+#include "ripples/mpi/ownership_manager.h"
+#include "ripples/sampler_context.h"
+#include "ripples/mpi/martingale_context.h"
+#include "ripples/mpi/martingale_builder.h"
+#include "ripples/mpi/greedimm.h"
 
 namespace ripples {
 
