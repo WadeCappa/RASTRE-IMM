@@ -2,8 +2,21 @@
 #ifndef RIPPLES_MPI_SAMPLER_H
 #define RIPPLES_MPI_SAMPLER_H
 
-
 namespace ripples {
+    template <typename GraphTy, typename PRNGeneratorTy,
+            typename ItrTy, typename ExecRecordTy,
+            typename diff_model_tag>
+    void GenerateTransposeRRRSets(
+                        TransposeRRRSets<GraphTy> &transposeRRRSets,
+                        size_t current_sets,
+                        size_t delta,
+                        const GraphTy &G,
+                        StreamingRRRGenerator<GraphTy, PRNGeneratorTy, ItrTy, diff_model_tag> &se,
+                        ExecRecordTy &,
+                        diff_model_tag &&,
+                        omp_parallel_tag &&) {
+        // se.transposeGenerate(transposeRRRSets, current_sets, delta);
+    }
 
     template <
         typename GraphTy,
@@ -44,6 +57,7 @@ namespace ripples {
                 std::forward<execution_tag>(this->ex_tag)
             );
         }
+
     };
 }
 

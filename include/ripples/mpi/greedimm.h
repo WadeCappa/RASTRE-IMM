@@ -51,6 +51,7 @@
 #include "ripples/mpi/approximator_context.h"
 #include "ripples/mpi/approximator_group.h"
 #include "ripples/mpi/martingale_context.h"
+#include "ripples/mpi/martingale_builder.h"
 
 namespace ripples {
 namespace mpi {

@@ -183,7 +183,6 @@ void GenerateRRRSets(const GraphTy &G,
                      omp_parallel_tag &&) {
   se.generate(begin, end, record);
 }
-
 }  // namespace ripples
 
 #endif  // RIPPLES_GENERATE_RRR_SETS_H
