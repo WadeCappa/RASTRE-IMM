@@ -45,15 +45,15 @@
 
 #include <iostream>
 
-#include "ripples/configuration.h"
-#include "ripples/diffusion_simulation.h"
-#include "ripples/graph.h"
-#include "ripples/loaders.h"
 #include <ripples/greedimm_configuration.h>
 #include "ripples/imm_interface.h"
 #include "ripples/utility.h"
 #include <ripples/TimerAggregator.h>
 #include <ripples/mpi/greedimm.h>
+#include "ripples/configuration.h"
+#include "ripples/diffusion_simulation.h"
+#include "ripples/graph.h"
+#include "ripples/loaders.h"
 
 #include "CLI/CLI.hpp"
 #include "nlohmann/json.hpp"

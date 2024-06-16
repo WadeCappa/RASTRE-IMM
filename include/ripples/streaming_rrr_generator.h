@@ -61,6 +61,8 @@
 #include "ripples/batched_add_rrrset.h"
 #include "ripples/imm_execution_record.h"
 
+#include "ripples/transposeRRRSets.h"
+
 #if defined(RIPPLES_ENABLE_CUDA) || defined(RIPPLES_ENABLE_HIP)
 #include "ripples/gpu/bfs.h"
 #include "ripples/gpu/generate_rrr_sets.h"
@@ -101,6 +103,13 @@ class WalkWorker {
   virtual ~WalkWorker() {}
   virtual void svc_loop(std::atomic<size_t> &mpmc_head, ItrTy begin,
                         ItrTy end) = 0;
+
+  virtual void svc_transpose_loop(
+    std::atomic<size_t> &mpmc_head, 
+    TransposeRRRSets<GraphTy> &transposeRRRSets,
+    size_t current,
+    size_t delta
+  ) = 0;
 
 #ifdef REORDERING
   virtual void svc_loop(
@@ -154,6 +163,35 @@ class CPUWalkWorker : public WalkWorker<GraphTy, ItrTy> {
       if (last > end) last = end;
       batch(first, last);
     }
+  }
+
+  void svc_transpose_loop(
+    std::atomic<size_t> &mpmc_head, 
+    TransposeRRRSets<GraphTy> &tRRRSets, 
+    size_t current, 
+    size_t delta
+  ) {
+    size_t offset = 0;
+    while ((offset = mpmc_head.fetch_add(max_batch_size_)) < delta) {
+      {
+        size_t first = current + offset;
+        size_t last = first + max_batch_size_;
+        if (last > delta + current) last = delta + current;
+          batchTranspose(tRRRSets, first, last);
+      }
+    }
+  }
+
+  void batchTranspose(TransposeRRRSets<GraphTy> &tRRRSets, size_t first, size_t last) {
+    size_t size = last - first;
+    auto local_rng = rng_;
+    auto local_u = u_;
+    for (; first != last; ++first) {
+      vertex_t root = local_u(local_rng);
+      ripples::AddTransposeRRRSet(tRRRSets, this->G_, root, local_rng, diff_model_tag{}, first);
+    }
+    rng_ = local_rng;
+    u_ = local_u;
   }
 
 #ifdef REORDERING
@@ -384,6 +422,12 @@ class GPUWalkWorker<GraphTy, PRNGeneratorTy, ItrTy, linear_threshold_tag>
       batch(first, last);
     }
   }
+  void svc_transpose_loop(
+    std::atomic<size_t> &mpmc_head, 
+    TransposeRRRSets<GraphTy> &transposeRRRSets,
+    size_t current,
+    size_t delta
+  ) {}
 #ifdef REORDERING
   void svc_loop(std::atomic<size_t> &mpmc_head, ItrTy begin, ItrTy end,
                 typename std::vector<vertex_t>::iterator root_nodes_begin,
@@ -959,6 +1003,128 @@ class StreamingRRRGenerator {
 #if defined(RIPPLES_ENABLE_CUDA) || defined(RIPPLES_ENABLE_HIP)
       // for (auto &m : gpu_contexts_) cuda_destroy_ctx(m.second);
 #endif
+  }
+
+  void transposeGenerate(
+    TransposeRRRSets<GraphTy> &transposeRRRSets,
+    size_t current,
+    size_t delta
+  ) {
+#if GPU_PROFILE
+    auto start = std::chrono::high_resolution_clock::now();
+    for (auto &w : workers) w->begin_prof_iter();
+    record.WalkIterations.emplace_back();
+#endif
+
+    mpmc_head.store(0);
+
+#ifdef REORDERING
+    // Pregenerate random numbers for reordering
+    std::vector<vertex_t> root_nodes(std::distance(begin, end));
+    std::generate(root_nodes.begin(), root_nodes.end(),
+                  [&]() { return u_(master_rng_); });
+#ifdef SORTING
+    std::sort(root_nodes.begin(), root_nodes.end());
+#endif
+#endif
+
+    // // Figure out if the total batch size is larger than the work needed to
+    // be executed size_t total_batch_size = num_cpu_workers_ * cpu_batch_size_
+    // + num_gpu_workers_ * gpu_batch_size_; size_t work_size_ =
+    // std::distance(begin, end); size_t new_gpu_batch_size_ = gpu_batch_size_;
+    // size_t new_cpu_batch_size_ = cpu_batch_size_;
+    // if (total_batch_size > work_size_) {
+    //   // If so, we need to adjust the batch sizes, prioritizing the GPU
+    //   workers if (num_gpu_workers_ > 0) {
+    //     new_gpu_batch_size_ = std::min((std::distance(begin, end) +
+    //     num_gpu_workers_ - 1) / num_gpu_workers_, gpu_batch_size_);
+    //   }
+    //   work_size_ -= num_gpu_workers_ * new_gpu_batch_size_;
+    //   if (num_cpu_workers_ > 0) {
+    //     new_cpu_batch_size_ = std::min((work_size_ + num_cpu_workers_ - 1) /
+    //     num_cpu_workers_, cpu_batch_size_);
+    //   }
+    // }
+    // Set omp max levels to 3 to allow for nested parallelism
+    if (num_cpu_teams_) {
+      omp_set_max_active_levels(3);
+#pragma omp parallel num_threads(num_cpu_teams_) proc_bind(spread)
+      {
+        size_t rank_outer = omp_get_thread_num();
+        if (num_gpu_workers_) {
+// CPU + GPU
+#pragma omp parallel num_threads(1 + num_gpu_workers_ / num_cpu_teams_) \
+    proc_bind(close)
+          {
+            size_t rank_inner = omp_get_thread_num();
+            size_t rank = rank_outer * (1 + num_gpu_workers_ / num_cpu_teams_) +
+                          rank_inner;
+// Convert above into printf
+// printf("OMP Rank: %d | HW Thread: %d\n", rank, sched_getcpu());
+#ifdef REORDERING
+            if (workers[rank]->is_cpu()) {
+              workers[rank]->svc_loop(mpmc_head, begin, end, root_nodes.begin(),
+                                      cpu_batch_size_);
+            } else {
+              workers[rank]->svc_loop(mpmc_head, begin, end, root_nodes.begin(),
+                                      gpu_batch_size_);
+            }
+#else
+            workers[rank]->svc_transpose_loop(mpmc_head, transposeRRRSets, current, delta);
+#endif
+          }
+        }
+        // CPU Only
+        else {
+#ifdef REORDERING
+          workers[rank_outer]->svc_loop(mpmc_head, begin, end,
+                                        root_nodes.begin(), cpu_batch_size_);
+#else
+          workers[rank_outer]->svc_transpose_loop(mpmc_head, transposeRRRSets, current, delta);
+#endif
+        }
+      }
+    } else {
+// GPU Only
+#pragma omp parallel num_threads(num_gpu_workers_) proc_bind(spread)
+      {
+#ifdef REORDERING
+        workers[omp_get_thread_num()]->svc_loop(
+            mpmc_head, begin, end, root_nodes.begin(), gpu_batch_size_);
+#else
+        workers[omp_get_thread_num()]->svc_transpose_loop(mpmc_head, transposeRRRSets, current, delta);
+#endif
+      }
+    }
+
+#if 0
+    // Check begin through end to ensure none of the vectors are empty
+    size_t empty_vectors = 0;
+    for(auto it = begin; it != end; it++) {
+      if (it->empty()) {
+        empty_vectors++;
+      }
+    }
+    std::cout << "Empty vectors found: " << empty_vectors << std::endl;
+#endif  // 0 or 1
+
+#if GPU_PROFILE
+    auto d = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::high_resolution_clock::now() - start);
+    prof_bd.prof_bd.emplace_back(std::distance(begin, end), d);
+    prof_bd.n += std::distance(begin, end);
+    prof_bd.d += std::chrono::duration_cast<std::chrono::microseconds>(d);
+    auto &ri(record.WalkIterations.back());
+    ri.NumSets = std::distance(begin, end);
+    ri.Total = std::chrono::duration_cast<decltype(ri.Total)>(d);
+#endif
+#if 0
+  // ensure vectors from begin to end are not empty
+  for (auto it = begin; it != end; it++) {
+    assert(!it->empty());
+  }
+#endif
+
   }
 
   void generate(ItrTy begin, ItrTy end, IMMExecutionRecord &record) {

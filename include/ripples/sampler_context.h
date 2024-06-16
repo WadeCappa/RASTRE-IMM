@@ -15,7 +15,7 @@ namespace ripples {
                         ExecRecordTy &,
                         diff_model_tag &&,
                         omp_parallel_tag &&) {
-        // se.transposeGenerate(transposeRRRSets, current_sets, delta);
+        se.transposeGenerate(transposeRRRSets, current_sets, delta);
     }
 
     template <

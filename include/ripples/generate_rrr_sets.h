@@ -127,6 +127,54 @@ void AddRRRSet(const GraphTy &G, typename GraphTy::vertex_type r,
 }
 #endif
 
+template <typename GraphTy, typename PRNGeneratorTy, typename diff_model_tag>
+void AddTransposeRRRSet(TransposeRRRSets<GraphTy> &tRRRSets, const GraphTy &G, typename GraphTy::vertex_type r,
+               PRNGeneratorTy &generator,
+               diff_model_tag &&tag, const size_t RRRIndex) {
+  using vertex_type = typename GraphTy::vertex_type;
+
+  trng::uniform01_dist<float> value;
+
+  std::queue<vertex_type> queue;
+  std::vector<bool> visited(G.num_nodes(), false);
+
+  queue.push(r);
+  visited[r] = true;
+  tRRRSets.addToSet(int(r), RRRIndex);
+
+  while (!queue.empty()) {
+    vertex_type v = queue.front();
+    queue.pop();
+
+    if (std::is_same<diff_model_tag, ripples::independent_cascade_tag>::value) {
+      for (auto u : G.neighbors(v)) {
+        if (!visited[u.vertex] && value(generator) <= u.weight) {
+          queue.push(u.vertex);
+          visited[u.vertex] = true;
+          tRRRSets.addToSet(int(u.vertex), RRRIndex);
+        }
+      }
+    } else if (std::is_same<diff_model_tag,
+                            ripples::linear_threshold_tag>::value) { 
+      float threshold = value(generator);
+      for (auto u : G.neighbors(v)) {
+        threshold -= u.weight;
+
+        if (threshold > 0) continue;
+
+        if (!visited[u.vertex]) {
+          queue.push(u.vertex);
+          visited[u.vertex] = true;
+          tRRRSets.addToSet(int(u.vertex), RRRIndex);
+        }
+        break;
+      }
+    } else {
+      throw;
+    }
+  }
+}
+
 //! \brief Generate Random Reverse Reachability Sets - sequential.
 //!
 //! \tparam GraphTy The type of the garph.

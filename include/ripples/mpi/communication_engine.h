@@ -2,7 +2,6 @@
 #ifndef RIPPLES_MPI_IMM_COMM_ENGINE_H
 #define RIPPLES_MPI_IMM_COMM_ENGINE_H
 
-#include "ripples/transposeRRRSets.h"
 #include <vector>
 #include <unordered_set>
 #include <set>
