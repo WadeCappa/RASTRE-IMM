@@ -44,60 +44,29 @@
 #include "omp.h"
 
 #include <iostream>
-#include <cstddef>
-#include <utility>
-#include <vector>
-#include <unordered_map>
-#include <unordered_set>
-#include <set>
-#include <map>
-#include <thread>
-#include <time.h>
-#include <cstdlib>
-#include <numeric>
-#include <random>
-
-#include "CLI/CLI.hpp"
-#include "nlohmann/json.hpp"
-#include "spdlog/fmt/ostr.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/spdlog.h"
-#include "trng/lcg64.hpp"
 
 #include "ripples/configuration.h"
-#include "ripples/imm_configuration.h"
 #include "ripples/diffusion_simulation.h"
 #include "ripples/graph.h"
 #include "ripples/loaders.h"
+#include <ripples/greedimm_configuration.h>
+#include "ripples/imm_interface.h"
 #include "ripples/utility.h"
+#include <ripples/TimerAggregator.h>
+#include <ripples/mpi/greedimm.h>
 
-#include "ripples/generate_rrr_sets.h"
-#include "ripples/imm.h"
-#include "ripples/imm_execution_record.h"
-#include "ripples/mpi/find_most_influential.h"
-#include "ripples/utility.h"
+#include "CLI/CLI.hpp"
+#include "nlohmann/json.hpp"
 
-#include "ripples/generate_rrr_sets.h"
-#include "ripples/transposeRRRSets.h"
-#include "ripples/mpi/communication_engine.h"
-#include "ripples/TimerAggregator.h"
-#include "ripples/max_k_cover.h"
-
-#include "ripples/imm_execution_record.h"
-
-#include "ripples/mpi/streaming_engine.h"
-#include "ripples/mpi/approximator_context.h"
-#include "ripples/mpi/ownership_manager.h"
-#include "ripples/sampler_context.h"
-#include "ripples/mpi/martingale_context.h"
-#include "ripples/mpi/martingale_builder.h"
-#include "ripples/mpi/greedimm.h"
+#include "spdlog/fmt/ostr.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h"
 
 namespace ripples {
 
 template <typename SeedSet>
 auto GetExperimentRecord(
-  const ToolConfiguration<IMMConfiguration> &CFG,
+  const ToolConfiguration<GreedimmConfiguration> &CFG,
   const IMMExecutionRecord &R, 
   const SeedSet &seeds,
   TimerAggregator &timer) {
@@ -137,7 +106,7 @@ auto GetExperimentRecord(
   return experiment;
 }
 
-ToolConfiguration<ripples::IMMConfiguration> CFG;
+ToolConfiguration<ripples::GreedimmConfiguration> CFG;
  
 void parse_command_line(int argc, char **argv) {
   CFG.ParseCmdOptions(argc, argv);
@@ -150,7 +119,7 @@ void parse_command_line(int argc, char **argv) {
     CFG.seed_select_max_gpu_workers = CFG.streaming_gpu_workers;
 }
 
-ToolConfiguration<ripples::IMMConfiguration> configuration() { return CFG; }
+ToolConfiguration<ripples::GreedimmConfiguration> greedimmConfiguration() { return CFG; }
 
 }  // namespace ripples
 
@@ -161,10 +130,10 @@ int main(int argc, char *argv[]) {
 
   // process command line
   ripples::parse_command_line(argc, argv);
-  auto CFG = ripples::configuration();
+  auto CFG = ripples::greedimmConfiguration();
   if (CFG.parallel) {
     if (ripples::streaming_command_line(
-            CFG.worker_to_gpu, CFG.streaming_workers, CFG.streaming_gpu_workers,
+            CFG.worker_to_gpu, CFG.streaming_workers, CFG.streaming_cpu_teams, CFG.streaming_gpu_workers,
             CFG.gpu_mapping_string) != 0) {
       console->error("invalid command line");
       return -1;
@@ -200,12 +169,8 @@ int main(int argc, char *argv[]) {
   auto gpu_workers = CFG.streaming_gpu_workers;
   TimerAggregator timeAggregator;
   if (CFG.diffusionModel == "IC") {
-    ripples::StreamingRRRGenerator<
-        decltype(G), decltype(generator),
-        typename ripples::RRRsets<decltype(G)>::iterator,
-        ripples::independent_cascade_tag>
-        se(G, generator, R, workers - gpu_workers, gpu_workers,
-           CFG.worker_to_gpu);
+      ripples::ICStreamingGenerator se(G, generator, workers - gpu_workers, CFG.streaming_cpu_teams, gpu_workers,
+             CFG.gpu_batch_size, CFG.cpu_batch_size, CFG.worker_to_gpu, CFG.pause_threshold);
     auto start = std::chrono::high_resolution_clock::now();
     console->info("finished initializing graph");
     seeds = ripples::mpi::run_greedimm(
@@ -214,12 +179,8 @@ int main(int argc, char *argv[]) {
     auto end = std::chrono::high_resolution_clock::now();
     R.Total = end - start;
   } else if (CFG.diffusionModel == "LT") {
-    ripples::StreamingRRRGenerator<
-        decltype(G), decltype(generator),
-        typename ripples::RRRsets<decltype(G)>::iterator,
-        ripples::linear_threshold_tag>
-        se(G, generator, R, workers - gpu_workers, gpu_workers,
-           CFG.worker_to_gpu);
+    ripples::LTStreamingGenerator se(G, generator, workers - gpu_workers, CFG.streaming_cpu_teams, gpu_workers,
+           CFG.gpu_batch_size, CFG.cpu_batch_size, CFG.worker_to_gpu);
     auto start = std::chrono::high_resolution_clock::now();
     seeds = ripples::mpi::run_greedimm(
         G, CFG, timeAggregator, 1.0, se, R, ripples::linear_threshold_tag{},

@@ -40,9 +40,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef RIPPLES_MPI_IMM_H
-#define RIPPLES_MPI_IMM_H
+#ifndef RIPPLES_MPI_IMM_GREED_H
+#define RIPPLES_MPI_IMM_GREED_H
 
+#include "communication_engine.h"
+#include "ripples/sampler_context.h"
+#include "ripples/mpi/ownership_manager.h"
+#include "ripples/max_k_cover.h"
+#include "ripples/mpi/streaming_engine.h"
+#include "ripples/mpi/approximator_context.h"
+#include "ripples/mpi/approximator_group.h"
+#include "ripples/mpi/martingale_context.h"
 
 namespace ripples {
 namespace mpi {
